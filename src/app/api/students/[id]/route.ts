@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getTodayStart } from "@/lib/date-utils";
-import { saveStudentPhoto } from "@/lib/uploads";
+import { readStudentPhoto, studentPhotoUrl } from "@/lib/uploads";
 import { parseScheduleFromFormData, studentSchema } from "@/lib/validations";
 
 function scheduleCreateInput(
@@ -115,10 +115,10 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       }
     }
 
-    let photoUrl = existing.photoUrl;
+    let photoData: Awaited<ReturnType<typeof readStudentPhoto>> | null = null;
     if (photo instanceof File && photo.size > 0) {
       try {
-        photoUrl = await saveStudentPhoto(photo, parsed.data.studentId);
+        photoData = await readStudentPhoto(photo);
       } catch (uploadError) {
         return NextResponse.json(
           {
@@ -132,6 +132,21 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       }
     }
 
+    if (photoData) {
+      await prisma.studentPhoto.upsert({
+        where: { studentId: id },
+        create: {
+          studentId: id,
+          data: photoData.data,
+          mimeType: photoData.mimeType,
+        },
+        update: {
+          data: photoData.data,
+          mimeType: photoData.mimeType,
+        },
+      });
+    }
+
     const student = await prisma.student.update({
       where: { id },
       data: {
@@ -140,7 +155,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         phone: parsed.data.phone || null,
         course: parsed.data.course || null,
         yearLevel: parsed.data.yearLevel || null,
-        photoUrl,
+        photoUrl: photoData ? studentPhotoUrl(id) : existing.photoUrl,
         scheduleSlots: {
           deleteMany: {},
           create: scheduleCreateInput(scheduleParsed.data),

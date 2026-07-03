@@ -1,14 +1,15 @@
 import "dotenv/config";
-import path from "path";
 import bcrypt from "bcryptjs";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { MONITORING_SYSTEM_CATALOG } from "../src/lib/monitoring-systems";
 
-const databaseUrl =
-  process.env.DATABASE_URL ?? `file:${path.join(process.cwd(), "dev.db")}`;
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  throw new Error("DATABASE_URL is not configured");
+}
 
-const adapter = new PrismaBetterSqlite3({ url: databaseUrl });
+const adapter = new PrismaPg({ connectionString });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {

@@ -69,7 +69,9 @@ export async function fetchAttendanceReport(
       student: {
         isActive: true,
         ...(filters.studentId ? { studentId: filters.studentId } : {}),
-        ...(filters.course ? { course: { contains: filters.course } } : {}),
+        ...(filters.course
+          ? { course: { contains: filters.course, mode: "insensitive" } }
+          : {}),
       },
     },
     include: {

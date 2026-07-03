@@ -13,10 +13,17 @@ A modern admin web app for registering students, managing profile photos, and re
 - **Reports** — export attendance to Excel (.xls) or PDF with date filters
 - **QR Scan** — kiosk camera scanning for automatic time in/out
 
+## Tech stack
+
+- Next.js 16 (App Router) — frontend **and** API routes in one app
+- PostgreSQL via Prisma 7 (using the `@prisma/adapter-pg` driver adapter)
+- Student photos are stored in the database (no local filesystem needed)
+
 ## Requirements
 
 - Node.js 18+
 - npm
+- A PostgreSQL database (local, or a hosted one like Railway)
 
 ## Setup
 
@@ -26,11 +33,13 @@ A modern admin web app for registering students, managing profile photos, and re
 npm install
 ```
 
-2. Copy environment variables:
+2. Copy environment variables and edit them:
 
 ```bash
 copy .env.example .env
 ```
+
+Set `DATABASE_URL` to your PostgreSQL connection string and `AUTH_SECRET` to a long random string.
 
 3. Run database migration and seed:
 
@@ -63,15 +72,58 @@ npm run build
 npm start
 ```
 
-Set a strong `AUTH_SECRET` in `.env` before deploying.
+The `build` script runs `prisma migrate deploy` automatically, so migrations are
+applied to the target database during every build. Set a strong `AUTH_SECRET`
+before deploying.
+
+## Deployment — Vercel (app) + Railway (PostgreSQL)
+
+This is a monolithic Next.js app: the frontend and the backend (API routes +
+server components) run together on Vercel. Only the database lives on Railway.
+
+### 1. Create the database on Railway
+
+1. Create a new project on [Railway](https://railway.app) and add a
+   **PostgreSQL** database.
+2. Open the database service → **Connect / Variables** and copy the **public**
+   connection string (the one with a `proxy.rlwy.net` host, reachable from
+   outside Railway).
+3. If you get SSL errors when connecting, append `?sslmode=require` to the URL.
+
+### 2. Deploy the app on Vercel
+
+1. Push this repo to GitHub and import it into [Vercel](https://vercel.com) as a
+   new project (Vercel auto-detects Next.js).
+2. Add these **Environment Variables** in the Vercel project settings (for all
+   environments):
+   - `DATABASE_URL` — the Railway public connection string from step 1.
+   - `AUTH_SECRET` — a long random string.
+3. Deploy. The build runs `prisma migrate deploy`, which creates all tables in
+   the Railway database automatically.
+
+### 3. Seed the initial accounts (once)
+
+The seed creates the default admin accounts and the monitoring system catalog.
+Run it once against the Railway database from your machine:
+
+```bash
+# DATABASE_URL must point at the Railway database
+npx prisma db seed
+```
+
+(Alternatively run it from Railway's shell, or a one-off Railway service.)
+
+After that, the app on Vercel is fully connected to the Railway PostgreSQL
+database.
 
 ## Project structure
 
 - `src/app/(dashboard)/` — Admin pages (dashboard, students, attendance)
 - `src/app/login/` — Admin login
-- `src/app/api/` — REST API routes
-- `prisma/` — Database schema and migrations
-- `public/uploads/students/` — Student profile photos
+- `src/app/api/` — REST API routes (the backend)
+- `src/app/api/students/[id]/photo/` — Serves student photos stored in the DB
+- `prisma/` — Database schema and PostgreSQL migrations
+- Student photos are stored in the `StudentPhoto` table (not on disk)
 
 ## Usage
 

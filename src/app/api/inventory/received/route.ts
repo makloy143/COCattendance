@@ -34,13 +34,13 @@ async function fetchReceivedItems(options: {
       ...(search
         ? {
             OR: [
-              { itemName: { contains: search } },
-              { brand: { contains: search } },
-              { model: { contains: search } },
-              { color: { contains: search } },
-              { serialNumber: { contains: search } },
-              { senderName: { contains: search } },
-              { senderSource: { contains: search } },
+              { itemName: { contains: search, mode: "insensitive" } },
+              { brand: { contains: search, mode: "insensitive" } },
+              { model: { contains: search, mode: "insensitive" } },
+              { color: { contains: search, mode: "insensitive" } },
+              { serialNumber: { contains: search, mode: "insensitive" } },
+              { senderName: { contains: search, mode: "insensitive" } },
+              { senderSource: { contains: search, mode: "insensitive" } },
             ],
           }
         : {}),

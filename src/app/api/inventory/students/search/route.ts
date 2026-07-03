@@ -17,10 +17,10 @@ export async function GET(request: NextRequest) {
       where: {
         isActive: true,
         OR: [
-          { studentId: { contains: q } },
-          { firstName: { contains: q } },
-          { lastName: { contains: q } },
-          { course: { contains: q } },
+          { studentId: { contains: q, mode: "insensitive" } },
+          { firstName: { contains: q, mode: "insensitive" } },
+          { lastName: { contains: q, mode: "insensitive" } },
+          { course: { contains: q, mode: "insensitive" } },
         ],
       },
       select: {

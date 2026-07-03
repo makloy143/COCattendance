@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model Admin {
@@ -57,6 +57,15 @@ model Student {
   attendance    AttendanceRecord[]
   scheduleSlots StudentScheduleSlot[]
   idErrors      IdErrorRecord[]
+  photo         StudentPhoto?
+}
+
+model StudentPhoto {
+  studentId String   @id
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  data      Bytes
+  mimeType  String
+  updatedAt DateTime @updatedAt
 }
 
 model StudentScheduleSlot {

@@ -33,18 +33,18 @@ export async function GET(request: NextRequest) {
         ...(search
           ? {
               OR: [
-                { borrowerName: { contains: search } },
-                { department: { contains: search } },
-                { returnerName: { contains: search } },
-                { receivedByName: { contains: search } },
-                { notes: { contains: search } },
+                { borrowerName: { contains: search, mode: "insensitive" } },
+                { department: { contains: search, mode: "insensitive" } },
+                { returnerName: { contains: search, mode: "insensitive" } },
+                { receivedByName: { contains: search, mode: "insensitive" } },
+                { notes: { contains: search, mode: "insensitive" } },
                 {
                   receivedItem: {
                     OR: [
-                      { itemName: { contains: search } },
-                      { brand: { contains: search } },
-                      { model: { contains: search } },
-                      { serialNumber: { contains: search } },
+                      { itemName: { contains: search, mode: "insensitive" } },
+                      { brand: { contains: search, mode: "insensitive" } },
+                      { model: { contains: search, mode: "insensitive" } },
+                      { serialNumber: { contains: search, mode: "insensitive" } },
                     ],
                   },
                 },

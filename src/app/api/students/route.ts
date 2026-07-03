@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { saveStudentPhoto } from "@/lib/uploads";
+import { readStudentPhoto, studentPhotoUrl } from "@/lib/uploads";
 import { parseScheduleFromFormData, studentSchema } from "@/lib/validations";
 
 function scheduleCreateInput(
@@ -34,10 +34,10 @@ export async function GET(request: NextRequest) {
         ...(search
           ? {
               OR: [
-                { firstName: { contains: search } },
-                { lastName: { contains: search } },
-                { studentId: { contains: search } },
-                { course: { contains: search } },
+                { firstName: { contains: search, mode: "insensitive" } },
+                { lastName: { contains: search, mode: "insensitive" } },
+                { studentId: { contains: search, mode: "insensitive" } },
+                { course: { contains: search, mode: "insensitive" } },
               ],
             }
           : {}),
@@ -99,10 +99,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let photoUrl: string | undefined;
+    let photoData: Awaited<ReturnType<typeof readStudentPhoto>> | null = null;
     if (photo instanceof File && photo.size > 0) {
       try {
-        photoUrl = await saveStudentPhoto(photo, parsed.data.studentId);
+        photoData = await readStudentPhoto(photo);
       } catch (uploadError) {
         return NextResponse.json(
           {
@@ -123,7 +123,16 @@ export async function POST(request: NextRequest) {
         phone: parsed.data.phone || null,
         course: parsed.data.course || null,
         yearLevel: parsed.data.yearLevel || null,
-        photoUrl: photoUrl ?? null,
+        ...(photoData
+          ? {
+              photo: {
+                create: {
+                  data: photoData.data,
+                  mimeType: photoData.mimeType,
+                },
+              },
+            }
+          : {}),
         scheduleSlots: {
           create: scheduleCreateInput(scheduleParsed.data),
         },
@@ -132,6 +141,17 @@ export async function POST(request: NextRequest) {
         scheduleSlots: { orderBy: { dayOfWeek: "asc" } },
       },
     });
+
+    if (photoData) {
+      const updated = await prisma.student.update({
+        where: { id: student.id },
+        data: { photoUrl: studentPhotoUrl(student.id) },
+        include: {
+          scheduleSlots: { orderBy: { dayOfWeek: "asc" } },
+        },
+      });
+      return NextResponse.json(updated, { status: 201 });
+    }
 
     return NextResponse.json(student, { status: 201 });
   } catch (error) {
