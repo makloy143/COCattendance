@@ -1,0 +1,212 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Admin {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+model InventoryAdmin {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+model MonitoringAdmin {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+enum StudentType {
+  SA
+  HK
+}
+
+enum StudentAssignment {
+  COMLAB
+  ID_STATION
+  ITS_OFFICE
+}
+
+model Student {
+  id            String                @id @default(cuid())
+  studentId     String                @unique
+  firstName     String
+  lastName      String
+  email         String?
+  phone         String?
+  course        String?
+  yearLevel     String?
+  studentType   StudentType           @default(SA)
+  assignment    StudentAssignment     @default(COMLAB)
+  photoUrl      String?
+  qrToken       String                @unique @default(cuid())
+  isActive      Boolean               @default(true)
+  createdAt     DateTime              @default(now())
+  attendance    AttendanceRecord[]
+  scheduleSlots StudentScheduleSlot[]
+  idErrors      IdErrorRecord[]
+}
+
+model StudentScheduleSlot {
+  id        String  @id @default(cuid())
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  isEnabled Boolean @default(true)
+
+  @@unique([studentId, dayOfWeek])
+}
+
+model AttendanceRecord {
+  id        String    @id @default(cuid())
+  studentId String
+  student   Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  date      DateTime
+  timeIn    DateTime?
+  timeOut   DateTime?
+  createdAt DateTime  @default(now())
+
+  @@unique([studentId, date])
+}
+
+enum ItemType {
+  CONSUMABLE
+  EQUIPMENT
+}
+
+enum ItemCategory {
+  GENERAL
+  INK
+  ID_SUPPLIES
+}
+
+enum InkColor {
+  BLACK
+  MAGENTA
+  CYAN
+  YELLOW
+  OTHER
+}
+
+enum BorrowStatus {
+  ACTIVE
+  RETURNED
+}
+
+enum IdErrorStatus {
+  REPRINT
+  RESOLVED
+  CANCELLED
+}
+
+model ReceivedItem {
+  id                   String         @id @default(cuid())
+  itemName             String
+  itemType             ItemType       @default(CONSUMABLE)
+  category             ItemCategory   @default(GENERAL)
+  inkColor             InkColor?
+  brand                String?
+  model                String?
+  color                String?
+  serialNumber         String?
+  quantity             Int            @default(1)
+  senderName           String
+  senderSource         String         @default("COC Main")
+  receivedByDepartment String         @default("IT- MAIN SCHOOL")
+  dateReceived         DateTime
+  notes                String?
+  createdAt            DateTime       @default(now())
+  borrows              BorrowRecord[]
+}
+
+model BorrowRecord {
+  id                 String       @id @default(cuid())
+  receivedItemId     String
+  receivedItem       ReceivedItem @relation(fields: [receivedItemId], references: [id], onDelete: Cascade)
+  borrowerName       String
+  department         String
+  quantityBorrowed   Int          @default(1)
+  dateBorrowed       DateTime
+  timeBorrowed       String?
+  dateReturned       DateTime?
+  timeReturned       String?
+  returnerName       String?
+  receivedByName     String?
+  dueDate            DateTime?
+  signatureConfirmed Boolean      @default(false)
+  status             BorrowStatus @default(ACTIVE)
+  notes              String?
+  createdAt          DateTime     @default(now())
+}
+
+model IdErrorRecord {
+  id               String        @id @default(cuid())
+  personName       String
+  course           String
+  idNumber         String
+  datePrintedError DateTime
+  status           IdErrorStatus @default(REPRINT)
+  reason           String
+  notes            String?
+  studentId        String?
+  student          Student?      @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  createdAt        DateTime      @default(now())
+}
+
+enum MonitoringCategory {
+  INTERNET
+  NETWORK_SECURITY_CLOUD
+  APPLICATIONS
+  COM_LAB
+}
+
+model MonitoringSystem {
+  id        String                  @id @default(cuid())
+  name      String
+  category  MonitoringCategory
+  accountNo String?
+  sortOrder Int
+  entries   MonitoringReportEntry[]
+
+  @@unique([category, name])
+}
+
+model MonitoringReport {
+  id         String                  @id @default(cuid())
+  reportDate DateTime                @unique
+  shiftType  String                  @default("IN")
+  entries    MonitoringReportEntry[]
+  createdAt  DateTime                @default(now())
+  updatedAt  DateTime                @updatedAt
+}
+
+model MonitoringReportEntry {
+  id             String           @id @default(cuid())
+  reportId       String
+  systemId       String
+  status         String           @default("Up")
+  accountNo      String?
+  uptime         String?
+  downtime       String?
+  restoration    String?
+  userExperience String?
+  remarks        String?
+  report         MonitoringReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  system         MonitoringSystem @relation(fields: [systemId], references: [id], onDelete: Cascade)
+
+  @@unique([reportId, systemId])
+}

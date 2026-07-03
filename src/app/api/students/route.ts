@@ -1,0 +1,146 @@
+import { NextRequest, NextResponse } from "next/server";
+import { requireSession } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { saveStudentPhoto } from "@/lib/uploads";
+import { parseScheduleFromFormData, studentSchema } from "@/lib/validations";
+
+function scheduleCreateInput(
+  schedule: {
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+    isEnabled: boolean;
+  }[]
+) {
+  return schedule.map((slot) => ({
+    dayOfWeek: slot.dayOfWeek,
+    startTime: slot.startTime,
+    endTime: slot.endTime,
+    isEnabled: slot.isEnabled,
+  }));
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    await requireSession();
+
+    const { searchParams } = new URL(request.url);
+    const search = searchParams.get("search")?.trim();
+    const includeInactive = searchParams.get("includeInactive") === "true";
+
+    const students = await prisma.student.findMany({
+      where: {
+        ...(includeInactive ? {} : { isActive: true }),
+        ...(search
+          ? {
+              OR: [
+                { firstName: { contains: search } },
+                { lastName: { contains: search } },
+                { studentId: { contains: search } },
+                { course: { contains: search } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+    });
+
+    return NextResponse.json(students);
+  } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    return NextResponse.json(
+      { error: "Failed to fetch students" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    await requireSession();
+
+    const formData = await request.formData();
+    const photo = formData.get("photo");
+
+    const parsed = studentSchema.safeParse({
+      studentId: formData.get("studentId"),
+      firstName: formData.get("firstName"),
+      lastName: formData.get("lastName"),
+      email: formData.get("email") ?? "",
+      phone: formData.get("phone") ?? "",
+      course: formData.get("course") ?? "",
+      yearLevel: formData.get("yearLevel") ?? "",
+      studentType: formData.get("studentType") ?? "SA",
+      assignment: formData.get("assignment") ?? "COMLAB",
+    });
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? "Invalid input" },
+        { status: 400 }
+      );
+    }
+
+    const scheduleParsed = parseScheduleFromFormData(formData);
+    if (!scheduleParsed.success) {
+      return NextResponse.json({ error: scheduleParsed.error }, { status: 400 });
+    }
+
+    const existing = await prisma.student.findUnique({
+      where: { studentId: parsed.data.studentId },
+    });
+
+    if (existing) {
+      return NextResponse.json(
+        { error: "Student ID already exists" },
+        { status: 400 }
+      );
+    }
+
+    let photoUrl: string | undefined;
+    if (photo instanceof File && photo.size > 0) {
+      try {
+        photoUrl = await saveStudentPhoto(photo, parsed.data.studentId);
+      } catch (uploadError) {
+        return NextResponse.json(
+          {
+            error:
+              uploadError instanceof Error
+                ? uploadError.message
+                : "Photo upload failed",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    const student = await prisma.student.create({
+      data: {
+        ...parsed.data,
+        email: parsed.data.email || null,
+        phone: parsed.data.phone || null,
+        course: parsed.data.course || null,
+        yearLevel: parsed.data.yearLevel || null,
+        photoUrl: photoUrl ?? null,
+        scheduleSlots: {
+          create: scheduleCreateInput(scheduleParsed.data),
+        },
+      },
+      include: {
+        scheduleSlots: { orderBy: { dayOfWeek: "asc" } },
+      },
+    });
+
+    return NextResponse.json(student, { status: 201 });
+  } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    return NextResponse.json(
+      { error: "Failed to create student" },
+      { status: 500 }
+    );
+  }
+}

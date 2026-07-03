@@ -1,65 +1,111 @@
-import Image from "next/image";
+import type { Metadata } from "next";
+import Link from "next/link";
+import {
+  Activity,
+  ArrowRight,
+  GraduationCap,
+  Package,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
-export default function Home() {
+export const metadata: Metadata = {
+  title: "COC-ILIGAN Portal",
+  description: "Choose your dashboard — attendance, daily monitoring, or inventory",
+};
+
+const portals = [
+  {
+    href: "/login",
+    title: "Attendance Dashboard",
+    description:
+      "Manage student registration, QR scanning, and daily attendance records.",
+    icon: GraduationCap,
+    iconClass: "bg-emerald-600 text-white",
+    cardClass: "hover:border-emerald-500/50 hover:shadow-emerald-500/10",
+  },
+  {
+    href: "/monitoring/login",
+    title: "Daily Monitoring Dashboard",
+    description:
+      "Track daily IT systems monitoring reports and generate status summaries.",
+    icon: Activity,
+    iconClass: "bg-blue-600 text-white",
+    cardClass: "hover:border-blue-500/50 hover:shadow-blue-500/10",
+  },
+  {
+    href: "/inventory/login",
+    title: "Inventory Dashboard",
+    description:
+      "Manage received items and borrow records from COC Main inventory.",
+    icon: Package,
+    iconClass: "bg-amber-600 text-white",
+    cardClass: "hover:border-amber-500/50 hover:shadow-amber-500/10",
+  },
+];
+
+export default function LandingPage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-50 via-white to-emerald-50 dark:from-slate-950 dark:via-background dark:to-emerald-950/20">
+      <main className="flex flex-1 flex-col items-center justify-center px-4 py-12 sm:px-6">
+        <div className="mb-10 max-w-2xl text-center">
+          <div className="mx-auto mb-6 flex size-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg">
+            <GraduationCap className="size-8" />
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            COC-ILIGAN Portal
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="mt-3 text-base text-muted-foreground sm:text-lg">
+            Select a dashboard to get started
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="grid w-full max-w-4xl gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {portals.map((portal) => (
+            <Link key={portal.href} href={portal.href} className="group block">
+              <Card
+                className={cn(
+                  "h-full transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg",
+                  portal.cardClass
+                )}
+              >
+                <CardHeader className="space-y-4">
+                  <div
+                    className={cn(
+                      "flex size-12 items-center justify-center rounded-xl shadow-sm",
+                      portal.iconClass
+                    )}
+                  >
+                    <portal.icon className="size-6" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">{portal.title}</CardTitle>
+                    <CardDescription className="mt-1.5 leading-relaxed">
+                      {portal.description}
+                    </CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <span className="inline-flex items-center gap-1.5 text-sm font-medium text-primary transition-colors group-hover:gap-2.5">
+                    Open dashboard
+                    <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+                  </span>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
         </div>
       </main>
+
+      <footer className="py-6 text-center text-xs text-muted-foreground">
+        City College of Cagayan de Oro — Iligan Campus
+      </footer>
     </div>
   );
 }
