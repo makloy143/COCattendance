@@ -7,6 +7,7 @@ import {
   FileBarChart,
   GraduationCap,
   LayoutDashboard,
+  ListTodo,
   LogOut,
   QrCode,
   Users,
@@ -35,6 +36,7 @@ const navItems = [
   { href: "/attendance", label: "Attendance", icon: CalendarCheck },
   { href: "/scan", label: "QR Scan", icon: QrCode },
   { href: "/reports", label: "Reports", icon: FileBarChart },
+  { href: "/todos", label: "To-Do", icon: ListTodo },
 ];
 
 export function AppSidebar({ username }: { username?: string }) {

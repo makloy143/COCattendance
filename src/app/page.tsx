@@ -4,6 +4,7 @@ import {
   Activity,
   ArrowRight,
   GraduationCap,
+  ListChecks,
   Package,
 } from "lucide-react";
 import {
@@ -47,6 +48,15 @@ const portals = [
     icon: Package,
     iconClass: "bg-amber-600 text-white",
     cardClass: "hover:border-amber-500/50 hover:shadow-amber-500/10",
+  },
+  {
+    href: "/todos",
+    title: "To-Do Dashboard",
+    description:
+      "Track team tasks and reminders with priorities and due dates.",
+    icon: ListChecks,
+    iconClass: "bg-violet-600 text-white",
+    cardClass: "hover:border-violet-500/50 hover:shadow-violet-500/10",
   },
 ];
 

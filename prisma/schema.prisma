@@ -219,3 +219,20 @@ model MonitoringReportEntry {
 
   @@unique([reportId, systemId])
 }
+
+enum TodoPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Todo {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  priority    TodoPriority @default(MEDIUM)
+  isDone      Boolean      @default(false)
+  dueDate     DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}

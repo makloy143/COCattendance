@@ -3,6 +3,7 @@ import { normalizeScheduleSlots } from "@/lib/schedule";
 import { ITEM_TYPES, ITEM_CATEGORIES, INK_COLORS, ID_ERROR_STATUSES } from "@/lib/inventory";
 import { STUDENT_ASSIGNMENTS } from "@/lib/student-assignment";
 import { STUDENT_TYPES } from "@/lib/student-type";
+import { TODO_PRIORITIES } from "@/lib/todo";
 
 export const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -221,3 +222,20 @@ export const monitoringSaveSchema = z.object({
 });
 
 export type MonitoringSaveInput = z.infer<typeof monitoringSaveSchema>;
+
+export const todoSchema = z.object({
+  title: z.string().min(1, "Title is required").max(200),
+  description: z.string().max(1000).optional().or(z.literal("")),
+  priority: z.enum(TODO_PRIORITIES).default("MEDIUM"),
+  dueDate: z.string().optional().or(z.literal("")),
+});
+
+export type TodoFormValues = z.infer<typeof todoSchema>;
+
+export const todoUpdateSchema = z.object({
+  title: z.string().min(1, "Title is required").max(200).optional(),
+  description: z.string().max(1000).optional().or(z.literal("")),
+  priority: z.enum(TODO_PRIORITIES).optional(),
+  dueDate: z.string().optional().or(z.literal("")).nullable(),
+  isDone: z.boolean().optional(),
+});
