@@ -17,17 +17,41 @@ export function formatDateTime(date: Date | string): string {
   return format(new Date(date), "MMM d, yyyy h:mm a");
 }
 
+export function getDurationMinutes(
+  timeIn: Date | string | null | undefined,
+  timeOut: Date | string | null | undefined
+): number {
+  if (!timeIn || !timeOut) return 0;
+  const start = new Date(timeIn).getTime();
+  const end = new Date(timeOut).getTime();
+  return Math.max(0, Math.floor((end - start) / 60000));
+}
+
+export function getTotalMinutes(
+  records: {
+    timeIn: Date | string | null | undefined;
+    timeOut: Date | string | null | undefined;
+  }[]
+): number {
+  return records.reduce(
+    (total, record) => total + getDurationMinutes(record.timeIn, record.timeOut),
+    0
+  );
+}
+
+export function formatTotalHours(totalMinutes: number): string {
+  if (totalMinutes <= 0) return "0 min";
+  const hours = Math.floor(totalMinutes / 60);
+  const mins = totalMinutes % 60;
+  if (hours === 0) return `${mins} min`;
+  if (mins === 0) return `${hours} hr`;
+  return `${hours} hr ${mins} min`;
+}
+
 export function formatDuration(
   timeIn: Date | string | null | undefined,
   timeOut: Date | string | null | undefined
 ): string {
   if (!timeIn || !timeOut) return "—";
-  const start = new Date(timeIn).getTime();
-  const end = new Date(timeOut).getTime();
-  const minutes = Math.max(0, Math.floor((end - start) / 60000));
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  if (hours === 0) return `${mins} min`;
-  if (mins === 0) return `${hours} hr`;
-  return `${hours} hr ${mins} min`;
+  return formatTotalHours(getDurationMinutes(timeIn, timeOut));
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getDurationMinutes } from "@/lib/date-utils";
 import { readStudentPhoto, studentPhotoUrl } from "@/lib/uploads";
 import { parseScheduleFromFormData, studentSchema } from "@/lib/validations";
 
@@ -45,7 +46,34 @@ export async function GET(request: NextRequest) {
       orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
     });
 
-    return NextResponse.json(students);
+    const attendanceRecords = await prisma.attendanceRecord.findMany({
+      where: {
+        studentId: { in: students.map((student) => student.id) },
+        timeIn: { not: null },
+        timeOut: { not: null },
+      },
+      select: {
+        studentId: true,
+        timeIn: true,
+        timeOut: true,
+      },
+    });
+
+    const totalMinutesByStudent = new Map<string, number>();
+    for (const record of attendanceRecords) {
+      const minutes = getDurationMinutes(record.timeIn, record.timeOut);
+      totalMinutesByStudent.set(
+        record.studentId,
+        (totalMinutesByStudent.get(record.studentId) ?? 0) + minutes
+      );
+    }
+
+    return NextResponse.json(
+      students.map((student) => ({
+        ...student,
+        totalMinutes: totalMinutesByStudent.get(student.id) ?? 0,
+      }))
+    );
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

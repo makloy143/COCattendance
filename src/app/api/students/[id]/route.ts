@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getTodayStart } from "@/lib/date-utils";
+import { getTodayStart, getTotalMinutes } from "@/lib/date-utils";
 import { readStudentPhoto, studentPhotoUrl } from "@/lib/uploads";
 import { parseScheduleFromFormData, studentSchema } from "@/lib/validations";
 
@@ -45,16 +45,33 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
-    const todayRecord = await prisma.attendanceRecord.findUnique({
-      where: {
-        studentId_date: {
-          studentId: id,
-          date: getTodayStart(),
+    const [todayRecord, completedAttendance] = await Promise.all([
+      prisma.attendanceRecord.findUnique({
+        where: {
+          studentId_date: {
+            studentId: id,
+            date: getTodayStart(),
+          },
         },
-      },
-    });
+      }),
+      prisma.attendanceRecord.findMany({
+        where: {
+          studentId: id,
+          timeIn: { not: null },
+          timeOut: { not: null },
+        },
+        select: {
+          timeIn: true,
+          timeOut: true,
+        },
+      }),
+    ]);
 
-    return NextResponse.json({ ...student, todayRecord });
+    return NextResponse.json({
+      ...student,
+      todayRecord,
+      totalMinutes: getTotalMinutes(completedAttendance),
+    });
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

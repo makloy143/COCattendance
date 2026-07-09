@@ -20,6 +20,7 @@ import {
   getStudentAssignmentLabel,
   type StudentAssignment,
 } from "@/lib/student-assignment";
+import { formatTotalHours } from "@/lib/date-utils";
 import type { StudentType } from "@/lib/student-type";
 
 type Student = {
@@ -34,6 +35,7 @@ type Student = {
   assignment: StudentAssignment;
   photoUrl: string | null;
   isActive: boolean;
+  totalMinutes: number;
 };
 
 export default function StudentsPage() {
@@ -135,12 +137,18 @@ export default function StudentsPage() {
                       {getStudentAssignmentLabel(student.assignment)}
                     </p>
                   </div>
+                  <div className="col-span-2">
+                    <p className="text-xs text-muted-foreground">Total hours</p>
+                    <p className="font-medium">
+                      {formatTotalHours(student.totalMinutes ?? 0)}
+                    </p>
+                  </div>
                 </div>
               </Link>
             ))}
           </div>
 
-          <ResponsiveTableShell className="hidden md:block" minWidthClassName="min-w-[960px]">
+          <ResponsiveTableShell className="hidden md:block" minWidthClassName="min-w-[1080px]">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -150,6 +158,7 @@ export default function StudentsPage() {
                   <TableHead>Year</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Assign to</TableHead>
+                  <TableHead>Total Hours</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -180,6 +189,9 @@ export default function StudentsPage() {
                     </TableCell>
                     <TableCell>
                       {getStudentAssignmentLabel(student.assignment)}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {formatTotalHours(student.totalMinutes ?? 0)}
                     </TableCell>
                     <TableCell>
                       <Badge variant={student.isActive ? "secondary" : "outline"}>

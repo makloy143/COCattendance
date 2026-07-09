@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { StudentAvatar } from "@/components/student-avatar";
 import { AttendanceActions } from "@/components/attendance-actions";
 import { StudentQrCard } from "@/components/student-qr-card";
-import { formatDate, formatDuration, formatTime } from "@/lib/date-utils";
+import { formatDate, formatDuration, formatTime, formatTotalHours } from "@/lib/date-utils";
 import {
   formatScheduleTime,
   getWeekdayLabel,
@@ -53,6 +53,7 @@ type StudentProfile = {
   scheduleSlots: ScheduleSlot[];
   attendance: AttendanceRecord[];
   todayRecord: AttendanceRecord | null;
+  totalMinutes: number;
 };
 
 export default function StudentProfilePage({
@@ -138,6 +139,9 @@ export default function StudentProfilePage({
               <p>Email: {student.email || "—"}</p>
               <p>Phone: {student.phone || "—"}</p>
               <p>Registered: {formatDate(student.createdAt)}</p>
+              <p className="font-medium text-foreground">
+                Total hours: {formatTotalHours(student.totalMinutes ?? 0)}
+              </p>
             </div>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto">
@@ -198,8 +202,11 @@ export default function StudentProfilePage({
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
           <CardTitle>Attendance History</CardTitle>
+          <p className="text-sm font-medium text-muted-foreground">
+            Total: {formatTotalHours(student.totalMinutes ?? 0)}
+          </p>
         </CardHeader>
         <CardContent>
           {student.attendance.length === 0 ? (
