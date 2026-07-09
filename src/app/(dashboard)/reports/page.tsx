@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { format, subDays } from "date-fns";
 import { Download, FileSpreadsheet, FileText, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -25,15 +24,22 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ResponsiveTableShell } from "@/components/responsive-table-shell";
+import { formatManilaDateInput, getTodayStart } from "@/lib/date-utils";
 import type { ReportRow } from "@/lib/reports";
 
-function toInputDate(date: Date) {
-  return format(date, "yyyy-MM-dd");
+function defaultReportRange() {
+  const today = getTodayStart();
+  const from = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+  return {
+    from: formatManilaDateInput(from),
+    to: formatManilaDateInput(today),
+  };
 }
 
 export default function ReportsPage() {
-  const [from, setFrom] = useState(toInputDate(subDays(new Date(), 30)));
-  const [to, setTo] = useState(toInputDate(new Date()));
+  const initialRange = useMemo(() => defaultReportRange(), []);
+  const [from, setFrom] = useState(initialRange.from);
+  const [to, setTo] = useState(initialRange.to);
   const [studentId, setStudentId] = useState("");
   const [course, setCourse] = useState("");
   const [status, setStatus] = useState("all");

@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { endOfDay, startOfDay, subDays } from "date-fns";
 import { requireSession } from "@/lib/auth";
+import {
+  formatManilaDateInput,
+  getManilaDayEnd,
+  getManilaDayStart,
+  getTodayStart,
+} from "@/lib/date-utils";
 import {
   buildExcelBuffer,
   buildPdfBuffer,
@@ -15,8 +20,11 @@ export async function GET(request: NextRequest) {
     await requireSession();
 
     const { searchParams } = new URL(request.url);
-    const today = startOfDay(new Date());
-    const defaultFrom = subDays(today, 30);
+    const today = getTodayStart();
+    const defaultFromKey = formatManilaDateInput(
+      new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+    );
+    const defaultFrom = getManilaDayStart(defaultFromKey);
 
     const from = parseReportDate(searchParams.get("from") ?? "", defaultFrom);
     const to = parseReportDate(searchParams.get("to") ?? "", today);
@@ -29,8 +37,8 @@ export async function GET(request: NextRequest) {
     }
 
     const filters: ReportFilters = {
-      from: startOfDay(from),
-      to: endOfDay(to),
+      from: getManilaDayStart(from),
+      to: getManilaDayEnd(to),
       studentId: searchParams.get("studentId")?.trim() || undefined,
       course: searchParams.get("course")?.trim() || undefined,
       status:

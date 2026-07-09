@@ -1,6 +1,12 @@
-import { endOfDay, format, parseISO, startOfDay } from "date-fns";
 import { prisma } from "@/lib/db";
-import { formatDuration, formatTime } from "@/lib/date-utils";
+import {
+  formatDate,
+  formatDuration,
+  formatManilaDateInput,
+  formatTime,
+  getManilaDayEnd,
+  getManilaDayStart,
+} from "@/lib/date-utils";
 
 export type ReportFilters = {
   from: Date;
@@ -48,13 +54,10 @@ function escapePdfText(value: string): string {
 }
 
 export function parseReportDate(value: string, fallback: Date): Date {
-  try {
-    const parsed = parseISO(value);
-    if (Number.isNaN(parsed.getTime())) return fallback;
-    return parsed;
-  } catch {
-    return fallback;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return getManilaDayStart(value);
   }
+  return getManilaDayStart(fallback);
 }
 
 export async function fetchAttendanceReport(
@@ -63,8 +66,8 @@ export async function fetchAttendanceReport(
   const records = await prisma.attendanceRecord.findMany({
     where: {
       date: {
-        gte: startOfDay(filters.from),
-        lte: endOfDay(filters.to),
+        gte: getManilaDayStart(filters.from),
+        lte: getManilaDayEnd(filters.to),
       },
       student: {
         isActive: true,
@@ -94,7 +97,7 @@ export async function fetchAttendanceReport(
     lastName: record.student.lastName,
     course: record.student.course ?? "",
     yearLevel: record.student.yearLevel ?? "",
-    date: format(new Date(record.date), "yyyy-MM-dd"),
+    date: formatManilaDateInput(record.date),
     timeIn: formatTime(record.timeIn),
     timeOut: formatTime(record.timeOut),
     duration: formatDuration(record.timeIn, record.timeOut),
@@ -157,7 +160,7 @@ export function buildExcelBuffer(rows: ReportRow[], filters: ReportFilters): Buf
     })
     .join("");
 
-  const html = `<!DOCTYPE html><html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"/></head><body><h2>COCiligan Attendance Report</h2><p>Period: ${escapeHtml(format(filters.from, "MMM d, yyyy"))} - ${escapeHtml(format(filters.to, "MMM d, yyyy"))}</p><p>Total records: ${rows.length}</p><table><thead><tr>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table></body></html>`;
+  const html = `<!DOCTYPE html><html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"/></head><body><h2>COCiligan Attendance Report</h2><p>Period: ${escapeHtml(formatDate(filters.from))} - ${escapeHtml(formatDate(filters.to))}</p><p>Total records: ${rows.length}</p><table><thead><tr>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table></body></html>`;
 
   return Buffer.from(html, "utf-8");
 }
@@ -165,7 +168,7 @@ export function buildExcelBuffer(rows: ReportRow[], filters: ReportFilters): Buf
 export function buildPdfBuffer(rows: ReportRow[], filters: ReportFilters): Buffer {
   const lines = [
     "COCiligan Attendance Report",
-    `Period: ${format(filters.from, "MMM d, yyyy")} - ${format(filters.to, "MMM d, yyyy")}`,
+    `Period: ${formatDate(filters.from)} - ${formatDate(filters.to)}`,
     `Total records: ${rows.length}`,
     "",
     "ID           Name         Date         In           Out          Status",
@@ -225,7 +228,7 @@ function buildSimplePdf(textLines: string[]): Buffer {
 }
 
 export function buildReportFilename(filters: ReportFilters, extension: "xls" | "pdf") {
-  const from = format(filters.from, "yyyy-MM-dd");
-  const to = format(filters.to, "yyyy-MM-dd");
+  const from = formatManilaDateInput(filters.from);
+  const to = formatManilaDateInput(filters.to);
   return `attendance-report_${from}_to_${to}.${extension}`;
 }
