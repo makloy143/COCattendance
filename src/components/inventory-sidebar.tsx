@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import { PortalBackLink } from "@/components/portal-back-link";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -149,12 +150,13 @@ export function InventoryShell({
         <header className="flex h-14 shrink-0 items-center gap-2 border-b px-3 sm:px-4">
           <SidebarTrigger />
           <Separator orientation="vertical" className="mr-1 hidden h-4 sm:block" />
-          <p className="truncate text-xs text-muted-foreground sm:text-sm">
+          <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground sm:text-sm">
             <span className="hidden sm:inline">
               Inventory portal — received items, borrows & ID errors
             </span>
             <span className="sm:hidden">COCiligan Inventory</span>
           </p>
+          <PortalBackLink />
         </header>
         <main className="mx-auto w-full max-w-7xl flex-1 p-3 sm:p-4 md:p-6">
           {children}
