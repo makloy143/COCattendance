@@ -55,6 +55,19 @@ async function main() {
     "Seeded monitoring admin (username: monitoring, password: monitoring123)"
   );
 
+  const todoPasswordHash = await bcrypt.hash("todo123", 10);
+
+  await prisma.todoAdmin.upsert({
+    where: { username: "todo" },
+    update: {},
+    create: {
+      username: "todo",
+      passwordHash: todoPasswordHash,
+    },
+  });
+
+  console.log("Seeded todo admin (username: todo, password: todo123)");
+
   for (const system of MONITORING_SYSTEM_CATALOG) {
     await prisma.monitoringSystem.upsert({
       where: {

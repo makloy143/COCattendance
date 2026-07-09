@@ -5,6 +5,7 @@ import { jwtVerify } from "jose";
 const ADMIN_SESSION_COOKIE = "cociligan_session";
 const INVENTORY_SESSION_COOKIE = "cociligan_inventory_session";
 const MONITORING_SESSION_COOKIE = "cociligan_monitoring_session";
+const TODO_SESSION_COOKIE = "cociligan_todo_session";
 
 function getSecretKey() {
   const secret = process.env.AUTH_SECRET;
@@ -40,6 +41,10 @@ export async function middleware(request: NextRequest) {
   const monitoringAuthenticated = await hasValidSession(
     request,
     MONITORING_SESSION_COOKIE
+  );
+  const todoAuthenticated = await hasValidSession(
+    request,
+    TODO_SESSION_COOKIE
   );
 
   const isMonitoringLogin = pathname === "/monitoring/login";
@@ -94,6 +99,34 @@ export async function middleware(request: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
       return NextResponse.redirect(new URL("/inventory/login", request.url));
+    }
+    return NextResponse.next();
+  }
+
+  const isTodoLogin = pathname === "/todos/login";
+  const isTodoRoute =
+    pathname === "/todos" || pathname.startsWith("/todos/");
+  const isTodoApi =
+    pathname.startsWith("/api/todos") &&
+    !pathname.startsWith("/api/todos/auth");
+
+  if (isTodoLogin) {
+    if (todoAuthenticated) {
+      return NextResponse.redirect(new URL("/todos", request.url));
+    }
+    return NextResponse.next();
+  }
+
+  if (pathname.startsWith("/api/todos/auth")) {
+    return NextResponse.next();
+  }
+
+  if (isTodoApi || (isTodoRoute && !isTodoLogin)) {
+    if (!todoAuthenticated) {
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      return NextResponse.redirect(new URL("/todos/login", request.url));
     }
     return NextResponse.next();
   }

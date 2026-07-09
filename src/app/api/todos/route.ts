@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireSession } from "@/lib/auth";
+import { requireTodoSession } from "@/lib/todo-auth";
 import { prisma } from "@/lib/db";
 import { todoSchema } from "@/lib/validations";
 
 export async function GET() {
   try {
-    await requireSession();
+    await requireTodoSession();
 
     const todos = await prisma.todo.findMany({
       orderBy: [{ isDone: "asc" }, { createdAt: "desc" }],
@@ -25,7 +25,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireSession();
+    await requireTodoSession();
 
     const body = await request.json();
     const parsed = todoSchema.safeParse(body);

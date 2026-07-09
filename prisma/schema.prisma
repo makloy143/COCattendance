@@ -28,6 +28,13 @@ model MonitoringAdmin {
   createdAt    DateTime @default(now())
 }
 
+model TodoAdmin {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
 enum StudentType {
   SA
   HK

@@ -2,15 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import {
-  CalendarCheck,
-  FileBarChart,
-  GraduationCap,
-  LayoutDashboard,
-  LogOut,
-  QrCode,
-  Users,
-} from "lucide-react";
+import { ListChecks, ListTodo, LogOut } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -30,19 +22,20 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/students", label: "Students", icon: Users },
-  { href: "/attendance", label: "Attendance", icon: CalendarCheck },
-  { href: "/scan", label: "QR Scan", icon: QrCode },
-  { href: "/reports", label: "Reports", icon: FileBarChart },
+  {
+    href: "/todos",
+    label: "To-Do List",
+    icon: ListTodo,
+    exact: true,
+  },
 ];
 
-export function AppSidebar({ username }: { username?: string }) {
+export function TodoSidebar({ username }: { username?: string }) {
   const pathname = usePathname();
   const router = useRouter();
 
   async function handleLogout() {
-    await fetch("/api/auth", { method: "DELETE" });
+    await fetch("/api/todos/auth", { method: "DELETE" });
     router.push("/");
     router.refresh();
   }
@@ -51,12 +44,12 @@ export function AppSidebar({ username }: { username?: string }) {
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
         <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <GraduationCap className="size-5" />
+          <div className="flex size-10 items-center justify-center rounded-xl bg-violet-600 text-white">
+            <ListChecks className="size-5" />
           </div>
           <div>
             <p className="text-sm font-semibold">COCiligan</p>
-            <p className="text-xs text-muted-foreground">Attendance Portal</p>
+            <p className="text-xs text-muted-foreground">To-Do Portal</p>
           </div>
         </div>
       </SidebarHeader>
@@ -66,10 +59,9 @@ export function AppSidebar({ username }: { username?: string }) {
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => {
-                const isActive =
-                  item.href === "/dashboard"
-                    ? pathname === "/dashboard"
-                    : pathname.startsWith(item.href);
+                const isActive = item.exact
+                  ? pathname === item.href
+                  : pathname.startsWith(item.href);
 
                 return (
                   <SidebarMenuItem key={item.href}>
@@ -94,7 +86,8 @@ export function AppSidebar({ username }: { username?: string }) {
       <SidebarFooter className="border-t border-sidebar-border p-2">
         {username && (
           <p className="truncate px-2 py-1 text-xs text-muted-foreground">
-            Signed in as <span className="font-medium text-foreground">{username}</span>
+            Signed in as{" "}
+            <span className="font-medium text-foreground">{username}</span>
           </p>
         )}
         <Button
@@ -110,7 +103,7 @@ export function AppSidebar({ username }: { username?: string }) {
   );
 }
 
-export function DashboardShell({
+export function TodoShell({
   children,
   username,
 }: {
@@ -119,14 +112,16 @@ export function DashboardShell({
 }) {
   return (
     <SidebarProvider>
-      <AppSidebar username={username} />
+      <TodoSidebar username={username} />
       <SidebarInset>
         <header className="flex h-14 shrink-0 items-center gap-2 border-b px-3 sm:px-4">
           <SidebarTrigger />
           <Separator orientation="vertical" className="mr-1 hidden h-4 sm:block" />
           <p className="truncate text-xs text-muted-foreground sm:text-sm">
-            <span className="hidden sm:inline">Attendance portal — students and daily records</span>
-            <span className="sm:hidden">COCiligan Attendance</span>
+            <span className="hidden sm:inline">
+              To-Do portal — team tasks and reminders
+            </span>
+            <span className="sm:hidden">COCiligan To-Do</span>
           </p>
         </header>
         <main className="mx-auto w-full max-w-7xl flex-1 p-3 sm:p-4 md:p-6">

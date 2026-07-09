@@ -50,7 +50,7 @@ const portals = [
     cardClass: "hover:border-amber-500/50 hover:shadow-amber-500/10",
   },
   {
-    href: "/todos",
+    href: "/todos/login",
     title: "To-Do Dashboard",
     description:
       "Track team tasks and reminders with priorities and due dates.",

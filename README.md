@@ -56,14 +56,16 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## Default admin login
+## Default admin logins
 
-| Field    | Value     |
-|----------|-----------|
-| Username | `admin`   |
-| Password | `admin123` |
+| Portal | Username | Password |
+|--------|----------|----------|
+| Attendance | `admin` | `admin123` |
+| Inventory | `inventory` | `inventory123` |
+| Monitoring | `monitoring` | `monitoring123` |
+| To-Do | `todo` | `todo123` |
 
-Change the password after first login in production by updating the admin record in the database.
+Change passwords after first login in production by updating the admin records in the database.
 
 ## Production
 
@@ -118,8 +120,11 @@ database.
 
 ## Project structure
 
-- `src/app/(dashboard)/` — Admin pages (dashboard, students, attendance)
-- `src/app/login/` — Admin login
+- `src/app/(dashboard)/` — Attendance admin pages (dashboard, students, attendance)
+- `src/app/login/` — Attendance admin login
+- `src/app/todos/` — To-Do portal (separate login + dashboard)
+- `src/app/inventory/` — Inventory portal (separate login + dashboard)
+- `src/app/monitoring/` — Monitoring portal (separate login + dashboard)
 - `src/app/api/` — REST API routes (the backend)
 - `src/app/api/students/[id]/photo/` — Serves student photos stored in the DB
 - `prisma/` — Database schema and PostgreSQL migrations
@@ -127,10 +132,11 @@ database.
 
 ## Usage
 
-1. Sign in with the admin account
+1. Sign in with the attendance admin account
 2. Go to **Students → Add Student** to register a student with photo
 3. Open a student profile to record **Time In** / **Time Out**
 4. Use **Attendance** for a full list of today's status for all students
 5. View summary stats on the **Dashboard**
 6. Go to **Reports** to filter by date range and export Excel or PDF
 7. Open **QR Scan** for kiosk scanning, or print QR codes from student profiles
+8. Open **To-Do** from the portal home and sign in with the todo admin account

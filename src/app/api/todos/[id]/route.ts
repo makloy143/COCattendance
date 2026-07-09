@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireSession } from "@/lib/auth";
+import { requireTodoSession } from "@/lib/todo-auth";
 import { prisma } from "@/lib/db";
 import { todoUpdateSchema } from "@/lib/validations";
 import { Prisma } from "@/generated/prisma/client";
@@ -10,7 +10,7 @@ type RouteContext = {
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
-    await requireSession();
+    await requireTodoSession();
     const { id } = await context.params;
 
     const body = await request.json();
@@ -52,7 +52,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
 export async function DELETE(_request: NextRequest, context: RouteContext) {
   try {
-    await requireSession();
+    await requireTodoSession();
     const { id } = await context.params;
 
     await prisma.todo.delete({ where: { id } });
