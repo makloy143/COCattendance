@@ -11,7 +11,7 @@ A modern admin web app for registering students, managing profile photos, and re
 - Dashboard with today's attendance stats
 - Searchable students list and attendance page
 - **Reports** — export attendance to Excel (.xls) or PDF with date filters
-- **QR Scan** — kiosk camera scanning for automatic time in/out
+- **Face Scan** — kiosk camera face recognition for automatic time in/out
 
 ## Tech stack
 
@@ -138,5 +138,7 @@ database.
 4. Use **Attendance** for a full list of today's status for all students
 5. View summary stats on the **Dashboard**
 6. Go to **Reports** to filter by date range and export Excel or PDF
-7. Open **QR Scan** for kiosk scanning, or print QR codes from student profiles
+7. Open **Face Scan** for kiosk face recognition (enroll faces from profile photos on first use)
 8. Open **To-Do** from the portal home and sign in with the todo admin account
+
+Face recognition uses models in `public/models/` (TinyFaceDetector, FaceLandmark68, FaceRecognitionNet). Students need a clear front-facing profile photo; the kiosk can enroll existing photos with **Enroll from photos**.

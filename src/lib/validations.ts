@@ -93,6 +93,23 @@ export const attendanceScanSchema = z.object({
   qrToken: z.string().min(1, "QR code is required"),
 });
 
+export const attendanceRecognizeSchema = z.object({
+  studentId: z.string().min(1, "Student is required"),
+});
+
+export const faceEnrollSchema = z.object({
+  studentId: z.string().min(1, "Student is required"),
+  descriptor: z
+    .array(z.number().finite())
+    .length(128, "Face descriptor must have 128 values"),
+});
+
+export const faceEnrollBatchSchema = z.object({
+  enrollments: z
+    .array(faceEnrollSchema)
+    .min(1, "At least one enrollment is required"),
+});
+
 export const receivedItemSchema = z
   .object({
     itemName: z.string().min(1, "Item name is required").max(200),

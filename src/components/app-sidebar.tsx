@@ -8,7 +8,7 @@ import {
   GraduationCap,
   LayoutDashboard,
   LogOut,
-  QrCode,
+  ScanFace,
   Users,
 } from "lucide-react";
 import {
@@ -34,7 +34,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/students", label: "Students", icon: Users },
   { href: "/attendance", label: "Attendance", icon: CalendarCheck },
-  { href: "/scan", label: "QR Scan", icon: QrCode },
+  { href: "/scan", label: "Face Scan", icon: ScanFace },
   { href: "/reports", label: "Reports", icon: FileBarChart },
 ];
 

@@ -29,6 +29,7 @@ import {
   STUDENT_ASSIGNMENT_LABELS,
 } from "@/lib/student-assignment";
 import { STUDENT_TYPES, STUDENT_TYPE_LABELS } from "@/lib/student-type";
+import { enrollFaceFromFile } from "@/lib/face-recognition";
 
 type StudentFormProps = {
   mode: "create" | "edit";
@@ -109,9 +110,33 @@ export function StudentForm({ mode, initialValues, studentDbId }: StudentFormPro
         return;
       }
 
-      toast.success(
-        mode === "create" ? "Student registered successfully" : "Student updated"
-      );
+      if (photoFile && data.id) {
+        const enroll = await enrollFaceFromFile(data.id, photoFile);
+        if (enroll.ok) {
+          toast.success(
+            mode === "create"
+              ? "Student registered and face enrolled"
+              : "Student updated and face enrolled"
+          );
+        } else {
+          toast.success(
+            mode === "create"
+              ? "Student registered successfully"
+              : "Student updated"
+          );
+          toast.warning(
+            enroll.error ??
+              "Photo saved, but face could not be enrolled for recognition"
+          );
+        }
+      } else {
+        toast.success(
+          mode === "create"
+            ? "Student registered successfully"
+            : "Student updated"
+        );
+      }
+
       router.push(`/students/${data.id}`);
       router.refresh();
     } catch {

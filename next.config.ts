@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [],
     unoptimized: true,
   },
+  transpilePackages: ["@vladmandic/face-api"],
 };
 
 export default nextConfig;

@@ -57,14 +57,15 @@ model Student {
   yearLevel     String?
   studentType   StudentType           @default(SA)
   assignment    StudentAssignment     @default(COMLAB)
-  photoUrl      String?
-  qrToken       String                @unique @default(cuid())
-  isActive      Boolean               @default(true)
-  createdAt     DateTime              @default(now())
-  attendance    AttendanceRecord[]
-  scheduleSlots StudentScheduleSlot[]
-  idErrors      IdErrorRecord[]
-  photo         StudentPhoto?
+  photoUrl       String?
+  qrToken        String                @unique @default(cuid())
+  faceDescriptor Json?
+  isActive       Boolean               @default(true)
+  createdAt      DateTime              @default(now())
+  attendance     AttendanceRecord[]
+  scheduleSlots  StudentScheduleSlot[]
+  idErrors       IdErrorRecord[]
+  photo          StudentPhoto?
 }
 
 model StudentPhoto {

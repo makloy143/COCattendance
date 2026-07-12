@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { Prisma } from "@/generated/prisma/client";
 import { getTodayStart, getTotalMinutes } from "@/lib/date-utils";
 import { readStudentPhoto, studentPhotoUrl } from "@/lib/uploads";
 import { parseScheduleFromFormData, studentSchema } from "@/lib/validations";
@@ -173,6 +174,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         course: parsed.data.course || null,
         yearLevel: parsed.data.yearLevel || null,
         photoUrl: photoData ? studentPhotoUrl(id) : existing.photoUrl,
+        ...(photoData ? { faceDescriptor: Prisma.DbNull } : {}),
         scheduleSlots: {
           deleteMany: {},
           create: scheduleCreateInput(scheduleParsed.data),
