@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/db";
 import { getTodayStart } from "@/lib/date-utils";
 
+const MIN_TIME_OUT_INTERVAL_MINUTES = 30;
+
 export type AttendanceResult = {
   record: {
     id: string;
@@ -20,6 +22,19 @@ type StudentAttendanceProfile = {
   lastName: string;
   photoUrl: string | null;
 };
+
+function assertMinTimeOutInterval(timeIn: Date, now: Date) {
+  const elapsedMinutes = (now.getTime() - timeIn.getTime()) / 60000;
+
+  if (elapsedMinutes < MIN_TIME_OUT_INTERVAL_MINUTES) {
+    const remainingMinutes = Math.ceil(
+      MIN_TIME_OUT_INTERVAL_MINUTES - elapsedMinutes
+    );
+    throw new Error(
+      `Must wait at least ${MIN_TIME_OUT_INTERVAL_MINUTES} minutes after time in before timing out. Please wait ${remainingMinutes} more minute${remainingMinutes === 1 ? "" : "s"}.`
+    );
+  }
+}
 
 async function recordAttendanceByStudentId(
   studentDbId: string
@@ -60,6 +75,8 @@ async function recordAttendanceByStudentId(
   }
 
   if (!existing.timeOut) {
+    assertMinTimeOutInterval(existing.timeIn, now);
+
     const record = await prisma.attendanceRecord.update({
       where: { id: existing.id },
       data: { timeOut: now },
@@ -129,6 +146,8 @@ export async function recordAttendanceAction(
   if (record.timeOut) {
     throw new Error("Student already timed out today");
   }
+
+  assertMinTimeOutInterval(record.timeIn, now);
 
   record = await prisma.attendanceRecord.update({
     where: { id: record.id },
