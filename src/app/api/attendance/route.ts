@@ -1,17 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireSession } from "@/lib/auth";
-import { recordAttendanceAction } from "@/lib/attendance";
+import { isSuperAdmin, requireSession, requireSuperAdmin } from "@/lib/auth";
+import {
+  recordAttendanceAction,
+  resetTodayAttendance,
+} from "@/lib/attendance";
 import { prisma } from "@/lib/db";
 import { getTodayStart } from "@/lib/date-utils";
-import { attendanceActionSchema } from "@/lib/validations";
+import {
+  attendanceActionSchema,
+  attendanceResetSchema,
+} from "@/lib/validations";
 
 export async function GET(request: NextRequest) {
   try {
-    await requireSession();
+    const session = await requireSession();
 
     const { searchParams } = new URL(request.url);
     const studentId = searchParams.get("studentId");
     const today = searchParams.get("today") === "true";
+    const canResetAttendance = isSuperAdmin(session);
 
     if (studentId) {
       const records = await prisma.attendanceRecord.findMany({
@@ -40,7 +47,7 @@ export async function GET(request: NextRequest) {
         todayRecord: student.attendance[0] ?? null,
       }));
 
-      return NextResponse.json(data);
+      return NextResponse.json({ students: data, canResetAttendance });
     }
 
     const records = await prisma.attendanceRecord.findMany({
@@ -100,6 +107,39 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json(
       { error: "Failed to record attendance" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    await requireSuperAdmin();
+
+    const body = await request.json();
+    const parsed = attendanceResetSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? "Invalid input" },
+        { status: 400 }
+      );
+    }
+
+    const result = await resetTodayAttendance(parsed.data.studentId);
+    return NextResponse.json(result);
+  } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (error instanceof Error && error.message === "Forbidden") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    return NextResponse.json(
+      { error: "Failed to reset attendance" },
       { status: 500 }
     );
   }

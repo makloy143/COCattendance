@@ -21,6 +21,19 @@ async function main() {
     create: {
       username: "admin",
       passwordHash,
+      role: "ADMIN",
+    },
+  });
+
+  const superAdminPasswordHash = await bcrypt.hash("superadmin123", 10);
+
+  await prisma.admin.upsert({
+    where: { username: "superadmin" },
+    update: { role: "SUPER_ADMIN" },
+    create: {
+      username: "superadmin",
+      passwordHash: superAdminPasswordHash,
+      role: "SUPER_ADMIN",
     },
   });
 
@@ -36,6 +49,9 @@ async function main() {
   });
 
   console.log("Seeded default admin (username: admin, password: admin123)");
+  console.log(
+    "Seeded super admin (username: superadmin, password: superadmin123)"
+  );
   console.log(
     "Seeded inventory admin (username: inventory, password: inventory123)"
   );

@@ -7,11 +7,17 @@ datasource db {
   provider = "postgresql"
 }
 
+enum AdminRole {
+  ADMIN
+  SUPER_ADMIN
+}
+
 model Admin {
-  id           String   @id @default(cuid())
-  username     String   @unique
+  id           String    @id @default(cuid())
+  username     String    @unique
   passwordHash String
-  createdAt    DateTime @default(now())
+  role         AdminRole @default(ADMIN)
+  createdAt    DateTime  @default(now())
 }
 
 model InventoryAdmin {

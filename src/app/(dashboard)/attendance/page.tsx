@@ -32,6 +32,7 @@ type TodayStudent = {
 
 export default function AttendancePage() {
   const [students, setStudents] = useState<TodayStudent[]>([]);
+  const [canReset, setCanReset] = useState(false);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -39,7 +40,8 @@ export default function AttendancePage() {
     setLoading(true);
     const response = await fetch("/api/attendance?today=true");
     const data = await response.json();
-    setStudents(data);
+    setStudents(data.students ?? []);
+    setCanReset(Boolean(data.canResetAttendance));
     setLoading(false);
   }
 
@@ -144,6 +146,7 @@ export default function AttendancePage() {
                   timeIn={student.todayRecord?.timeIn}
                   timeOut={student.todayRecord?.timeOut}
                   onUpdate={loadAttendance}
+                  canReset={canReset}
                   compact
                   fullWidth
                 />
@@ -207,6 +210,7 @@ export default function AttendancePage() {
                         timeIn={student.todayRecord?.timeIn}
                         timeOut={student.todayRecord?.timeOut}
                         onUpdate={loadAttendance}
+                        canReset={canReset}
                         compact
                       />
                     </TableCell>

@@ -1,6 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSession, destroySession, verifyCredentials } from "@/lib/auth";
+import {
+  createSession,
+  destroySession,
+  getSession,
+  verifyCredentials,
+} from "@/lib/auth";
 import { loginSchema } from "@/lib/validations";
+
+export async function GET() {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  return NextResponse.json({
+    username: session.username,
+    role: session.role,
+    canResetAttendance: session.role === "SUPER_ADMIN",
+  });
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,9 +44,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await createSession(admin.id, admin.username);
+    await createSession(admin.id, admin.username, admin.role);
 
-    return NextResponse.json({ success: true, username: admin.username });
+    return NextResponse.json({
+      success: true,
+      username: admin.username,
+      role: admin.role,
+      canResetAttendance: admin.role === "SUPER_ADMIN",
+    });
   } catch {
     return NextResponse.json(
       { error: "Login failed" },

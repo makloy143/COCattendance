@@ -214,3 +214,38 @@ export async function recordAttendanceRecognize(
     },
   };
 }
+
+export async function resetTodayAttendance(studentDbId: string) {
+  const student = await prisma.student.findUnique({
+    where: { id: studentDbId },
+    select: { id: true },
+  });
+
+  if (!student) {
+    throw new Error("Student not found");
+  }
+
+  const todayStart = getTodayStart();
+  const existing = await prisma.attendanceRecord.findUnique({
+    where: {
+      studentId_date: {
+        studentId: studentDbId,
+        date: todayStart,
+      },
+    },
+  });
+
+  if (!existing) {
+    throw new Error("No attendance record found for today");
+  }
+
+  if (!existing.timeIn || !existing.timeOut) {
+    throw new Error("Attendance is not completed yet");
+  }
+
+  await prisma.attendanceRecord.delete({
+    where: { id: existing.id },
+  });
+
+  return { message: "Attendance reset for today" };
+}

@@ -89,6 +89,10 @@ export const attendanceActionSchema = z.object({
   action: z.enum(["timeIn", "timeOut"]),
 });
 
+export const attendanceResetSchema = z.object({
+  studentId: z.string().min(1, "Student is required"),
+});
+
 export const attendanceScanSchema = z.object({
   qrToken: z.string().min(1, "QR code is required"),
 });

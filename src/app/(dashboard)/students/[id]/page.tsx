@@ -54,6 +54,7 @@ type StudentProfile = {
   attendance: AttendanceRecord[];
   todayRecord: AttendanceRecord | null;
   totalMinutes: number;
+  canResetAttendance?: boolean;
 };
 
 export default function StudentProfilePage({
@@ -192,6 +193,7 @@ export default function StudentProfilePage({
           timeIn={student.todayRecord?.timeIn}
           timeOut={student.todayRecord?.timeOut}
           onUpdate={() => loadStudent(studentId)}
+          canReset={Boolean(student.canResetAttendance)}
         />
         <StudentQrCard
           studentDbId={student.id}

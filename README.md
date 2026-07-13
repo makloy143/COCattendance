@@ -61,9 +61,12 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | Portal | Username | Password |
 |--------|----------|----------|
 | Attendance | `admin` | `admin123` |
+| Attendance (super admin) | `superadmin` | `superadmin123` |
 | Inventory | `inventory` | `inventory123` |
 | Monitoring | `monitoring` | `monitoring123` |
 | To-Do | `todo` | `todo123` |
+
+The super admin can reset a student's completed attendance for the day (time in + time out), so they can record again. Regular admins cannot.
 
 Change passwords after first login in production by updating the admin records in the database.
 

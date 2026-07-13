@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireSession } from "@/lib/auth";
+import { isSuperAdmin, requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
 import { getTodayStart, getTotalMinutes } from "@/lib/date-utils";
@@ -28,7 +28,7 @@ type RouteContext = {
 
 export async function GET(_request: NextRequest, context: RouteContext) {
   try {
-    await requireSession();
+    const session = await requireSession();
     const { id } = await context.params;
 
     const student = await prisma.student.findUnique({
@@ -72,6 +72,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       ...student,
       todayRecord,
       totalMinutes: getTotalMinutes(completedAttendance),
+      canResetAttendance: isSuperAdmin(session),
     });
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") {
