@@ -75,11 +75,21 @@ export async function getSession(): Promise<SessionPayload | null> {
         ? payload.role
         : "ADMIN";
 
+    let department = parseDepartment(payload.department);
+
+    if (role !== "SUPER_ADMIN" && !department) {
+      const admin = await prisma.admin.findUnique({
+        where: { id: payload.adminId as string },
+        select: { department: true },
+      });
+      department = admin?.department ?? null;
+    }
+
     return {
       adminId: payload.adminId as string,
       username: payload.username as string,
       role,
-      department: parseDepartment(payload.department),
+      department,
     };
   } catch {
     return null;
