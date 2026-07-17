@@ -250,3 +250,59 @@ model Todo {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 }
+
+model DepartmentCheckAdmin {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+enum CheckCadence {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum CheckCategory {
+  INK
+  TECHNICAL
+  OTHER
+}
+
+enum CheckStatus {
+  PENDING
+  COMPLETED
+  ISSUE_FOUND
+  SKIPPED
+}
+
+model CheckTemplate {
+  id          String        @id @default(cuid())
+  department  String
+  title       String
+  description String?
+  category    CheckCategory @default(OTHER)
+  cadence     CheckCadence  @default(WEEKLY)
+  dayOfWeek   Int?
+  dayOfMonth  Int?
+  sortOrder   Int           @default(0)
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  logs        DepartmentCheckLog[]
+}
+
+model DepartmentCheckLog {
+  id         String      @id @default(cuid())
+  templateId String
+  template   CheckTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  checkDate  DateTime
+  status     CheckStatus @default(PENDING)
+  notes      String?
+  checkedBy  String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@unique([templateId, checkDate])
+}

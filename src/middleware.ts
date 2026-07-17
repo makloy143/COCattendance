@@ -6,6 +6,7 @@ const ADMIN_SESSION_COOKIE = "cociligan_session";
 const INVENTORY_SESSION_COOKIE = "cociligan_inventory_session";
 const MONITORING_SESSION_COOKIE = "cociligan_monitoring_session";
 const TODO_SESSION_COOKIE = "cociligan_todo_session";
+const CHECKS_SESSION_COOKIE = "cociligan_checks_session";
 
 function getSecretKey() {
   const secret = process.env.AUTH_SECRET;
@@ -45,6 +46,10 @@ export async function middleware(request: NextRequest) {
   const todoAuthenticated = await hasValidSession(
     request,
     TODO_SESSION_COOKIE
+  );
+  const checksAuthenticated = await hasValidSession(
+    request,
+    CHECKS_SESSION_COOKIE
   );
 
   const isMonitoringLogin = pathname === "/monitoring/login";
@@ -127,6 +132,34 @@ export async function middleware(request: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
       return NextResponse.redirect(new URL("/todos/login", request.url));
+    }
+    return NextResponse.next();
+  }
+
+  const isChecksLogin = pathname === "/checks/login";
+  const isChecksRoute =
+    pathname === "/checks" || pathname.startsWith("/checks/");
+  const isChecksApi =
+    pathname.startsWith("/api/checks") &&
+    !pathname.startsWith("/api/checks/auth");
+
+  if (isChecksLogin) {
+    if (checksAuthenticated) {
+      return NextResponse.redirect(new URL("/checks", request.url));
+    }
+    return NextResponse.next();
+  }
+
+  if (pathname.startsWith("/api/checks/auth")) {
+    return NextResponse.next();
+  }
+
+  if (isChecksApi || (isChecksRoute && !isChecksLogin)) {
+    if (!checksAuthenticated) {
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      return NextResponse.redirect(new URL("/checks/login", request.url));
     }
     return NextResponse.next();
   }

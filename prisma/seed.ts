@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { MONITORING_SYSTEM_CATALOG } from "../src/lib/monitoring-systems";
+import { DEFAULT_CHECK_TEMPLATES } from "../src/lib/checks";
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
@@ -83,6 +84,45 @@ async function main() {
   });
 
   console.log("Seeded todo admin (username: todo, password: todo123)");
+
+  const checksPasswordHash = await bcrypt.hash("checks123", 10);
+
+  await prisma.departmentCheckAdmin.upsert({
+    where: { username: "checks" },
+    update: {},
+    create: {
+      username: "checks",
+      passwordHash: checksPasswordHash,
+    },
+  });
+
+  console.log("Seeded checks admin (username: checks, password: checks123)");
+
+  for (const template of DEFAULT_CHECK_TEMPLATES) {
+    const existing = await prisma.checkTemplate.findFirst({
+      where: {
+        department: template.department,
+        title: template.title,
+      },
+    });
+
+    if (!existing) {
+      await prisma.checkTemplate.create({
+        data: {
+          department: template.department,
+          title: template.title,
+          description: template.description,
+          category: template.category,
+          cadence: template.cadence,
+          dayOfWeek: "dayOfWeek" in template ? template.dayOfWeek : null,
+          dayOfMonth: "dayOfMonth" in template ? template.dayOfMonth : null,
+          sortOrder: template.sortOrder,
+        },
+      });
+    }
+  }
+
+  console.log(`Seeded ${DEFAULT_CHECK_TEMPLATES.length} default check schedules`);
 
   for (const system of MONITORING_SYSTEM_CATALOG) {
     await prisma.monitoringSystem.upsert({

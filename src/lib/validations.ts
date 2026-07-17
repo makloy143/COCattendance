@@ -260,3 +260,55 @@ export const todoUpdateSchema = z.object({
   dueDate: z.string().optional().or(z.literal("")).nullable(),
   isDone: z.boolean().optional(),
 });
+
+export const CHECK_CADENCES = ["DAILY", "WEEKLY", "MONTHLY"] as const;
+export const CHECK_CATEGORIES = ["INK", "TECHNICAL", "OTHER"] as const;
+export const CHECK_STATUSES = [
+  "PENDING",
+  "COMPLETED",
+  "ISSUE_FOUND",
+  "SKIPPED",
+] as const;
+
+export const checkTemplateSchema = z
+  .object({
+    department: z.string().min(1, "Department is required"),
+    title: z.string().min(1, "Title is required").max(200),
+    description: z.string().max(1000).optional().or(z.literal("")),
+    category: z.enum(CHECK_CATEGORIES).default("OTHER"),
+    cadence: z.enum(CHECK_CADENCES).default("WEEKLY"),
+    dayOfWeek: z.number().int().min(1).max(7).optional().nullable(),
+    dayOfMonth: z.number().int().min(1).max(28).optional().nullable(),
+    sortOrder: z.number().int().min(0).default(0),
+    isActive: z.boolean().default(true),
+  })
+  .superRefine((data, ctx) => {
+    if (data.cadence === "WEEKLY" && !data.dayOfWeek) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Day of week is required for weekly checks",
+        path: ["dayOfWeek"],
+      });
+    }
+    if (data.cadence === "MONTHLY" && !data.dayOfMonth) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Day of month is required for monthly checks",
+        path: ["dayOfMonth"],
+      });
+    }
+  });
+
+export type CheckTemplateFormValues = z.infer<typeof checkTemplateSchema>;
+
+export const checkTemplateUpdateSchema = checkTemplateSchema.partial();
+
+export const checkLogSchema = z.object({
+  templateId: z.string().min(1),
+  periodStart: z.string().min(1, "Period date is required"),
+  status: z.enum(CHECK_STATUSES),
+  notes: z.string().max(1000).optional().or(z.literal("")),
+  checkedBy: z.string().max(100).optional().or(z.literal("")),
+});
+
+export type CheckLogInput = z.infer<typeof checkLogSchema>;

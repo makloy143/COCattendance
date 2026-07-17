@@ -3,6 +3,7 @@ import Link from "next/link";
 import {
   Activity,
   ArrowRight,
+  CalendarCheck,
   GraduationCap,
   ListChecks,
   Package,
@@ -18,7 +19,7 @@ import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "COC-ILIGAN Portal",
-  description: "Choose your dashboard — attendance, daily monitoring, or inventory",
+  description: "Choose your dashboard — attendance, monitoring, inventory, and more",
 };
 
 const portals = [
@@ -57,6 +58,15 @@ const portals = [
     icon: ListChecks,
     iconClass: "bg-violet-600 text-white",
     cardClass: "hover:border-violet-500/50 hover:shadow-violet-500/10",
+  },
+  {
+    href: "/checks/login",
+    title: "Department Check Schedule",
+    description:
+      "Set daily, weekly, or monthly reminders to check department inks and technical issues.",
+    icon: CalendarCheck,
+    iconClass: "bg-teal-600 text-white",
+    cardClass: "hover:border-teal-500/50 hover:shadow-teal-500/10",
   },
 ];
 
