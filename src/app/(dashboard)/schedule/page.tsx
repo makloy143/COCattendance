@@ -15,7 +15,7 @@ import {
 import type {
   ScheduleDutyStatus,
   ScheduleMonitoringData,
-} from "@/lib/schedule-monitoring";
+} from "@/lib/schedule-monitoring-shared";
 import { formatManilaDateInput } from "@/lib/date-utils";
 
 const STATUS_FILTERS: Array<{ value: "all" | ScheduleDutyStatus; label: string }> =

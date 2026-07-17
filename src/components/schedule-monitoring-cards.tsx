@@ -14,7 +14,7 @@ import {
   type ScheduleDutyStatus,
   type ScheduleMonitoringSummary,
   type StudentScheduleMonitorRow,
-} from "@/lib/schedule-monitoring";
+} from "@/lib/schedule-monitoring-shared";
 import { getStudentAssignmentLabel } from "@/lib/student-assignment";
 import { cn } from "@/lib/utils";
 
