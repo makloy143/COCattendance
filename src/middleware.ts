@@ -141,7 +141,8 @@ export async function middleware(request: NextRequest) {
     pathname === "/checks" || pathname.startsWith("/checks/");
   const isChecksApi =
     pathname.startsWith("/api/checks") &&
-    !pathname.startsWith("/api/checks/auth");
+    !pathname.startsWith("/api/checks/auth") &&
+    !pathname.startsWith("/api/checks/seed");
 
   if (isChecksLogin) {
     if (checksAuthenticated) {
