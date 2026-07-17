@@ -17,6 +17,7 @@ type Student = {
   yearLevel: string | null;
   studentType: "SA" | "HK";
   assignment: "COMLAB" | "ID_STATION" | "ITS_OFFICE";
+  department: "REGISTRAR" | "FINANCE" | "CSDL" | "LIBRARY" | "MARKETING" | "GSD" | "GUIDANCE" | "ITSD";
   photoUrl: string | null;
   scheduleSlots: ScheduleSlot[];
 };
@@ -66,6 +67,7 @@ export default function EditStudentPage({
           yearLevel: student.yearLevel ?? "",
           studentType: student.studentType,
           assignment: student.assignment,
+          department: student.department,
           photoUrl: student.photoUrl,
           schedule: mergeScheduleWithDefaults(student.scheduleSlots ?? []),
         }}

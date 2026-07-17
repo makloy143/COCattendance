@@ -2,7 +2,8 @@ import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
-import type { AdminRole } from "@/generated/prisma/client";
+import type { AdminRole, Department } from "@/generated/prisma/client";
+import { isAttendanceDepartment } from "@/lib/departments";
 
 const SESSION_COOKIE = "cociligan_session";
 const SESSION_DURATION = 60 * 60 * 24 * 7;
@@ -19,6 +20,7 @@ export type SessionPayload = {
   adminId: string;
   username: string;
   role: AdminRole;
+  department: Department | null;
 };
 
 export async function verifyCredentials(username: string, password: string) {
@@ -34,9 +36,10 @@ export async function verifyCredentials(username: string, password: string) {
 export async function createSession(
   adminId: string,
   username: string,
-  role: AdminRole
+  role: AdminRole,
+  department: Department | null
 ) {
-  const token = await new SignJWT({ adminId, username, role })
+  const token = await new SignJWT({ adminId, username, role, department })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(`${SESSION_DURATION}s`)
@@ -50,6 +53,14 @@ export async function createSession(
     maxAge: SESSION_DURATION,
     path: "/",
   });
+}
+
+function parseDepartment(value: unknown): Department | null {
+  if (value == null) return null;
+  if (typeof value === "string" && isAttendanceDepartment(value)) {
+    return value;
+  }
+  return null;
 }
 
 export async function getSession(): Promise<SessionPayload | null> {
@@ -68,6 +79,7 @@ export async function getSession(): Promise<SessionPayload | null> {
       adminId: payload.adminId as string,
       username: payload.username as string,
       role,
+      department: parseDepartment(payload.department),
     };
   } catch {
     return null;
@@ -97,4 +109,51 @@ export async function requireSuperAdmin() {
 
 export function isSuperAdmin(session: SessionPayload | null) {
   return session?.role === "SUPER_ADMIN";
+}
+
+export function getStudentDepartmentFilter(session: SessionPayload) {
+  if (session.role === "SUPER_ADMIN") {
+    return {};
+  }
+
+  if (!session.department) {
+    throw new Error("Admin department is not configured");
+  }
+
+  return { department: session.department };
+}
+
+export function assertDepartmentAccess(
+  session: SessionPayload,
+  department: Department
+) {
+  if (session.role === "SUPER_ADMIN") {
+    return;
+  }
+
+  if (session.department !== department) {
+    throw new Error("Forbidden");
+  }
+}
+
+export function resolveStudentDepartment(
+  session: SessionPayload,
+  requestedDepartment?: Department | null
+): Department {
+  if (session.role === "SUPER_ADMIN") {
+    if (!requestedDepartment) {
+      throw new Error("Department is required");
+    }
+    return requestedDepartment;
+  }
+
+  if (!session.department) {
+    throw new Error("Admin department is not configured");
+  }
+
+  if (requestedDepartment && requestedDepartment !== session.department) {
+    throw new Error("Forbidden");
+  }
+
+  return session.department;
 }

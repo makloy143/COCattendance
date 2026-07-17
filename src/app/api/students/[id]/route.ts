@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isSuperAdmin, requireSession } from "@/lib/auth";
+import {
+  assertDepartmentAccess,
+  isSuperAdmin,
+  requireSession,
+  resolveStudentDepartment,
+} from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
 import { getTodayStart, getTotalMinutes } from "@/lib/date-utils";
@@ -46,6 +51,8 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
+    assertDepartmentAccess(session, student.department);
+
     const [todayRecord, completedAttendance] = await Promise.all([
       prisma.attendanceRecord.findUnique({
         where: {
@@ -78,6 +85,9 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     if (error instanceof Error && error.message === "Unauthorized") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (error instanceof Error && error.message === "Forbidden") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
     return NextResponse.json(
       { error: "Failed to fetch student" },
       { status: 500 }
@@ -87,13 +97,15 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 
 export async function PUT(request: NextRequest, context: RouteContext) {
   try {
-    await requireSession();
+    const session = await requireSession();
     const { id } = await context.params;
 
     const existing = await prisma.student.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
+
+    assertDepartmentAccess(session, existing.department);
 
     const formData = await request.formData();
     const photo = formData.get("photo");
@@ -108,6 +120,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       yearLevel: formData.get("yearLevel") ?? "",
       studentType: formData.get("studentType") ?? "SA",
       assignment: formData.get("assignment") ?? "COMLAB",
+      department: formData.get("department") ?? existing.department,
     });
 
     if (!parsed.success) {
@@ -122,13 +135,23 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: scheduleParsed.error }, { status: 400 });
     }
 
-    if (parsed.data.studentId !== existing.studentId) {
+    const department = resolveStudentDepartment(
+      session,
+      parsed.data.department
+    );
+
+    if (parsed.data.studentId !== existing.studentId || department !== existing.department) {
       const duplicate = await prisma.student.findUnique({
-        where: { studentId: parsed.data.studentId },
+        where: {
+          department_studentId: {
+            department,
+            studentId: parsed.data.studentId,
+          },
+        },
       });
-      if (duplicate) {
+      if (duplicate && duplicate.id !== id) {
         return NextResponse.json(
-          { error: "Student ID already exists" },
+          { error: "Student ID already exists in this department" },
           { status: 400 }
         );
       }
@@ -170,6 +193,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       where: { id },
       data: {
         ...parsed.data,
+        department,
         email: parsed.data.email || null,
         phone: parsed.data.phone || null,
         course: parsed.data.course || null,
@@ -191,6 +215,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     if (error instanceof Error && error.message === "Unauthorized") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (error instanceof Error && error.message === "Forbidden") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
     return NextResponse.json(
       { error: "Failed to update student" },
       { status: 500 }
@@ -200,9 +227,16 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
-    await requireSession();
+    const session = await requireSession();
     const { id } = await context.params;
     const body = await request.json();
+
+    const existing = await prisma.student.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json({ error: "Student not found" }, { status: 404 });
+    }
+
+    assertDepartmentAccess(session, existing.department);
 
     const student = await prisma.student.update({
       where: { id },
@@ -213,6 +247,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (error instanceof Error && error.message === "Forbidden") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     return NextResponse.json(
       { error: "Failed to update student status" },

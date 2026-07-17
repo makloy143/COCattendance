@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { normalizeScheduleSlots } from "@/lib/schedule";
 import { ITEM_TYPES, ITEM_CATEGORIES, INK_COLORS, ID_ERROR_STATUSES } from "@/lib/inventory";
+import { ATTENDANCE_DEPARTMENTS } from "@/lib/departments";
 import { STUDENT_ASSIGNMENTS } from "@/lib/student-assignment";
 import { STUDENT_TYPES } from "@/lib/student-type";
 import { TODO_PRIORITIES } from "@/lib/todo";
@@ -42,6 +43,9 @@ export const studentSchema = z.object({
   }),
   assignment: z.enum(STUDENT_ASSIGNMENTS, {
     message: "Assignment must be COMLAB, ID STATION, or ITS OFFICE",
+  }),
+  department: z.enum(ATTENDANCE_DEPARTMENTS, {
+    message: "Department is required",
   }),
 });
 
@@ -314,3 +318,60 @@ export const checkLogSchema = z.object({
 });
 
 export type CheckLogInput = z.infer<typeof checkLogSchema>;
+
+export const adminAccountSchema = z
+  .object({
+    username: z
+      .string()
+      .min(3, "Username must be at least 3 characters")
+      .max(50),
+    password: z
+      .string()
+      .min(6, "Password must be at least 6 characters")
+      .max(100),
+    role: z.enum(["ADMIN", "SUPER_ADMIN"]),
+    department: z.enum(ATTENDANCE_DEPARTMENTS).optional().nullable(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.role === "ADMIN" && !data.department) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Department is required for admin accounts",
+        path: ["department"],
+      });
+    }
+    if (data.role === "SUPER_ADMIN" && data.department) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Super admin accounts cannot be assigned to a department",
+        path: ["department"],
+      });
+    }
+  });
+
+export const adminAccountUpdateSchema = z
+  .object({
+    password: z
+      .string()
+      .min(6, "Password must be at least 6 characters")
+      .max(100)
+      .optional(),
+    role: z.enum(["ADMIN", "SUPER_ADMIN"]).optional(),
+    department: z.enum(ATTENDANCE_DEPARTMENTS).optional().nullable(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.role === "ADMIN" && data.department === null) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Department is required for admin accounts",
+        path: ["department"],
+      });
+    }
+    if (data.role === "SUPER_ADMIN" && data.department) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Super admin accounts cannot be assigned to a department",
+        path: ["department"],
+      });
+    }
+  });

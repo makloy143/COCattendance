@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  AlertTriangle,
   CheckCircle2,
   Clock,
   UserCheck,
@@ -7,20 +8,29 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ButtonLink } from "@/components/button-link";
+import { ScheduleRecommendationsCard } from "@/components/schedule-monitoring-cards";
 import { StudentAvatar } from "@/components/student-avatar";
 import { AttendanceStatusBadge } from "@/components/attendance-status-badge";
-import { requireSession } from "@/lib/auth";
+import { requireSession, getStudentDepartmentFilter } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatTime, getTodayStart } from "@/lib/date-utils";
+import { getScheduleMonitoringData } from "@/lib/schedule-monitoring";
 import { getStudentAssignmentLabel } from "@/lib/student-assignment";
 
 async function getDashboardData() {
+  const session = await requireSession();
+  const departmentFilter = getStudentDepartmentFilter(session);
   const todayStart = getTodayStart();
 
-  const [totalStudents, todayRecords, recentRecords] = await Promise.all([
-    prisma.student.count({ where: { isActive: true } }),
+  const [totalStudents, todayRecords, recentRecords, scheduleMonitoring] =
+    await Promise.all([
+    prisma.student.count({ where: { isActive: true, ...departmentFilter } }),
     prisma.attendanceRecord.findMany({
-      where: { date: todayStart },
+      where: {
+        date: todayStart,
+        student: departmentFilter,
+      },
       include: {
         student: {
           select: {
@@ -31,12 +41,14 @@ async function getDashboardData() {
             photoUrl: true,
             studentType: true,
             assignment: true,
+            department: true,
           },
         },
       },
       orderBy: { createdAt: "desc" },
     }),
     prisma.attendanceRecord.findMany({
+      where: { student: departmentFilter },
       orderBy: { createdAt: "desc" },
       take: 8,
       include: {
@@ -49,10 +61,12 @@ async function getDashboardData() {
             photoUrl: true,
             studentType: true,
             assignment: true,
+            department: true,
           },
         },
       },
     }),
+    getScheduleMonitoringData(session),
   ]);
 
   const presentToday = todayRecords.filter((r) => r.timeIn).length;
@@ -65,6 +79,7 @@ async function getDashboardData() {
     stillIn,
     completed,
     recentRecords,
+    scheduleMonitoring,
   };
 }
 
@@ -124,6 +139,43 @@ export default async function DashboardPage() {
           </Card>
         ))}
       </div>
+
+      {(data.scheduleMonitoring.summary.absent > 0 ||
+        data.scheduleMonitoring.summary.late > 0) && (
+        <Card className="border-l-4 border-l-orange-500">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <AlertTriangle className="size-4 text-orange-500" />
+              Today&apos;s Schedule Alerts
+            </CardTitle>
+            <ButtonLink href="/schedule" variant="outline" size="sm">
+              Open Duty Schedule
+            </ButtonLink>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            {data.scheduleMonitoring.summary.absent > 0 && (
+              <Badge variant="outline" className="bg-red-50 text-red-700">
+                {data.scheduleMonitoring.summary.absent} absent
+              </Badge>
+            )}
+            {data.scheduleMonitoring.summary.late > 0 && (
+              <Badge variant="outline" className="bg-orange-50 text-orange-700">
+                {data.scheduleMonitoring.summary.late} late
+              </Badge>
+            )}
+            {data.scheduleMonitoring.summary.waiting > 0 && (
+              <Badge variant="outline" className="bg-amber-50 text-amber-700">
+                {data.scheduleMonitoring.summary.waiting} waiting to time in
+              </Badge>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      <ScheduleRecommendationsCard
+        recommendations={data.scheduleMonitoring.recommendations}
+        limit={5}
+      />
 
       <Card>
         <CardHeader>

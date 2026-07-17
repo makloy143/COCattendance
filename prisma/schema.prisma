@@ -12,12 +12,24 @@ enum AdminRole {
   SUPER_ADMIN
 }
 
+enum Department {
+  REGISTRAR
+  FINANCE
+  CSDL
+  LIBRARY
+  MARKETING
+  GSD
+  GUIDANCE
+  ITSD
+}
+
 model Admin {
-  id           String    @id @default(cuid())
-  username     String    @unique
+  id           String      @id @default(cuid())
+  username     String      @unique
   passwordHash String
-  role         AdminRole @default(ADMIN)
-  createdAt    DateTime  @default(now())
+  role         AdminRole   @default(ADMIN)
+  department   Department?
+  createdAt    DateTime    @default(now())
 }
 
 model InventoryAdmin {
@@ -54,7 +66,7 @@ enum StudentAssignment {
 
 model Student {
   id            String                @id @default(cuid())
-  studentId     String                @unique
+  studentId     String
   firstName     String
   lastName      String
   email         String?
@@ -63,6 +75,7 @@ model Student {
   yearLevel     String?
   studentType   StudentType           @default(SA)
   assignment    StudentAssignment     @default(COMLAB)
+  department    Department            @default(ITSD)
   photoUrl       String?
   qrToken        String                @unique @default(cuid())
   faceDescriptor Json?
@@ -72,6 +85,8 @@ model Student {
   scheduleSlots  StudentScheduleSlot[]
   idErrors       IdErrorRecord[]
   photo          StudentPhoto?
+
+  @@unique([department, studentId])
 }
 
 model StudentPhoto {

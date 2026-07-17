@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireSession } from "@/lib/auth";
+import { getStudentDepartmentFilter, requireSession } from "@/lib/auth";
 import {
   formatManilaDateInput,
   getManilaDayEnd,
@@ -17,7 +17,8 @@ import {
 
 export async function GET(request: NextRequest) {
   try {
-    await requireSession();
+    const session = await requireSession();
+    const departmentFilter = getStudentDepartmentFilter(session);
 
     const { searchParams } = new URL(request.url);
     const today = getTodayStart();
@@ -43,6 +44,9 @@ export async function GET(request: NextRequest) {
       course: searchParams.get("course")?.trim() || undefined,
       status:
         (searchParams.get("status") as ReportFilters["status"]) || "all",
+      ...(departmentFilter.department
+        ? { department: departmentFilter.department }
+        : {}),
     };
 
     const rows = await fetchAttendanceReport(filters);

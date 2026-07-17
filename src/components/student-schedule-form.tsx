@@ -35,7 +35,8 @@ export function StudentScheduleForm({
       <CardHeader>
         <CardTitle className="text-base">Weekly Schedule</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Set available days and times for Monday through Friday.
+          Set duty days and times for Monday through Friday. Used to monitor late
+          and absent students on their assigned schedule.
         </p>
       </CardHeader>
       <CardContent className="space-y-3">

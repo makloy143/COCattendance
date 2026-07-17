@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireSession } from "@/lib/auth";
+import { getStudentDepartmentFilter, requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
 function parseDescriptor(value: unknown): number[] | null {
@@ -12,10 +12,11 @@ function parseDescriptor(value: unknown): number[] | null {
 
 export async function GET() {
   try {
-    await requireSession();
+    const session = await requireSession();
+    const departmentFilter = getStudentDepartmentFilter(session);
 
     const students = await prisma.student.findMany({
-      where: { isActive: true },
+      where: { isActive: true, ...departmentFilter },
       select: {
         id: true,
         studentId: true,

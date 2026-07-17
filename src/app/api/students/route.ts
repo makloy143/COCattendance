@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireSession } from "@/lib/auth";
+import {
+  getStudentDepartmentFilter,
+  requireSession,
+  resolveStudentDepartment,
+} from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getDurationMinutes } from "@/lib/date-utils";
 import { readStudentPhoto, studentPhotoUrl } from "@/lib/uploads";
@@ -23,7 +27,8 @@ function scheduleCreateInput(
 
 export async function GET(request: NextRequest) {
   try {
-    await requireSession();
+    const session = await requireSession();
+    const departmentFilter = getStudentDepartmentFilter(session);
 
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search")?.trim();
@@ -31,6 +36,7 @@ export async function GET(request: NextRequest) {
 
     const students = await prisma.student.findMany({
       where: {
+        ...departmentFilter,
         ...(includeInactive ? {} : { isActive: true }),
         ...(search
           ? {
@@ -78,6 +84,9 @@ export async function GET(request: NextRequest) {
     if (error instanceof Error && error.message === "Unauthorized") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (error instanceof Error && error.message === "Forbidden") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
     return NextResponse.json(
       { error: "Failed to fetch students" },
       { status: 500 }
@@ -87,7 +96,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireSession();
+    const session = await requireSession();
 
     const formData = await request.formData();
     const photo = formData.get("photo");
@@ -102,6 +111,7 @@ export async function POST(request: NextRequest) {
       yearLevel: formData.get("yearLevel") ?? "",
       studentType: formData.get("studentType") ?? "SA",
       assignment: formData.get("assignment") ?? "COMLAB",
+      department: formData.get("department"),
     });
 
     if (!parsed.success) {
@@ -111,18 +121,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const department = resolveStudentDepartment(
+      session,
+      parsed.data.department
+    );
+
     const scheduleParsed = parseScheduleFromFormData(formData);
     if (!scheduleParsed.success) {
       return NextResponse.json({ error: scheduleParsed.error }, { status: 400 });
     }
 
     const existing = await prisma.student.findUnique({
-      where: { studentId: parsed.data.studentId },
+      where: {
+        department_studentId: {
+          department,
+          studentId: parsed.data.studentId,
+        },
+      },
     });
 
     if (existing) {
       return NextResponse.json(
-        { error: "Student ID already exists" },
+        { error: "Student ID already exists in this department" },
         { status: 400 }
       );
     }
@@ -147,6 +167,7 @@ export async function POST(request: NextRequest) {
     const student = await prisma.student.create({
       data: {
         ...parsed.data,
+        department,
         email: parsed.data.email || null,
         phone: parsed.data.phone || null,
         course: parsed.data.course || null,
@@ -185,6 +206,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (error instanceof Error && error.message === "Forbidden") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     return NextResponse.json(
       { error: "Failed to create student" },

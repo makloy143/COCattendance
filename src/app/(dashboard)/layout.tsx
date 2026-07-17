@@ -9,6 +9,12 @@ export default async function DashboardLayout({
   const session = await getSession();
 
   return (
-    <DashboardShell username={session?.username}>{children}</DashboardShell>
+    <DashboardShell
+      username={session?.username}
+      role={session?.role}
+      department={session?.department}
+    >
+      {children}
+    </DashboardShell>
   );
 }

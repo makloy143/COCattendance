@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,11 @@ import {
   STUDENT_ASSIGNMENT_LABELS,
 } from "@/lib/student-assignment";
 import { STUDENT_TYPES, STUDENT_TYPE_LABELS } from "@/lib/student-type";
+import {
+  ATTENDANCE_DEPARTMENTS,
+  DEPARTMENT_LABELS,
+} from "@/lib/departments";
+import type { Department } from "@/generated/prisma/client";
 import { enrollFaceFromFile } from "@/lib/face-recognition";
 
 type StudentFormProps = {
@@ -50,6 +55,7 @@ const emptyValues: StudentFormValues = {
   yearLevel: "",
   studentType: "SA",
   assignment: "COMLAB",
+  department: "ITSD",
 };
 
 export function StudentForm({ mode, initialValues, studentDbId }: StudentFormProps) {
@@ -67,6 +73,33 @@ export function StudentForm({ mode, initialValues, studentDbId }: StudentFormPro
       ? mergeScheduleWithDefaults(initialSchedule)
       : createDefaultSchedule()
   );
+  const [canSelectDepartment, setCanSelectDepartment] = useState(false);
+  const [fixedDepartment, setFixedDepartment] = useState<Department | null>(
+    null
+  );
+
+  useEffect(() => {
+    async function loadSession() {
+      try {
+        const response = await fetch("/api/auth");
+        if (!response.ok) return;
+        const data = await response.json();
+        const isSuperAdmin = data.role === "SUPER_ADMIN";
+        setCanSelectDepartment(isSuperAdmin);
+        if (!isSuperAdmin && data.department) {
+          setFixedDepartment(data.department);
+          setValues((current) => ({
+            ...current,
+            department: data.department,
+          }));
+        }
+      } catch {
+        // Session info is optional for rendering the rest of the form.
+      }
+    }
+
+    void loadSession();
+  }, []);
 
   function updateField(field: keyof StudentFormValues, value: string) {
     setValues((current) => ({ ...current, [field]: value }));
@@ -232,6 +265,42 @@ export function StudentForm({ mode, initialValues, studentDbId }: StudentFormPro
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Department</Label>
+            {canSelectDepartment ? (
+              <Select
+                value={values.department}
+                onValueChange={(value) => {
+                  if (
+                    value &&
+                    ATTENDANCE_DEPARTMENTS.includes(value as Department)
+                  ) {
+                    updateField("department", value);
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ATTENDANCE_DEPARTMENTS.map((department) => (
+                    <SelectItem key={department} value={department}>
+                      {DEPARTMENT_LABELS[department]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                value={
+                  fixedDepartment
+                    ? DEPARTMENT_LABELS[fixedDepartment]
+                    : DEPARTMENT_LABELS[values.department as Department]
+                }
+                disabled
+              />
+            )}
           </div>
           <div className="space-y-2">
             <Label>Assign to</Label>

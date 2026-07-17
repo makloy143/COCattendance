@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isSuperAdmin, requireSession, requireSuperAdmin } from "@/lib/auth";
+import {
+  assertDepartmentAccess,
+  getStudentDepartmentFilter,
+  isSuperAdmin,
+  requireSession,
+  requireSuperAdmin,
+} from "@/lib/auth";
 import {
   recordAttendanceAction,
   resetTodayAttendance,
@@ -11,9 +17,26 @@ import {
   attendanceResetSchema,
 } from "@/lib/validations";
 
+async function assertStudentAccess(
+  session: Awaited<ReturnType<typeof requireSession>>,
+  studentDbId: string
+) {
+  const student = await prisma.student.findUnique({
+    where: { id: studentDbId },
+    select: { department: true },
+  });
+
+  if (!student) {
+    throw new Error("Student not found");
+  }
+
+  assertDepartmentAccess(session, student.department);
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await requireSession();
+    const departmentFilter = getStudentDepartmentFilter(session);
 
     const { searchParams } = new URL(request.url);
     const studentId = searchParams.get("studentId");
@@ -21,6 +44,8 @@ export async function GET(request: NextRequest) {
     const canResetAttendance = isSuperAdmin(session);
 
     if (studentId) {
+      await assertStudentAccess(session, studentId);
+
       const records = await prisma.attendanceRecord.findMany({
         where: { studentId },
         orderBy: { date: "desc" },
@@ -32,7 +57,7 @@ export async function GET(request: NextRequest) {
     if (today) {
       const todayStart = getTodayStart();
       const students = await prisma.student.findMany({
-        where: { isActive: true },
+        where: { isActive: true, ...departmentFilter },
         orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
         include: {
           attendance: {
@@ -51,6 +76,9 @@ export async function GET(request: NextRequest) {
     }
 
     const records = await prisma.attendanceRecord.findMany({
+      where: {
+        student: departmentFilter,
+      },
       orderBy: { createdAt: "desc" },
       take: 20,
       include: {
@@ -61,6 +89,7 @@ export async function GET(request: NextRequest) {
             firstName: true,
             lastName: true,
             photoUrl: true,
+            department: true,
           },
         },
       },
@@ -71,6 +100,12 @@ export async function GET(request: NextRequest) {
     if (error instanceof Error && error.message === "Unauthorized") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (error instanceof Error && error.message === "Forbidden") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    if (error instanceof Error && error.message === "Student not found") {
+      return NextResponse.json({ error: error.message }, { status: 404 });
+    }
     return NextResponse.json(
       { error: "Failed to fetch attendance" },
       { status: 500 }
@@ -80,7 +115,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireSession();
+    const session = await requireSession();
 
     const body = await request.json();
     const parsed = attendanceActionSchema.safeParse(body);
@@ -92,6 +127,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    await assertStudentAccess(session, parsed.data.studentId);
+
     const result = await recordAttendanceAction(
       parsed.data.studentId,
       parsed.data.action
@@ -101,6 +138,12 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (error instanceof Error && error.message === "Forbidden") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    if (error instanceof Error && error.message === "Student not found") {
+      return NextResponse.json({ error: error.message }, { status: 404 });
     }
     if (error instanceof Error) {
       return NextResponse.json({ error: error.message }, { status: 400 });

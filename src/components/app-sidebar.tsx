@@ -4,11 +4,13 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   CalendarCheck,
+  CalendarDays,
   FileBarChart,
   GraduationCap,
   LayoutDashboard,
   LogOut,
   ScanFace,
+  Shield,
   Users,
 } from "lucide-react";
 import {
@@ -29,16 +31,31 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { PortalBackLink } from "@/components/portal-back-link";
 import { cn } from "@/lib/utils";
+import { getDepartmentLabel } from "@/lib/departments";
+import type { AdminRole, Department } from "@/generated/prisma/client";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/students", label: "Students", icon: Users },
+  { href: "/schedule", label: "Duty Schedule", icon: CalendarDays },
   { href: "/attendance", label: "Attendance", icon: CalendarCheck },
   { href: "/scan", label: "Face Scan", icon: ScanFace },
   { href: "/reports", label: "Reports", icon: FileBarChart },
 ];
 
-export function AppSidebar({ username }: { username?: string }) {
+const superAdminNavItems = [
+  { href: "/admins", label: "Admin Accounts", icon: Shield },
+];
+
+export function AppSidebar({
+  username,
+  role,
+  department,
+}: {
+  username?: string;
+  role?: AdminRole;
+  department?: Department | null;
+}) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -88,15 +105,45 @@ export function AppSidebar({ username }: { username?: string }) {
                   </SidebarMenuItem>
                 );
               })}
+              {role === "SUPER_ADMIN" &&
+                superAdminNavItems.map((item) => {
+                  const isActive = pathname.startsWith(item.href);
+
+                  return (
+                    <SidebarMenuItem key={item.href}>
+                      <Link
+                        href={item.href}
+                        className={cn(
+                          "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-sm ring-sidebar-ring outline-hidden transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground [&_svg]:size-4 [&_svg]:shrink-0",
+                          isActive &&
+                            "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                        )}
+                      >
+                        <item.icon />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuItem>
+                  );
+                })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border p-2">
         {username && (
-          <p className="truncate px-2 py-1 text-xs text-muted-foreground">
-            Signed in as <span className="font-medium text-foreground">{username}</span>
-          </p>
+          <div className="px-2 py-1">
+            <p className="truncate text-xs text-muted-foreground">
+              Signed in as{" "}
+              <span className="font-medium text-foreground">{username}</span>
+            </p>
+            {role === "SUPER_ADMIN" ? (
+              <p className="mt-1 text-xs text-muted-foreground">Super Admin</p>
+            ) : department ? (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {getDepartmentLabel(department)} Admin
+              </p>
+            ) : null}
+          </div>
         )}
         <Button
           variant="ghost"
@@ -114,13 +161,21 @@ export function AppSidebar({ username }: { username?: string }) {
 export function DashboardShell({
   children,
   username,
+  role,
+  department,
 }: {
   children: React.ReactNode;
   username?: string;
+  role?: AdminRole;
+  department?: Department | null;
 }) {
   return (
     <SidebarProvider>
-      <AppSidebar username={username} />
+      <AppSidebar
+        username={username}
+        role={role}
+        department={department}
+      />
       <SidebarInset>
         <header className="flex h-14 shrink-0 items-center gap-2 border-b px-3 sm:px-4">
           <SidebarTrigger />

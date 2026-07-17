@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   ArrowLeftRight,
+  BarChart3,
   Droplets,
   IdCard,
   Package,
@@ -8,15 +9,16 @@ import {
 } from "lucide-react";
 import { ButtonLink } from "@/components/button-link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { RestockRecommendationsCard } from "@/components/inventory-analytics-cards";
 import { InventoryStatCard } from "@/components/inventory-stat-card";
 import { requireInventorySession } from "@/lib/inventory-auth";
 import { prisma } from "@/lib/db";
 import { formatDate } from "@/lib/date-utils";
 import {
-  aggregateInkStock,
   formatDateTime,
   formatItemDescription,
 } from "@/lib/inventory";
+import { getInventoryAnalyticsData } from "@/lib/inventory-analytics";
 import { BorrowStatusBadge } from "@/components/borrow-status-badge";
 
 async function getInventoryDashboardData() {
@@ -24,7 +26,7 @@ async function getInventoryDashboardData() {
     totalReceivedItems,
     activeBorrows,
     pendingIdErrors,
-    inkItems,
+    analytics,
     recentReceived,
     recentBorrows,
     recentIdErrors,
@@ -34,12 +36,7 @@ async function getInventoryDashboardData() {
       where: { status: "ACTIVE", receivedItem: { itemType: "EQUIPMENT" } },
     }),
     prisma.idErrorRecord.count({ where: { status: "REPRINT" } }),
-    prisma.receivedItem.findMany({
-      where: { category: "INK" },
-      include: {
-        borrows: { select: { quantityBorrowed: true, status: true } },
-      },
-    }),
+    getInventoryAnalyticsData(),
     prisma.receivedItem.findMany({
       orderBy: [{ dateReceived: "desc" }, { createdAt: "desc" }],
       take: 5,
@@ -67,15 +64,16 @@ async function getInventoryDashboardData() {
     }),
   ]);
 
-  const inkStock = aggregateInkStock(inkItems);
-  const lowInkAlerts = inkStock.filter((s) => s.remaining <= 2).length;
-
   return {
     totalReceivedItems,
     activeBorrows,
     pendingIdErrors,
-    inkStockCount: inkStock.length,
-    lowInkAlerts,
+    inkStockCount: analytics.allStock.filter((s) => s.category === "INK")
+      .length,
+    lowInkAlerts: analytics.summary.lowInkColors,
+    needsRestock: analytics.summary.needsRestock,
+    netOnHand: analytics.summary.netOnHand,
+    restockRecommendations: analytics.restockRecommendations,
     recentReceived,
     recentBorrows,
     recentIdErrors,
@@ -116,11 +114,18 @@ export default async function InventoryDashboardPage() {
       accent: "red" as const,
     },
     {
-      title: "Low Ink Alerts",
-      value: data.lowInkAlerts,
+      title: "Needs Restock",
+      value: data.needsRestock,
       icon: AlertTriangle,
-      description: "Ink models with ≤ 2 remaining",
+      description: "Items at or below threshold",
       accent: "orange" as const,
+    },
+    {
+      title: "Net On Hand",
+      value: data.netOnHand,
+      icon: BarChart3,
+      description: "Total consumable units available",
+      accent: "cyan" as const,
     },
   ];
 
@@ -143,11 +148,24 @@ export default async function InventoryDashboardPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {stats.map((stat) => (
           <InventoryStatCard key={stat.title} {...stat} />
         ))}
       </div>
+
+      <RestockRecommendationsCard
+        recommendations={data.restockRecommendations}
+        limit={5}
+      />
+
+      {data.restockRecommendations.length > 5 && (
+        <div className="flex justify-end">
+          <ButtonLink href="/inventory/analytics" variant="outline" size="sm">
+            View all {data.restockRecommendations.length} restock alerts
+          </ButtonLink>
+        </div>
+      )}
 
       <Card>
         <CardHeader>

@@ -16,7 +16,9 @@ export async function GET() {
   return NextResponse.json({
     username: session.username,
     role: session.role,
+    department: session.department,
     canResetAttendance: session.role === "SUPER_ADMIN",
+    canManageAdmins: session.role === "SUPER_ADMIN",
   });
 }
 
@@ -44,13 +46,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await createSession(admin.id, admin.username, admin.role);
+    await createSession(
+      admin.id,
+      admin.username,
+      admin.role,
+      admin.department
+    );
 
     return NextResponse.json({
       success: true,
       username: admin.username,
       role: admin.role,
+      department: admin.department,
       canResetAttendance: admin.role === "SUPER_ADMIN",
+      canManageAdmins: admin.role === "SUPER_ADMIN",
     });
   } catch {
     return NextResponse.json(

@@ -18,11 +18,12 @@ async function main() {
 
   await prisma.admin.upsert({
     where: { username: "admin" },
-    update: {},
+    update: { department: "ITSD" },
     create: {
       username: "admin",
       passwordHash,
       role: "ADMIN",
+      department: "ITSD",
     },
   });
 
@@ -30,11 +31,25 @@ async function main() {
 
   await prisma.admin.upsert({
     where: { username: "superadmin" },
-    update: { role: "SUPER_ADMIN" },
+    update: { role: "SUPER_ADMIN", department: null },
     create: {
       username: "superadmin",
       passwordHash: superAdminPasswordHash,
       role: "SUPER_ADMIN",
+      department: null,
+    },
+  });
+
+  const registrarPasswordHash = await bcrypt.hash("registrar123", 10);
+
+  await prisma.admin.upsert({
+    where: { username: "registrar" },
+    update: { department: "REGISTRAR", role: "ADMIN" },
+    create: {
+      username: "registrar",
+      passwordHash: registrarPasswordHash,
+      role: "ADMIN",
+      department: "REGISTRAR",
     },
   });
 
@@ -49,9 +64,12 @@ async function main() {
     },
   });
 
-  console.log("Seeded default admin (username: admin, password: admin123)");
+  console.log("Seeded default admin (username: admin, password: admin123, department: ITSD)");
   console.log(
     "Seeded super admin (username: superadmin, password: superadmin123)"
+  );
+  console.log(
+    "Seeded registrar admin (username: registrar, password: registrar123, department: REGISTRAR)"
   );
   console.log(
     "Seeded inventory admin (username: inventory, password: inventory123)"

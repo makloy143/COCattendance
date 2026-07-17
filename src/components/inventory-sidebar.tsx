@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   ArrowLeftToLine,
   ArrowRightFromLine,
+  BarChart3,
   IdCard,
   LayoutDashboard,
   LogOut,
@@ -31,6 +32,12 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/inventory", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  {
+    href: "/inventory/analytics",
+    label: "Analytics",
+    icon: BarChart3,
+    match: ["/inventory/analytics"],
+  },
   { href: "/inventory/received", label: "Item Received", icon: Package },
   {
     href: "/inventory/received/release",

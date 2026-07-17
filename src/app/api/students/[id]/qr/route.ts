@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireSession } from "@/lib/auth";
+import { assertDepartmentAccess, requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { generateQrPngBuffer } from "@/lib/qr";
 
@@ -9,17 +9,19 @@ type RouteContext = {
 
 export async function GET(_request: Request, context: RouteContext) {
   try {
-    await requireSession();
+    const session = await requireSession();
     const { id } = await context.params;
 
     const student = await prisma.student.findUnique({
       where: { id },
-      select: { qrToken: true, isActive: true },
+      select: { qrToken: true, isActive: true, department: true },
     });
 
     if (!student) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
+
+    assertDepartmentAccess(session, student.department);
 
     const buffer = await generateQrPngBuffer(student.qrToken);
 

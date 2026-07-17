@@ -1,19 +1,24 @@
 import { NextResponse } from "next/server";
-import { requireSession } from "@/lib/auth";
+import { getStudentDepartmentFilter, requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getTodayStart } from "@/lib/date-utils";
 
 export async function GET() {
   try {
-    await requireSession();
+    const session = await requireSession();
+    const departmentFilter = getStudentDepartmentFilter(session);
     const todayStart = getTodayStart();
 
     const [totalStudents, todayRecords, recentRecords] = await Promise.all([
-      prisma.student.count({ where: { isActive: true } }),
+      prisma.student.count({ where: { isActive: true, ...departmentFilter } }),
       prisma.attendanceRecord.findMany({
-        where: { date: todayStart },
+        where: {
+          date: todayStart,
+          student: departmentFilter,
+        },
       }),
       prisma.attendanceRecord.findMany({
+        where: { student: departmentFilter },
         orderBy: { createdAt: "desc" },
         take: 10,
         include: {
@@ -26,6 +31,7 @@ export async function GET() {
               photoUrl: true,
               studentType: true,
               assignment: true,
+              department: true,
             },
           },
         },
@@ -46,6 +52,9 @@ export async function GET() {
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (error instanceof Error && error.message === "Forbidden") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     return NextResponse.json(
       { error: "Failed to fetch dashboard stats" },

@@ -14,6 +14,7 @@ export type ReportFilters = {
   studentId?: string;
   course?: string;
   status?: "all" | "complete" | "in_only" | "not_yet";
+  department?: import("@/generated/prisma/client").Department;
 };
 
 export type ReportRow = {
@@ -71,6 +72,7 @@ export async function fetchAttendanceReport(
       },
       student: {
         isActive: true,
+        ...(filters.department ? { department: filters.department } : {}),
         ...(filters.studentId ? { studentId: filters.studentId } : {}),
         ...(filters.course
           ? { course: { contains: filters.course, mode: "insensitive" } }

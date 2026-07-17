@@ -58,6 +58,36 @@ export function getTodayStart(now: Date = new Date()): Date {
   return getManilaDayStart(now);
 }
 
+const MANILA_WEEKDAY_MAP: Record<string, number> = {
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6,
+  Sun: 7,
+};
+
+/** ISO-style weekday in Manila: Monday = 1, Sunday = 7. */
+export function getManilaDayOfWeek(date: Date | string = new Date()): number {
+  const weekday = new Intl.DateTimeFormat("en-US", {
+    timeZone: APP_TIMEZONE,
+    weekday: "short",
+  }).format(toDate(date));
+  return MANILA_WEEKDAY_MAP[weekday] ?? 1;
+}
+
+export function combineManilaDateAndTime(
+  date: Date | string,
+  time: string
+): Date {
+  const dateKey = formatManilaDateInput(date);
+  const normalizedTime = time.match(/^\d{2}:\d{2}$/)
+    ? time
+    : `${time.padStart(5, "0").slice(0, 5)}`;
+  return new Date(`${dateKey}T${normalizedTime}:00+08:00`);
+}
+
 export function formatTime(date: Date | string | null | undefined): string {
   if (!date) return "—";
   return new Intl.DateTimeFormat("en-PH", {
