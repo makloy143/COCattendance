@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
       course: formData.get("course") ?? "",
       yearLevel: formData.get("yearLevel") ?? "",
       studentType: formData.get("studentType") ?? "SA",
-      assignment: formData.get("assignment") ?? "COMLAB",
+      assignment: formData.get("assignment") ?? "REGISTRAR",
       department: formData.get("department"),
     });
 

@@ -27,6 +27,7 @@ import { scheduleSchema } from "@/lib/validations";
 import {
   STUDENT_ASSIGNMENTS,
   STUDENT_ASSIGNMENT_LABELS,
+  isStudentAssignment,
 } from "@/lib/student-assignment";
 import { STUDENT_TYPES, STUDENT_TYPE_LABELS } from "@/lib/student-type";
 import {
@@ -54,7 +55,7 @@ const emptyValues: StudentFormValues = {
   course: "",
   yearLevel: "",
   studentType: "SA",
-  assignment: "COMLAB",
+  assignment: "REGISTRAR",
   department: "ITSD",
 };
 
@@ -307,11 +308,7 @@ export function StudentForm({ mode, initialValues, studentDbId }: StudentFormPro
             <Select
               value={values.assignment}
               onValueChange={(value) => {
-                if (
-                  value === "COMLAB" ||
-                  value === "ID_STATION" ||
-                  value === "ITS_OFFICE"
-                ) {
+                if (value && isStudentAssignment(value)) {
                   updateField("assignment", value);
                 }
               }}

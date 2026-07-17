@@ -59,9 +59,15 @@ enum StudentType {
 }
 
 enum StudentAssignment {
-  COMLAB
-  ID_STATION
-  ITS_OFFICE
+  REGISTRAR
+  FINANCE
+  ACCOUNTING
+  GUIDANCE
+  CSDL
+  ADMIN
+  FACULTY
+  MARKETING
+  OTHERS
 }
 
 model Student {
@@ -74,7 +80,7 @@ model Student {
   course        String?
   yearLevel     String?
   studentType   StudentType           @default(SA)
-  assignment    StudentAssignment     @default(COMLAB)
+  assignment    StudentAssignment     @default(REGISTRAR)
   department    Department            @default(ITSD)
   photoUrl       String?
   qrToken        String                @unique @default(cuid())

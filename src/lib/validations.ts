@@ -42,7 +42,7 @@ export const studentSchema = z.object({
     message: "Student type must be SA or HK",
   }),
   assignment: z.enum(STUDENT_ASSIGNMENTS, {
-    message: "Assignment must be COMLAB, ID STATION, or ITS OFFICE",
+    message: "Assignment is required",
   }),
   department: z.enum(ATTENDANCE_DEPARTMENTS, {
     message: "Department is required",

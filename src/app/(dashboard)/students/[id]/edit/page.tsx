@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { StudentForm } from "@/components/student-form";
 import { mergeScheduleWithDefaults, type ScheduleSlot } from "@/lib/schedule";
 import { toast } from "sonner";
+import type { StudentAssignment } from "@/lib/student-assignment";
 
 type Student = {
   id: string;
@@ -16,7 +17,7 @@ type Student = {
   course: string | null;
   yearLevel: string | null;
   studentType: "SA" | "HK";
-  assignment: "COMLAB" | "ID_STATION" | "ITS_OFFICE";
+  assignment: StudentAssignment;
   department: "REGISTRAR" | "FINANCE" | "CSDL" | "LIBRARY" | "MARKETING" | "GSD" | "GUIDANCE" | "ITSD";
   photoUrl: string | null;
   scheduleSlots: ScheduleSlot[];
