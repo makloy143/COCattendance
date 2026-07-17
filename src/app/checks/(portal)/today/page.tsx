@@ -26,7 +26,7 @@ import {
   CATEGORY_LABELS,
   type CheckItemDto,
   STATUS_LABELS,
-} from "@/lib/checks";
+} from "@/lib/checks-shared";
 import { IT_STAFF_NAMES } from "@/lib/inventory";
 import { cn } from "@/lib/utils";
 

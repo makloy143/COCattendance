@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { MONITORING_SYSTEM_CATALOG } from "../src/lib/monitoring-systems";
-import { DEFAULT_CHECK_TEMPLATES } from "../src/lib/checks";
+import { DEFAULT_CHECK_TEMPLATES } from "../src/lib/checks-shared";
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {

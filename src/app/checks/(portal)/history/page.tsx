@@ -10,7 +10,7 @@ import {
   CATEGORY_LABELS,
   STATUS_LABELS,
   type CheckStatusValue,
-} from "@/lib/checks";
+} from "@/lib/checks-shared";
 import { formatDateTime } from "@/lib/date-utils";
 
 type HistoryLog = {

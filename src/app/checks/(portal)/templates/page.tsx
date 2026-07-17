@@ -24,7 +24,7 @@ import {
   type CheckCategoryValue,
   type CheckTemplateDto,
   WEEKDAY_OPTIONS,
-} from "@/lib/checks";
+} from "@/lib/checks-shared";
 
 type TemplateForm = {
   department: string;

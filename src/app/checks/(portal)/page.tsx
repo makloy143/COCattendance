@@ -11,12 +11,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ButtonLink } from "@/components/button-link";
-import { requireChecksSession } from "@/lib/checks-auth";
 import {
   CATEGORY_LABELS,
-  getChecksDashboardData,
   STATUS_LABELS,
-} from "@/lib/checks";
+} from "@/lib/checks-shared";
+import { requireChecksSession } from "@/lib/checks-auth";
+import { getChecksDashboardData } from "@/lib/checks";
 
 const categoryIcon = {
   INK: Droplets,
