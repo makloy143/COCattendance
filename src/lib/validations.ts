@@ -270,19 +270,20 @@ export const CHECK_STATUSES = [
   "SKIPPED",
 ] as const;
 
-export const checkTemplateSchema = z
-  .object({
-    department: z.string().min(1, "Department is required"),
-    title: z.string().min(1, "Title is required").max(200),
-    description: z.string().max(1000).optional().or(z.literal("")),
-    category: z.enum(CHECK_CATEGORIES).default("OTHER"),
-    cadence: z.enum(CHECK_CADENCES).default("WEEKLY"),
-    dayOfWeek: z.number().int().min(1).max(7).optional().nullable(),
-    dayOfMonth: z.number().int().min(1).max(28).optional().nullable(),
-    sortOrder: z.number().int().min(0).default(0),
-    isActive: z.boolean().default(true),
-  })
-  .superRefine((data, ctx) => {
+const checkTemplateBaseSchema = z.object({
+  department: z.string().min(1, "Department is required"),
+  title: z.string().min(1, "Title is required").max(200),
+  description: z.string().max(1000).optional().or(z.literal("")),
+  category: z.enum(CHECK_CATEGORIES).default("OTHER"),
+  cadence: z.enum(CHECK_CADENCES).default("WEEKLY"),
+  dayOfWeek: z.number().int().min(1).max(7).optional().nullable(),
+  dayOfMonth: z.number().int().min(1).max(28).optional().nullable(),
+  sortOrder: z.number().int().min(0).default(0),
+  isActive: z.boolean().default(true),
+});
+
+export const checkTemplateSchema = checkTemplateBaseSchema.superRefine(
+  (data, ctx) => {
     if (data.cadence === "WEEKLY" && !data.dayOfWeek) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -297,11 +298,12 @@ export const checkTemplateSchema = z
         path: ["dayOfMonth"],
       });
     }
-  });
+  }
+);
 
 export type CheckTemplateFormValues = z.infer<typeof checkTemplateSchema>;
 
-export const checkTemplateUpdateSchema = checkTemplateSchema.partial();
+export const checkTemplateUpdateSchema = checkTemplateBaseSchema.partial();
 
 export const checkLogSchema = z.object({
   templateId: z.string().min(1),
