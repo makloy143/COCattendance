@@ -151,7 +151,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (pathname.startsWith("/api/checks/auth")) {
+  if (pathname.startsWith("/api/checks/auth") || pathname.startsWith("/api/checks/seed")) {
     return NextResponse.next();
   }
 
