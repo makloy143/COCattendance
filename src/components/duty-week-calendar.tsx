@@ -33,6 +33,8 @@ const HOUR_HEIGHT = 56;
 const DEFAULT_START_HOUR = 7;
 const DEFAULT_END_HOUR = 18;
 const MIN_BLOCK_HEIGHT = 28;
+/** Keeps overlapping duty blocks readable instead of crushing to a few pixels. */
+const MIN_EVENT_WIDTH = 112;
 
 const ASSIGNMENT_COLORS: Record<
   StudentAssignment,
@@ -408,57 +410,83 @@ export function DutyWeekCalendar({ className }: DutyWeekCalendarProps) {
       ) : (
         <TooltipProvider>
           <div className="overflow-x-auto rounded-xl border bg-card">
-            <div className="min-w-[760px]">
-              <div className="grid grid-cols-[56px_repeat(5,minmax(0,1fr))] border-b">
-                <div className="border-r" />
-                {weekDays.map((day) => (
-                  <div
-                    key={day.dayOfWeek}
-                    className="flex flex-col items-center gap-1 border-r px-2 py-3 last:border-r-0"
+            <div
+              className="grid"
+              style={{
+                gridTemplateColumns: `56px repeat(5, minmax(160px, 1fr))`,
+                minWidth: 56 + weekDays.reduce((total, day) => {
+                  const dayEvents = eventsByDay.get(day.dayOfWeek) ?? [];
+                  const maxCols = Math.max(
+                    1,
+                    ...dayEvents.map((event) => event.columnCount)
+                  );
+                  return total + Math.max(160, maxCols * MIN_EVENT_WIDTH);
+                }, 0),
+              }}
+            >
+              <div className="sticky top-0 z-30 border-b border-r bg-card" />
+              {weekDays.map((day) => (
+                <div
+                  key={`head-${day.dayOfWeek}`}
+                  className="sticky top-0 z-30 flex flex-col items-center gap-1 border-b border-r bg-card px-2 py-3 last:border-r-0"
+                >
+                  <span className="text-[11px] font-medium tracking-wide text-muted-foreground">
+                    {day.shortLabel}
+                  </span>
+                  <span
+                    className={cn(
+                      "flex size-8 items-center justify-center text-sm font-semibold",
+                      day.isToday
+                        ? "rounded-full bg-primary text-primary-foreground"
+                        : "text-foreground"
+                    )}
                   >
-                    <span className="text-[11px] font-medium tracking-wide text-muted-foreground">
-                      {day.shortLabel}
-                    </span>
-                    <span
-                      className={cn(
-                        "flex size-8 items-center justify-center text-sm font-semibold",
-                        day.isToday
-                          ? "rounded-full bg-primary text-primary-foreground"
-                          : "text-foreground"
-                      )}
-                    >
-                      {day.dayNumber}
-                    </span>
+                    {day.dayNumber}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {(eventsByDay.get(day.dayOfWeek) ?? []).length} on duty
+                  </span>
+                </div>
+              ))}
+
+              <div className="relative border-r" style={{ height: gridHeight }}>
+                {hours.map((hour) => (
+                  <div
+                    key={hour}
+                    className="absolute right-2 -translate-y-1/2 text-[10px] text-muted-foreground"
+                    style={{
+                      top: ((hour * 60 - gridStartMinutes) / 60) * HOUR_HEIGHT,
+                    }}
+                  >
+                    {formatHourLabel(hour)}
                   </div>
                 ))}
               </div>
 
-              <div className="relative grid grid-cols-[56px_repeat(5,minmax(0,1fr))]">
-                <div
-                  className="relative border-r"
-                  style={{ height: gridHeight }}
-                >
-                  {hours.map((hour) => (
+              {weekDays.map((day) => {
+                const dayEvents = eventsByDay.get(day.dayOfWeek) ?? [];
+                const maxCols = Math.max(
+                  1,
+                  ...dayEvents.map((event) => event.columnCount)
+                );
+                const dayContentWidth = Math.max(
+                  160,
+                  maxCols * MIN_EVENT_WIDTH
+                );
+
+                return (
+                  <div
+                    key={day.dayOfWeek}
+                    className="relative overflow-x-auto border-r last:border-r-0"
+                    style={{ height: gridHeight }}
+                  >
                     <div
-                      key={hour}
-                      className="absolute right-2 -translate-y-1/2 text-[10px] text-muted-foreground"
+                      className="relative"
                       style={{
-                        top: ((hour * 60 - gridStartMinutes) / 60) * HOUR_HEIGHT,
+                        height: gridHeight,
+                        width: dayContentWidth,
+                        minWidth: "100%",
                       }}
-                    >
-                      {formatHourLabel(hour)}
-                    </div>
-                  ))}
-                </div>
-
-                {weekDays.map((day) => {
-                  const dayEvents = eventsByDay.get(day.dayOfWeek) ?? [];
-
-                  return (
-                    <div
-                      key={day.dayOfWeek}
-                      className="relative border-r last:border-r-0"
-                      style={{ height: gridHeight }}
                     >
                       {hours.map((hour) => (
                         <div
@@ -496,10 +524,11 @@ export function DutyWeekCalendar({ className }: DutyWeekCalendarProps) {
                             gridHeight -
                             2
                         );
-                        const widthPercent = 100 / event.columnCount;
-                        const leftPercent = event.column * widthPercent;
                         const colors = ASSIGNMENT_COLORS[event.assignment];
                         const timeLabel = `${formatScheduleTime(event.startTime)} – ${formatScheduleTime(event.endTime)}`;
+                        const colWidth = dayContentWidth / event.columnCount;
+                        const left = event.column * colWidth + 2;
+                        const width = colWidth - 4;
 
                         return (
                           <Tooltip key={event.key}>
@@ -513,12 +542,7 @@ export function DutyWeekCalendar({ className }: DutyWeekCalendarProps) {
                                     colors.border,
                                     colors.text
                                   )}
-                                  style={{
-                                    top,
-                                    height,
-                                    left: `calc(${leftPercent}% + 2px)`,
-                                    width: `calc(${widthPercent}% - 4px)`,
-                                  }}
+                                  style={{ top, height, left, width }}
                                 />
                               }
                             >
@@ -558,9 +582,9 @@ export function DutyWeekCalendar({ className }: DutyWeekCalendarProps) {
                         </div>
                       )}
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </TooltipProvider>
