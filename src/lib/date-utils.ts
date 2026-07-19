@@ -157,3 +157,35 @@ export function formatDuration(
   if (!timeIn || !timeOut) return "—";
   return formatTotalHours(getDurationMinutes(timeIn, timeOut));
 }
+
+/** Monday 00:00 Manila for the week containing `date` (Mon–Sun weeks). */
+export function getManilaWeekStart(date: Date | string = new Date()): Date {
+  const dayStart = getManilaDayStart(date);
+  const dayOfWeek = getManilaDayOfWeek(dayStart);
+  const daysFromMonday = dayOfWeek === 7 ? 6 : dayOfWeek - 1;
+  return new Date(dayStart.getTime() - daysFromMonday * 24 * 60 * 60 * 1000);
+}
+
+/** Add whole calendar days in Manila (preserves the yyyy-MM-dd key). */
+export function addManilaDays(date: Date | string, days: number): Date {
+  const dayStart = getManilaDayStart(date);
+  return new Date(dayStart.getTime() + days * 24 * 60 * 60 * 1000);
+}
+
+/** ISO-style week number in Manila (weeks start Monday). */
+export function getManilaWeekNumber(date: Date | string = new Date()): number {
+  const weekStart = getManilaWeekStart(date);
+  const { year } = getManilaParts(weekStart);
+  const jan4 = getManilaDayStart(`${year}-01-04`);
+  const week1Start = getManilaWeekStart(jan4);
+  const diffMs = weekStart.getTime() - week1Start.getTime();
+  return Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000)) + 1;
+}
+
+export function formatManilaMonthYear(date: Date | string = new Date()): string {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: APP_TIMEZONE,
+    month: "long",
+    year: "numeric",
+  }).format(toDate(date));
+}
