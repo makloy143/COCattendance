@@ -1,6 +1,5 @@
 import type {
   AttendanceRecord,
-  Department,
   StudentScheduleSlot,
 } from "@/generated/prisma/client";
 import {
@@ -10,7 +9,10 @@ import {
   getManilaDayOfWeek,
   getManilaDayStart,
 } from "@/lib/date-utils";
-import { getDepartmentLabel } from "@/lib/departments";
+import {
+  getDepartmentLabel,
+  type Department,
+} from "@/lib/departments";
 import { formatScheduleTime, getWeekdayLabel } from "@/lib/schedule";
 import {
   getStudentAssignmentLabel,

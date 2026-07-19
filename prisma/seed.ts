@@ -4,6 +4,8 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { MONITORING_SYSTEM_CATALOG } from "../src/lib/monitoring-systems";
 import { DEFAULT_CHECK_TEMPLATES } from "../src/lib/checks-shared";
+import { DEFAULT_ATTENDANCE_DEPARTMENTS } from "../src/lib/departments";
+import { DEFAULT_STUDENT_ASSIGNMENTS } from "../src/lib/student-assignment";
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
@@ -14,6 +16,30 @@ const adapter = new PrismaPg({ connectionString });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
+  for (const [index, department] of DEFAULT_ATTENDANCE_DEPARTMENTS.entries()) {
+    await prisma.attendanceDepartmentOption.upsert({
+      where: { code: department.code },
+      update: { label: department.label, sortOrder: index, isActive: true },
+      create: {
+        code: department.code,
+        label: department.label,
+        sortOrder: index,
+      },
+    });
+  }
+
+  for (const [index, assignment] of DEFAULT_STUDENT_ASSIGNMENTS.entries()) {
+    await prisma.studentAssignmentOption.upsert({
+      where: { code: assignment.code },
+      update: { label: assignment.label, sortOrder: index, isActive: true },
+      create: {
+        code: assignment.code,
+        label: assignment.label,
+        sortOrder: index,
+      },
+    });
+  }
+
   const passwordHash = await bcrypt.hash("admin123", 10);
 
   await prisma.admin.upsert({

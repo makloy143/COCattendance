@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { requireSuperAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { assertActiveDepartment } from "@/lib/departments-server";
 import { adminAccountSchema } from "@/lib/validations";
 
 export async function GET() {
@@ -57,6 +58,17 @@ export async function POST(request: NextRequest) {
         { error: "Username already exists" },
         { status: 400 }
       );
+    }
+
+    if (parsed.data.role === "ADMIN" && parsed.data.department) {
+      try {
+        await assertActiveDepartment(parsed.data.department);
+      } catch {
+        return NextResponse.json(
+          { error: "Invalid department" },
+          { status: 400 }
+        );
+      }
     }
 
     const passwordHash = await bcrypt.hash(parsed.data.password, 10);

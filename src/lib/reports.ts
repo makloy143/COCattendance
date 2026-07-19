@@ -14,7 +14,7 @@ export type ReportFilters = {
   studentId?: string;
   course?: string;
   status?: "all" | "complete" | "in_only" | "not_yet";
-  department?: import("@/generated/prisma/client").Department;
+  department?: string;
 };
 
 export type ReportRow = {

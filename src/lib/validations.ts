@@ -1,10 +1,9 @@
 import { z } from "zod";
 import { normalizeScheduleSlots } from "@/lib/schedule";
 import { ITEM_TYPES, ITEM_CATEGORIES, INK_COLORS, ID_ERROR_STATUSES } from "@/lib/inventory";
-import { ATTENDANCE_DEPARTMENTS } from "@/lib/departments";
-import { STUDENT_ASSIGNMENTS } from "@/lib/student-assignment";
 import { STUDENT_TYPES } from "@/lib/student-type";
 import { TODO_PRIORITIES } from "@/lib/todo";
+import { toOptionCode } from "@/lib/option-code";
 
 export const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -41,13 +40,27 @@ export const studentSchema = z.object({
   studentType: z.enum(STUDENT_TYPES, {
     message: "Student type must be SA or HK",
   }),
-  assignment: z.enum(STUDENT_ASSIGNMENTS, {
-    message: "Assignment is required",
-  }),
-  department: z.enum(ATTENDANCE_DEPARTMENTS, {
-    message: "Department is required",
-  }),
+  assignment: z.string().min(1, "Assignment is required").max(50),
+  department: z.string().min(1, "Department is required").max(50),
 });
+
+export const catalogOptionSchema = z.object({
+  label: z.string().min(1, "Label is required").max(80),
+  code: z.string().max(50).optional(),
+});
+
+export const catalogOptionUpdateSchema = z.object({
+  label: z.string().min(1, "Label is required").max(80).optional(),
+  isActive: z.boolean().optional(),
+});
+
+export function resolveCatalogOptionCode(label: string, code?: string | null) {
+  const resolved = toOptionCode(code?.trim() || label);
+  if (!resolved) {
+    return null;
+  }
+  return resolved;
+}
 
 export type StudentFormValues = z.infer<typeof studentSchema>;
 
@@ -330,7 +343,7 @@ export const adminAccountSchema = z
       .min(6, "Password must be at least 6 characters")
       .max(100),
     role: z.enum(["ADMIN", "SUPER_ADMIN"]),
-    department: z.enum(ATTENDANCE_DEPARTMENTS).optional().nullable(),
+    department: z.string().min(1).max(50).optional().nullable(),
   })
   .superRefine((data, ctx) => {
     if (data.role === "ADMIN" && !data.department) {
@@ -357,7 +370,7 @@ export const adminAccountUpdateSchema = z
       .max(100)
       .optional(),
     role: z.enum(["ADMIN", "SUPER_ADMIN"]).optional(),
-    department: z.enum(ATTENDANCE_DEPARTMENTS).optional().nullable(),
+    department: z.string().min(1).max(50).optional().nullable(),
   })
   .superRefine((data, ctx) => {
     if (data.role === "ADMIN" && data.department === null) {

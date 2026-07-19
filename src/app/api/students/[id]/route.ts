@@ -9,6 +9,8 @@ import { prisma } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
 import { getTodayStart, getTotalMinutes } from "@/lib/date-utils";
 import { readStudentPhoto, studentPhotoUrl } from "@/lib/uploads";
+import { assertActiveDepartment } from "@/lib/departments-server";
+import { assertActiveAssignment } from "@/lib/student-assignment-server";
 import { parseScheduleFromFormData, studentSchema } from "@/lib/validations";
 
 function scheduleCreateInput(
@@ -139,6 +141,25 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       session,
       parsed.data.department
     );
+
+    try {
+      if (department !== existing.department) {
+        await assertActiveDepartment(department);
+      }
+      if (parsed.data.assignment !== existing.assignment) {
+        await assertActiveAssignment(parsed.data.assignment);
+      }
+    } catch (validationError) {
+      return NextResponse.json(
+        {
+          error:
+            validationError instanceof Error
+              ? validationError.message
+              : "Invalid department or assignment",
+        },
+        { status: 400 }
+      );
+    }
 
     if (parsed.data.studentId !== existing.studentId || department !== existing.department) {
       const duplicate = await prisma.student.findUnique({

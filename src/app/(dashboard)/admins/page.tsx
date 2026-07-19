@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { AdminAccountsManager } from "@/components/admin-accounts-manager";
+import { CatalogOptionsManager } from "@/components/catalog-options-manager";
 import { requireSuperAdmin } from "@/lib/auth";
 
 export default async function AdminAccountsPage() {
@@ -16,10 +17,11 @@ export default async function AdminAccountsPage() {
           Admin Accounts
         </h1>
         <p className="text-sm text-muted-foreground">
-          Create department-scoped admin accounts for REGISTRAR, FINANCE, CSDL,
-          LIBRARY, MARKETING, GSD, GUIDANCE, and ITSD
+          Manage department admins, and add Departments or Assign to options used
+          across the attendance portal.
         </p>
       </div>
+      <CatalogOptionsManager />
       <AdminAccountsManager />
     </div>
   );

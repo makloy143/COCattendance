@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { requireSuperAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { assertActiveDepartment } from "@/lib/departments-server";
 import { adminAccountUpdateSchema } from "@/lib/validations";
 
 type RouteContext = {
@@ -46,6 +47,17 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         { error: "Department is required for admin accounts" },
         { status: 400 }
       );
+    }
+
+    if (nextRole === "ADMIN" && nextDepartment) {
+      try {
+        await assertActiveDepartment(nextDepartment);
+      } catch {
+        return NextResponse.json(
+          { error: "Invalid department" },
+          { status: 400 }
+        );
+      }
     }
 
     const admin = await prisma.admin.update({

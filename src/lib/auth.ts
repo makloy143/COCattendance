@@ -2,8 +2,8 @@ import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
-import type { AdminRole, Department } from "@/generated/prisma/client";
-import { isAttendanceDepartment } from "@/lib/departments";
+import type { AdminRole } from "@/generated/prisma/client";
+import type { Department } from "@/lib/departments";
 
 const SESSION_COOKIE = "cociligan_session";
 const SESSION_DURATION = 60 * 60 * 24 * 7;
@@ -56,8 +56,7 @@ export async function createSession(
 }
 
 function parseDepartment(value: unknown): Department | null {
-  if (value == null) return null;
-  if (typeof value === "string" && isAttendanceDepartment(value)) {
+  if (typeof value === "string" && value.trim()) {
     return value;
   }
   return null;

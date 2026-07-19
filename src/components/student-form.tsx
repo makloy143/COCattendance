@@ -24,17 +24,13 @@ import {
   type ScheduleSlot,
 } from "@/lib/schedule";
 import { scheduleSchema } from "@/lib/validations";
-import {
-  STUDENT_ASSIGNMENTS,
-  STUDENT_ASSIGNMENT_LABELS,
-  isStudentAssignment,
-} from "@/lib/student-assignment";
+import { getStudentAssignmentLabel } from "@/lib/student-assignment";
 import { STUDENT_TYPES, STUDENT_TYPE_LABELS } from "@/lib/student-type";
 import {
-  ATTENDANCE_DEPARTMENTS,
-  DEPARTMENT_LABELS,
+  getDepartmentLabel,
+  type Department,
 } from "@/lib/departments";
-import type { Department } from "@/generated/prisma/client";
+import type { CatalogOption } from "@/lib/option-code";
 import { enrollFaceFromFile } from "@/lib/face-recognition";
 
 type StudentFormProps = {
@@ -78,13 +74,31 @@ export function StudentForm({ mode, initialValues, studentDbId }: StudentFormPro
   const [fixedDepartment, setFixedDepartment] = useState<Department | null>(
     null
   );
+  const [departments, setDepartments] = useState<CatalogOption[]>([]);
+  const [assignments, setAssignments] = useState<CatalogOption[]>([]);
 
   useEffect(() => {
-    async function loadSession() {
+    async function loadFormOptions() {
       try {
-        const response = await fetch("/api/auth");
-        if (!response.ok) return;
-        const data = await response.json();
+        const [sessionResponse, departmentsResponse, assignmentsResponse] =
+          await Promise.all([
+            fetch("/api/auth"),
+            fetch("/api/options/departments"),
+            fetch("/api/options/assignments"),
+          ]);
+
+        if (departmentsResponse.ok) {
+          const departmentsData = await departmentsResponse.json();
+          setDepartments(departmentsData);
+        }
+
+        if (assignmentsResponse.ok) {
+          const assignmentsData = await assignmentsResponse.json();
+          setAssignments(assignmentsData);
+        }
+
+        if (!sessionResponse.ok) return;
+        const data = await sessionResponse.json();
         const isSuperAdmin = data.role === "SUPER_ADMIN";
         setCanSelectDepartment(isSuperAdmin);
         if (!isSuperAdmin && data.department) {
@@ -95,11 +109,11 @@ export function StudentForm({ mode, initialValues, studentDbId }: StudentFormPro
           }));
         }
       } catch {
-        // Session info is optional for rendering the rest of the form.
+        // Session/options info is optional for rendering the rest of the form.
       }
     }
 
-    void loadSession();
+    void loadFormOptions();
   }, []);
 
   function updateField(field: keyof StudentFormValues, value: string) {
@@ -273,10 +287,7 @@ export function StudentForm({ mode, initialValues, studentDbId }: StudentFormPro
               <Select
                 value={values.department}
                 onValueChange={(value) => {
-                  if (
-                    value &&
-                    ATTENDANCE_DEPARTMENTS.includes(value as Department)
-                  ) {
+                  if (value) {
                     updateField("department", value);
                   }
                 }}
@@ -285,20 +296,29 @@ export function StudentForm({ mode, initialValues, studentDbId }: StudentFormPro
                   <SelectValue placeholder="Select department" />
                 </SelectTrigger>
                 <SelectContent>
-                  {ATTENDANCE_DEPARTMENTS.map((department) => (
-                    <SelectItem key={department} value={department}>
-                      {DEPARTMENT_LABELS[department]}
+                  {departments.map((department) => (
+                    <SelectItem key={department.code} value={department.code}>
+                      {department.label}
                     </SelectItem>
                   ))}
+                  {values.department &&
+                  !departments.some(
+                    (item) => item.code === values.department
+                  ) ? (
+                    <SelectItem value={values.department}>
+                      {getDepartmentLabel(values.department)}
+                    </SelectItem>
+                  ) : null}
                 </SelectContent>
               </Select>
             ) : (
               <Input
-                value={
-                  fixedDepartment
-                    ? DEPARTMENT_LABELS[fixedDepartment]
-                    : DEPARTMENT_LABELS[values.department as Department]
-                }
+                value={getDepartmentLabel(
+                  fixedDepartment ?? values.department,
+                  Object.fromEntries(
+                    departments.map((item) => [item.code, item.label])
+                  )
+                )}
                 disabled
               />
             )}
@@ -308,7 +328,7 @@ export function StudentForm({ mode, initialValues, studentDbId }: StudentFormPro
             <Select
               value={values.assignment}
               onValueChange={(value) => {
-                if (value && isStudentAssignment(value)) {
+                if (value) {
                   updateField("assignment", value);
                 }
               }}
@@ -317,11 +337,17 @@ export function StudentForm({ mode, initialValues, studentDbId }: StudentFormPro
                 <SelectValue placeholder="Select assignment" />
               </SelectTrigger>
               <SelectContent>
-                {STUDENT_ASSIGNMENTS.map((assignment) => (
-                  <SelectItem key={assignment} value={assignment}>
-                    {STUDENT_ASSIGNMENT_LABELS[assignment]}
+                {assignments.map((assignment) => (
+                  <SelectItem key={assignment.code} value={assignment.code}>
+                    {assignment.label}
                   </SelectItem>
                 ))}
+                {values.assignment &&
+                !assignments.some((item) => item.code === values.assignment) ? (
+                  <SelectItem value={values.assignment}>
+                    {getStudentAssignmentLabel(values.assignment)}
+                  </SelectItem>
+                ) : null}
               </SelectContent>
             </Select>
           </div>

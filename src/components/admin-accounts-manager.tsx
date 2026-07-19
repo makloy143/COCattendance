@@ -24,10 +24,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  ATTENDANCE_DEPARTMENTS,
-  DEPARTMENT_LABELS,
+  getDepartmentLabel,
+  type Department,
 } from "@/lib/departments";
-import type { AdminRole, Department } from "@/generated/prisma/client";
+import type { CatalogOption } from "@/lib/option-code";
+import type { AdminRole } from "@/generated/prisma/client";
 
 type AdminAccount = {
   id: string;
@@ -46,6 +47,7 @@ const emptyForm = {
 
 export function AdminAccountsManager() {
   const [admins, setAdmins] = useState<AdminAccount[]>([]);
+  const [departments, setDepartments] = useState<CatalogOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -53,13 +55,30 @@ export function AdminAccountsManager() {
   async function loadAdmins() {
     setLoading(true);
     try {
-      const response = await fetch("/api/admin");
-      const data = await response.json();
-      if (!response.ok) {
-        toast.error(data.error ?? "Failed to load admin accounts");
+      const [adminsResponse, departmentsResponse] = await Promise.all([
+        fetch("/api/admin"),
+        fetch("/api/options/departments"),
+      ]);
+      const adminsData = await adminsResponse.json();
+      const departmentsData = await departmentsResponse.json();
+
+      if (!adminsResponse.ok) {
+        toast.error(adminsData.error ?? "Failed to load admin accounts");
         return;
       }
-      setAdmins(data);
+      if (!departmentsResponse.ok) {
+        toast.error(departmentsData.error ?? "Failed to load departments");
+        return;
+      }
+
+      setAdmins(adminsData);
+      setDepartments(departmentsData);
+      if (departmentsData[0]?.code) {
+        setForm((current) => ({
+          ...current,
+          department: current.department || departmentsData[0].code,
+        }));
+      }
     } finally {
       setLoading(false);
     }
@@ -185,10 +204,10 @@ export function AdminAccountsManager() {
                 value={form.department}
                 disabled={form.role === "SUPER_ADMIN"}
                 onValueChange={(value) => {
-                  if (ATTENDANCE_DEPARTMENTS.includes(value as Department)) {
+                  if (value) {
                     setForm((current) => ({
                       ...current,
-                      department: value as Department,
+                      department: value,
                     }));
                   }
                 }}
@@ -197,9 +216,9 @@ export function AdminAccountsManager() {
                   <SelectValue placeholder="Select department" />
                 </SelectTrigger>
                 <SelectContent>
-                  {ATTENDANCE_DEPARTMENTS.map((department) => (
-                    <SelectItem key={department} value={department}>
-                      {DEPARTMENT_LABELS[department]}
+                  {departments.map((department) => (
+                    <SelectItem key={department.code} value={department.code}>
+                      {department.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -259,7 +278,15 @@ export function AdminAccountsManager() {
                       </TableCell>
                       <TableCell>
                         {admin.department
-                          ? DEPARTMENT_LABELS[admin.department]
+                          ? getDepartmentLabel(
+                              admin.department,
+                              Object.fromEntries(
+                                departments.map((item) => [
+                                  item.code,
+                                  item.label,
+                                ])
+                              )
+                            )
                           : "All departments"}
                       </TableCell>
                       <TableCell className="text-right">

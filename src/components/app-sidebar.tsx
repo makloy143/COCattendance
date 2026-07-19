@@ -31,8 +31,11 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { PortalBackLink } from "@/components/portal-back-link";
 import { cn } from "@/lib/utils";
-import { getDepartmentLabel } from "@/lib/departments";
-import type { AdminRole, Department } from "@/generated/prisma/client";
+import {
+  getDepartmentLabel,
+  type Department,
+} from "@/lib/departments";
+import type { AdminRole } from "@/generated/prisma/client";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },

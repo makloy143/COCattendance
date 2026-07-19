@@ -7,6 +7,8 @@ import {
 import { prisma } from "@/lib/db";
 import { getDurationMinutes } from "@/lib/date-utils";
 import { readStudentPhoto, studentPhotoUrl } from "@/lib/uploads";
+import { assertActiveDepartment } from "@/lib/departments-server";
+import { assertActiveAssignment } from "@/lib/student-assignment-server";
 import { parseScheduleFromFormData, studentSchema } from "@/lib/validations";
 
 function scheduleCreateInput(
@@ -125,6 +127,21 @@ export async function POST(request: NextRequest) {
       session,
       parsed.data.department
     );
+
+    try {
+      await assertActiveDepartment(department);
+      await assertActiveAssignment(parsed.data.assignment);
+    } catch (validationError) {
+      return NextResponse.json(
+        {
+          error:
+            validationError instanceof Error
+              ? validationError.message
+              : "Invalid department or assignment",
+        },
+        { status: 400 }
+      );
+    }
 
     const scheduleParsed = parseScheduleFromFormData(formData);
     if (!scheduleParsed.success) {

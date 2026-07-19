@@ -185,9 +185,7 @@ export async function getDashboardAnalyticsData(
   const byAssignment: AnalyticsSlice[] = [...assignmentCounts.entries()]
     .map(([key, value], index) => ({
       key,
-      label: getStudentAssignmentLabel(
-        key as Parameters<typeof getStudentAssignmentLabel>[0]
-      ),
+      label: getStudentAssignmentLabel(key),
       value,
       color: ASSIGNMENT_COLORS[index % ASSIGNMENT_COLORS.length],
     }))
