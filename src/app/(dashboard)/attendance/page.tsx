@@ -70,8 +70,8 @@ export default function AttendancePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
             {view === "week" ? "Duty Week Schedule" : "Today's Attendance"}
           </h1>
@@ -82,7 +82,7 @@ export default function AttendancePage() {
           </p>
         </div>
 
-        <div className="inline-flex rounded-lg border bg-card p-0.5">
+        <div className="inline-flex w-fit shrink-0 self-start rounded-lg border bg-card p-0.5">
           <Button
             type="button"
             variant={view === "week" ? "default" : "ghost"}
