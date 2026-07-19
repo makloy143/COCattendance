@@ -79,15 +79,15 @@ function DutyPersonCard({ event }: { event: DutyEvent }) {
   return (
     <Link
       href={event.href}
-      className="block rounded-lg bg-zinc-900 px-3 py-2.5 text-white shadow-sm transition hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+      className="block rounded-lg bg-black px-3 py-2.5 text-white shadow-sm transition hover:bg-black/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <p className="truncate text-[11px] leading-tight font-semibold tracking-wide uppercase sm:text-xs">
         {event.name}
       </p>
-      <p className="mt-0.5 truncate text-[11px] leading-tight text-white/90 dark:text-zinc-800">
+      <p className="mt-0.5 truncate text-[11px] leading-tight text-white/90">
         {timeLabel}
       </p>
-      <p className="mt-0.5 truncate text-[10px] leading-tight text-white/70 dark:text-zinc-600">
+      <p className="mt-0.5 truncate text-[10px] leading-tight text-white/70">
         {getStudentAssignmentLabel(event.assignment)} · {event.studentId}
       </p>
     </Link>
