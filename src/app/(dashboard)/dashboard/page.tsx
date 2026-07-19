@@ -9,11 +9,13 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/button-link";
+import { DashboardAnalytics } from "@/components/dashboard-analytics";
 import { ScheduleRecommendationsCard } from "@/components/schedule-monitoring-cards";
 import { StudentAvatar } from "@/components/student-avatar";
 import { AttendanceStatusBadge } from "@/components/attendance-status-badge";
 import { requireSession, getStudentDepartmentFilter } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getDashboardAnalyticsData } from "@/lib/dashboard-analytics";
 import { formatTime, getTodayStart } from "@/lib/date-utils";
 import { getScheduleMonitoringData } from "@/lib/schedule-monitoring";
 import { getStudentAssignmentLabel } from "@/lib/student-assignment";
@@ -23,8 +25,13 @@ async function getDashboardData() {
   const departmentFilter = getStudentDepartmentFilter(session);
   const todayStart = getTodayStart();
 
-  const [totalStudents, todayRecords, recentRecords, scheduleMonitoring] =
-    await Promise.all([
+  const [
+    totalStudents,
+    todayRecords,
+    recentRecords,
+    scheduleMonitoring,
+    analytics,
+  ] = await Promise.all([
     prisma.student.count({ where: { isActive: true, ...departmentFilter } }),
     prisma.attendanceRecord.findMany({
       where: {
@@ -67,6 +74,7 @@ async function getDashboardData() {
       },
     }),
     getScheduleMonitoringData(session),
+    getDashboardAnalyticsData(session),
   ]);
 
   const presentToday = todayRecords.filter((r) => r.timeIn).length;
@@ -80,6 +88,7 @@ async function getDashboardData() {
     completed,
     recentRecords,
     scheduleMonitoring,
+    analytics,
   };
 }
 
@@ -139,6 +148,8 @@ export default async function DashboardPage() {
           </Card>
         ))}
       </div>
+
+      <DashboardAnalytics data={data.analytics} />
 
       {(data.scheduleMonitoring.summary.absent > 0 ||
         data.scheduleMonitoring.summary.late > 0) && (
