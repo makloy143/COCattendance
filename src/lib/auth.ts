@@ -120,8 +120,14 @@ export function isSuperAdmin(session: SessionPayload | null) {
   return session?.role === "SUPER_ADMIN";
 }
 
-export function getStudentDepartmentFilter(session: SessionPayload) {
+export function getStudentDepartmentFilter(
+  session: SessionPayload,
+  departmentScope?: string | null
+) {
   if (session.role === "SUPER_ADMIN") {
+    if (departmentScope) {
+      return { department: departmentScope };
+    }
     return {};
   }
 

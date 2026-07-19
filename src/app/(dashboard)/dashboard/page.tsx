@@ -10,19 +10,29 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/button-link";
 import { DashboardAnalytics } from "@/components/dashboard-analytics";
+import { DashboardDepartmentFilter } from "@/components/dashboard-department-filter";
 import { ScheduleRecommendationsCard } from "@/components/schedule-monitoring-cards";
 import { StudentAvatar } from "@/components/student-avatar";
 import { AttendanceStatusBadge } from "@/components/attendance-status-badge";
-import { requireSession, getStudentDepartmentFilter } from "@/lib/auth";
+import {
+  requireSession,
+  getStudentDepartmentFilter,
+  isSuperAdmin,
+} from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getDashboardAnalyticsData } from "@/lib/dashboard-analytics";
+import { listDepartmentOptions } from "@/lib/departments-server";
+import { getDepartmentLabel } from "@/lib/departments";
 import { formatTime, getTodayStart } from "@/lib/date-utils";
 import { getScheduleMonitoringData } from "@/lib/schedule-monitoring";
 import { getStudentAssignmentLabel } from "@/lib/student-assignment";
 
-async function getDashboardData() {
+async function getDashboardData(departmentScope?: string | null) {
   const session = await requireSession();
-  const departmentFilter = getStudentDepartmentFilter(session);
+  const departmentFilter = getStudentDepartmentFilter(
+    session,
+    departmentScope
+  );
   const todayStart = getTodayStart();
 
   const [
@@ -73,8 +83,8 @@ async function getDashboardData() {
         },
       },
     }),
-    getScheduleMonitoringData(session),
-    getDashboardAnalyticsData(session),
+    getScheduleMonitoringData(session, todayStart, departmentScope),
+    getDashboardAnalyticsData(session, departmentScope),
   ]);
 
   const presentToday = todayRecords.filter((r) => r.timeIn).length;
@@ -89,12 +99,32 @@ async function getDashboardData() {
     recentRecords,
     scheduleMonitoring,
     analytics,
+    showDepartmentBadge: isSuperAdmin(session) && !departmentScope,
   };
 }
 
-export default async function DashboardPage() {
-  await requireSession();
-  const data = await getDashboardData();
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ department?: string }>;
+}) {
+  const session = await requireSession();
+  const params = await searchParams;
+  const superAdmin = isSuperAdmin(session);
+
+  const departments = superAdmin
+    ? await listDepartmentOptions()
+    : [];
+
+  const requestedDepartment = params.department?.trim() || null;
+  const departmentScope =
+    superAdmin &&
+    requestedDepartment &&
+    departments.some((item) => item.code === requestedDepartment)
+      ? requestedDepartment
+      : null;
+
+  const data = await getDashboardData(departmentScope);
 
   const stats = [
     {
@@ -123,13 +153,30 @@ export default async function DashboardPage() {
     },
   ];
 
+  const subtitle = departmentScope
+    ? `Overview for ${getDepartmentLabel(departmentScope)}`
+    : superAdmin
+      ? "Overview of student attendance across all departments"
+      : "Overview of student attendance for today";
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">
-          Overview of student attendance for today
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+            Dashboard
+          </h1>
+          <p className="text-sm text-muted-foreground">{subtitle}</p>
+        </div>
+        {superAdmin ? (
+          <DashboardDepartmentFilter
+            departments={departments.map((item) => ({
+              code: item.code,
+              label: item.label,
+            }))}
+            selectedDepartment={departmentScope}
+          />
+        ) : null}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -226,12 +273,18 @@ export default async function DashboardPage() {
                         <Badge variant="secondary" className="text-[10px]">
                           {getStudentAssignmentLabel(record.student.assignment)}
                         </Badge>
+                        {data.showDepartmentBadge ? (
+                          <Badge variant="outline" className="text-[10px]">
+                            {getDepartmentLabel(record.student.department)}
+                          </Badge>
+                        ) : null}
                       </div>
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-sm sm:shrink-0 sm:justify-end sm:gap-3">
                     <span className="text-muted-foreground">
-                      In {formatTime(record.timeIn)} · Out {formatTime(record.timeOut)}
+                      In {formatTime(record.timeIn)} · Out{" "}
+                      {formatTime(record.timeOut)}
                     </span>
                     <AttendanceStatusBadge
                       timeIn={record.timeIn}

@@ -65,9 +65,13 @@ function formatTrendLabel(date: Date): string {
 }
 
 export async function getDashboardAnalyticsData(
-  session: SessionPayload
+  session: SessionPayload,
+  departmentScope?: string | null
 ): Promise<DashboardAnalyticsData> {
-  const departmentFilter = getStudentDepartmentFilter(session);
+  const departmentFilter = getStudentDepartmentFilter(
+    session,
+    departmentScope
+  );
   const todayStart = getTodayStart();
   const rangeStart = addManilaDays(todayStart, -(TREND_DAYS - 1));
 
@@ -191,12 +195,14 @@ export async function getDashboardAnalyticsData(
     }))
     .sort((a, b) => b.value - a.value);
 
-  const scopeLabel =
+  const scopedDepartment =
     session.role === "SUPER_ADMIN"
-      ? "COC ILIGAN"
-      : session.department
-        ? `COC ILIGAN · ${getDepartmentLabel(session.department)}`
-        : "COC ILIGAN";
+      ? departmentScope || null
+      : session.department;
+
+  const scopeLabel = scopedDepartment
+    ? `COC ILIGAN · ${getDepartmentLabel(scopedDepartment)}`
+    : "COC ILIGAN · All departments";
 
   return {
     scopeLabel,

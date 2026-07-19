@@ -144,9 +144,13 @@ function mapStudentRow(
 
 export async function getScheduleMonitoringData(
   session: SessionPayload,
-  viewDate: Date = getTodayStart()
+  viewDate: Date = getTodayStart(),
+  departmentScope?: string | null
 ): Promise<ScheduleMonitoringData> {
-  const departmentFilter = getStudentDepartmentFilter(session);
+  const departmentFilter = getStudentDepartmentFilter(
+    session,
+    departmentScope
+  );
   const dayStart = getManilaDayStart(viewDate);
   const now = new Date();
 
