@@ -6,6 +6,7 @@ import {
   getManilaDayStart,
   getTodayStart,
 } from "@/lib/date-utils";
+import { resolveDepartmentScope } from "@/lib/department-scope";
 import {
   buildExcelBuffer,
   buildPdfBuffer,
@@ -18,9 +19,16 @@ import {
 export async function GET(request: NextRequest) {
   try {
     const session = await requireSession();
-    const departmentFilter = getStudentDepartmentFilter(session);
-
     const { searchParams } = new URL(request.url);
+    const departmentScope = await resolveDepartmentScope(
+      session,
+      searchParams.get("department")
+    );
+    const departmentFilter = getStudentDepartmentFilter(
+      session,
+      departmentScope
+    );
+
     const today = getTodayStart();
     const defaultFromKey = formatManilaDateInput(
       new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)

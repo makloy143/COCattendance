@@ -5,6 +5,7 @@ import {
   getSession,
   verifyCredentials,
 } from "@/lib/auth";
+import { setDepartmentScopeCookie } from "@/lib/department-scope";
 import { loginSchema } from "@/lib/validations";
 
 export async function GET() {
@@ -71,5 +72,6 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE() {
   await destroySession();
+  await setDepartmentScopeCookie(null);
   return NextResponse.json({ success: true });
 }

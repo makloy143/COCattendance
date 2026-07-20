@@ -12,6 +12,7 @@ import {
 } from "@/lib/attendance";
 import { prisma } from "@/lib/db";
 import { getTodayStart } from "@/lib/date-utils";
+import { resolveDepartmentScope } from "@/lib/department-scope";
 import {
   attendanceActionSchema,
   attendanceResetSchema,
@@ -36,9 +37,16 @@ async function assertStudentAccess(
 export async function GET(request: NextRequest) {
   try {
     const session = await requireSession();
-    const departmentFilter = getStudentDepartmentFilter(session);
-
     const { searchParams } = new URL(request.url);
+    const departmentScope = await resolveDepartmentScope(
+      session,
+      searchParams.get("department")
+    );
+    const departmentFilter = getStudentDepartmentFilter(
+      session,
+      departmentScope
+    );
+
     const studentId = searchParams.get("studentId");
     const today = searchParams.get("today") === "true";
     const canResetAttendance = isSuperAdmin(session);

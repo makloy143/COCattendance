@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getStudentDepartmentFilter, requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { resolveDepartmentScope } from "@/lib/department-scope";
 
 function parseDescriptor(value: unknown): number[] | null {
   if (!Array.isArray(value) || value.length !== 128) return null;
@@ -10,10 +11,18 @@ function parseDescriptor(value: unknown): number[] | null {
   return value;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await requireSession();
-    const departmentFilter = getStudentDepartmentFilter(session);
+    const { searchParams } = new URL(request.url);
+    const departmentScope = await resolveDepartmentScope(
+      session,
+      searchParams.get("department")
+    );
+    const departmentFilter = getStudentDepartmentFilter(
+      session,
+      departmentScope
+    );
 
     const students = await prisma.student.findMany({
       where: { isActive: true, ...departmentFilter },

@@ -6,6 +6,7 @@ import {
 } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getDurationMinutes } from "@/lib/date-utils";
+import { resolveDepartmentScope } from "@/lib/department-scope";
 import { readStudentPhoto, studentPhotoUrl } from "@/lib/uploads";
 import { assertActiveDepartment } from "@/lib/departments-server";
 import { assertActiveAssignment } from "@/lib/student-assignment-server";
@@ -30,9 +31,16 @@ function scheduleCreateInput(
 export async function GET(request: NextRequest) {
   try {
     const session = await requireSession();
-    const departmentFilter = getStudentDepartmentFilter(session);
-
     const { searchParams } = new URL(request.url);
+    const departmentScope = await resolveDepartmentScope(
+      session,
+      searchParams.get("department")
+    );
+    const departmentFilter = getStudentDepartmentFilter(
+      session,
+      departmentScope
+    );
+
     const search = searchParams.get("search")?.trim();
     const includeInactive = searchParams.get("includeInactive") === "true";
 

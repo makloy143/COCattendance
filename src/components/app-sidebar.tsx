@@ -35,7 +35,13 @@ import {
   getDepartmentLabel,
   type Department,
 } from "@/lib/departments";
+import { DepartmentScopeFilter } from "@/components/department-scope-filter";
 import type { AdminRole } from "@/generated/prisma/client";
+
+type DepartmentOption = {
+  code: string;
+  label: string;
+};
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -54,10 +60,14 @@ export function AppSidebar({
   username,
   role,
   department,
+  departmentScope,
+  departments = [],
 }: {
   username?: string;
   role?: AdminRole;
   department?: Department | null;
+  departmentScope?: string | null;
+  departments?: DepartmentOption[];
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -67,6 +77,12 @@ export function AppSidebar({
     router.push("/");
     router.refresh();
   }
+
+  const scopedDepartmentLabel =
+    role === "SUPER_ADMIN" && departmentScope
+      ? departments.find((item) => item.code === departmentScope)?.label ??
+        getDepartmentLabel(departmentScope)
+      : null;
 
   return (
     <Sidebar>
@@ -140,7 +156,10 @@ export function AppSidebar({
               <span className="font-medium text-foreground">{username}</span>
             </p>
             {role === "SUPER_ADMIN" ? (
-              <p className="mt-1 text-xs text-muted-foreground">Super Admin</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Super Admin
+                {scopedDepartmentLabel ? ` · ${scopedDepartmentLabel}` : ""}
+              </p>
             ) : department ? (
               <p className="mt-1 text-xs text-muted-foreground">
                 {getDepartmentLabel(department)} Admin
@@ -166,18 +185,26 @@ export function DashboardShell({
   username,
   role,
   department,
+  departmentScope = null,
+  departments = [],
 }: {
   children: React.ReactNode;
   username?: string;
   role?: AdminRole;
   department?: Department | null;
+  departmentScope?: string | null;
+  departments?: DepartmentOption[];
 }) {
+  const showDepartmentFilter = role === "SUPER_ADMIN" && departments.length > 0;
+
   return (
     <SidebarProvider>
       <AppSidebar
         username={username}
         role={role}
         department={department}
+        departmentScope={departmentScope}
+        departments={departments}
       />
       <SidebarInset>
         <header className="flex h-14 shrink-0 items-center gap-2 border-b px-3 sm:px-4">
@@ -187,9 +214,19 @@ export function DashboardShell({
             <span className="hidden sm:inline">Attendance portal — students and daily records</span>
             <span className="sm:hidden">COCiligan Attendance</span>
           </p>
+          {showDepartmentFilter ? (
+            <DepartmentScopeFilter
+              departments={departments}
+              selectedDepartment={departmentScope}
+              compact
+            />
+          ) : null}
           <PortalBackLink />
         </header>
-        <main className="mx-auto w-full max-w-7xl flex-1 p-3 sm:p-4 md:p-6">
+        <main
+          key={departmentScope ?? "all"}
+          className="mx-auto w-full max-w-7xl flex-1 p-3 sm:p-4 md:p-6"
+        >
           {children}
         </main>
       </SidebarInset>
