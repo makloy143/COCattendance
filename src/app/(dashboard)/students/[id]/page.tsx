@@ -20,6 +20,11 @@ import { Badge } from "@/components/ui/badge";
 import { StudentAvatar } from "@/components/student-avatar";
 import { AttendanceActions } from "@/components/attendance-actions";
 import { StudentQrCard } from "@/components/student-qr-card";
+import { AttendanceRateBadge } from "@/components/attendance-rate-badge";
+import {
+  REQUIRED_DUTY_HOURS,
+  type AttendanceRate,
+} from "@/lib/attendance-stats";
 import { formatDate, formatDuration, formatTime, formatTotalHours } from "@/lib/date-utils";
 import {
   formatScheduleTime,
@@ -34,6 +39,19 @@ type AttendanceRecord = {
   date: string;
   timeIn: string | null;
   timeOut: string | null;
+};
+
+type StudentStats = {
+  lateCount: number;
+  absentCount: number;
+  onTimeCount: number;
+  presentCount: number;
+  scheduledDays: number;
+  hoursCompleted: number;
+  hoursRemaining: number;
+  dutyProgressPercent: number;
+  rate: AttendanceRate | null;
+  rateLabel: string;
 };
 
 type StudentProfile = {
@@ -54,6 +72,7 @@ type StudentProfile = {
   attendance: AttendanceRecord[];
   todayRecord: AttendanceRecord | null;
   totalMinutes: number;
+  stats: StudentStats;
   canResetAttendance?: boolean;
 };
 
@@ -130,6 +149,10 @@ export default function StudentProfilePage({
                 {student.isActive ? "Active" : "Inactive"}
               </Badge>
               <Badge variant="outline">{student.studentType}</Badge>
+              <AttendanceRateBadge
+                rate={student.stats?.rate ?? null}
+                rateLabel={student.stats?.rateLabel}
+              />
             </div>
             <p className="text-muted-foreground">ID: {student.studentId}</p>
             <div className="grid gap-1 text-sm text-muted-foreground sm:grid-cols-2">
@@ -141,7 +164,21 @@ export default function StudentProfilePage({
               <p>Phone: {student.phone || "—"}</p>
               <p>Registered: {formatDate(student.createdAt)}</p>
               <p className="font-medium text-foreground">
-                Total hours: {formatTotalHours(student.totalMinutes ?? 0)}
+                Duty hours: {student.stats?.hoursCompleted ?? 0}/
+                {REQUIRED_DUTY_HOURS} hr ({student.stats?.dutyProgressPercent ?? 0}
+                %)
+              </p>
+              <p>
+                Late:{" "}
+                <span className="font-medium text-foreground">
+                  {student.stats?.lateCount ?? 0}
+                </span>
+              </p>
+              <p>
+                Absent:{" "}
+                <span className="font-medium text-foreground">
+                  {student.stats?.absentCount ?? 0}
+                </span>
               </p>
             </div>
           </div>
@@ -204,11 +241,34 @@ export default function StudentProfilePage({
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+        <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle>Attendance History</CardTitle>
-          <p className="text-sm font-medium text-muted-foreground">
-            Total: {formatTotalHours(student.totalMinutes ?? 0)}
-          </p>
+          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+            <span>
+              Late:{" "}
+              <span className="font-medium text-foreground">
+                {student.stats?.lateCount ?? 0}
+              </span>
+            </span>
+            <span>
+              Absent:{" "}
+              <span className="font-medium text-foreground">
+                {student.stats?.absentCount ?? 0}
+              </span>
+            </span>
+            <span>
+              Duty:{" "}
+              <span className="font-medium text-foreground">
+                {student.stats?.hoursCompleted ?? 0}/{REQUIRED_DUTY_HOURS} hr
+              </span>
+            </span>
+            <span>
+              Worked:{" "}
+              <span className="font-medium text-foreground">
+                {formatTotalHours(student.totalMinutes ?? 0)}
+              </span>
+            </span>
+          </div>
         </CardHeader>
         <CardContent>
           {student.attendance.length === 0 ? (

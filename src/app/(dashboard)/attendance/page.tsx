@@ -16,10 +16,24 @@ import {
 import { StudentAvatar } from "@/components/student-avatar";
 import { AttendanceStatusBadge } from "@/components/attendance-status-badge";
 import { AttendanceActions } from "@/components/attendance-actions";
+import { AttendanceRateBadge } from "@/components/attendance-rate-badge";
 import { ResponsiveTableShell } from "@/components/responsive-table-shell";
 import { DutyWeekCalendar } from "@/components/duty-week-calendar";
+import {
+  REQUIRED_DUTY_HOURS,
+  type AttendanceRate,
+} from "@/lib/attendance-stats";
 import { formatDuration, formatTime } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
+
+type StudentStats = {
+  lateCount: number;
+  absentCount: number;
+  hoursCompleted: number;
+  dutyProgressPercent: number;
+  rate: AttendanceRate | null;
+  rateLabel: string;
+};
 
 type TodayStudent = {
   id: string;
@@ -31,9 +45,21 @@ type TodayStudent = {
     timeIn: string | null;
     timeOut: string | null;
   } | null;
+  stats: StudentStats;
 };
 
 type AttendanceView = "list" | "week";
+
+function DutyHoursLabel({ stats }: { stats: StudentStats }) {
+  return (
+    <span className="tabular-nums">
+      {stats.hoursCompleted}/{REQUIRED_DUTY_HOURS} hr
+      <span className="ml-1 text-muted-foreground">
+        ({stats.dutyProgressPercent}%)
+      </span>
+    </span>
+  );
+}
 
 export default function AttendancePage() {
   const [students, setStudents] = useState<TodayStudent[]>([]);
@@ -78,7 +104,7 @@ export default function AttendancePage() {
           <p className="text-sm text-muted-foreground">
             {view === "week"
               ? "See who is assigned each day and their hours of duty"
-              : "Record time in and time out for all active students"}
+              : `Record time in/out · ${REQUIRED_DUTY_HOURS} required duty hours · rate 1–5 from present & on-time`}
           </p>
         </div>
 
@@ -152,20 +178,38 @@ export default function AttendancePage() {
                       </div>
                     </Link>
 
-                    <div className="flex items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <AttendanceStatusBadge
                         timeIn={student.todayRecord?.timeIn}
                         timeOut={student.todayRecord?.timeOut}
                       />
-                      <span className="text-sm font-medium text-muted-foreground">
-                        {formatDuration(
-                          student.todayRecord?.timeIn,
-                          student.todayRecord?.timeOut
-                        )}
-                      </span>
+                      <AttendanceRateBadge
+                        rate={student.stats.rate}
+                        rateLabel={student.stats.rateLabel}
+                      />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Late</p>
+                        <p className="font-medium tabular-nums">
+                          {student.stats.lateCount}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Absent</p>
+                        <p className="font-medium tabular-nums">
+                          {student.stats.absentCount}
+                        </p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-xs text-muted-foreground">
+                          Duty hours
+                        </p>
+                        <p className="font-medium">
+                          <DutyHoursLabel stats={student.stats} />
+                        </p>
+                      </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Time In</p>
                         <p className="font-medium">
@@ -176,6 +220,17 @@ export default function AttendancePage() {
                         <p className="text-xs text-muted-foreground">Time Out</p>
                         <p className="font-medium">
                           {formatTime(student.todayRecord?.timeOut)}
+                        </p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-xs text-muted-foreground">
+                          Today&apos;s duration
+                        </p>
+                        <p className="font-medium">
+                          {formatDuration(
+                            student.todayRecord?.timeIn,
+                            student.todayRecord?.timeOut
+                          )}
                         </p>
                       </div>
                     </div>
@@ -195,16 +250,19 @@ export default function AttendancePage() {
 
               <ResponsiveTableShell
                 className="hidden md:block"
-                minWidthClassName="min-w-[880px]"
+                minWidthClassName="min-w-[1180px]"
               >
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Student</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>Today</TableHead>
+                      <TableHead>Late</TableHead>
+                      <TableHead>Absent</TableHead>
+                      <TableHead>Duty Hours</TableHead>
+                      <TableHead>Rate</TableHead>
                       <TableHead>Time In</TableHead>
                       <TableHead>Time Out</TableHead>
-                      <TableHead>Duration</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -238,17 +296,26 @@ export default function AttendancePage() {
                             timeOut={student.todayRecord?.timeOut}
                           />
                         </TableCell>
+                        <TableCell className="tabular-nums">
+                          {student.stats.lateCount}
+                        </TableCell>
+                        <TableCell className="tabular-nums">
+                          {student.stats.absentCount}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          <DutyHoursLabel stats={student.stats} />
+                        </TableCell>
+                        <TableCell>
+                          <AttendanceRateBadge
+                            rate={student.stats.rate}
+                            rateLabel={student.stats.rateLabel}
+                          />
+                        </TableCell>
                         <TableCell>
                           {formatTime(student.todayRecord?.timeIn)}
                         </TableCell>
                         <TableCell>
                           {formatTime(student.todayRecord?.timeOut)}
-                        </TableCell>
-                        <TableCell>
-                          {formatDuration(
-                            student.todayRecord?.timeIn,
-                            student.todayRecord?.timeOut
-                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           <AttendanceActions

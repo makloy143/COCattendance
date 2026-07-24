@@ -15,13 +15,26 @@ import {
 } from "@/components/ui/table";
 import { StudentAvatar } from "@/components/student-avatar";
 import { Badge } from "@/components/ui/badge";
+import { AttendanceRateBadge } from "@/components/attendance-rate-badge";
 import { ResponsiveTableShell } from "@/components/responsive-table-shell";
+import {
+  REQUIRED_DUTY_HOURS,
+  type AttendanceRate,
+} from "@/lib/attendance-stats";
 import {
   getStudentAssignmentLabel,
   type StudentAssignment,
 } from "@/lib/student-assignment";
-import { formatTotalHours } from "@/lib/date-utils";
 import type { StudentType } from "@/lib/student-type";
+
+type StudentStats = {
+  lateCount: number;
+  absentCount: number;
+  hoursCompleted: number;
+  dutyProgressPercent: number;
+  rate: AttendanceRate | null;
+  rateLabel: string;
+};
 
 type Student = {
   id: string;
@@ -36,6 +49,7 @@ type Student = {
   photoUrl: string | null;
   isActive: boolean;
   totalMinutes: number;
+  stats: StudentStats;
 };
 
 export default function StudentsPage() {
@@ -137,28 +151,49 @@ export default function StudentsPage() {
                       {getStudentAssignmentLabel(student.assignment)}
                     </p>
                   </div>
-                  <div className="col-span-2">
-                    <p className="text-xs text-muted-foreground">Total hours</p>
-                    <p className="font-medium">
-                      {formatTotalHours(student.totalMinutes ?? 0)}
+                  <div>
+                    <p className="text-xs text-muted-foreground">Late</p>
+                    <p className="font-medium tabular-nums">
+                      {student.stats?.lateCount ?? 0}
                     </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Absent</p>
+                    <p className="font-medium tabular-nums">
+                      {student.stats?.absentCount ?? 0}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Duty hours</p>
+                    <p className="font-medium tabular-nums">
+                      {student.stats?.hoursCompleted ?? 0}/{REQUIRED_DUTY_HOURS}{" "}
+                      hr
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Rate</p>
+                    <AttendanceRateBadge
+                      rate={student.stats?.rate ?? null}
+                      rateLabel={student.stats?.rateLabel}
+                    />
                   </div>
                 </div>
               </Link>
             ))}
           </div>
 
-          <ResponsiveTableShell className="hidden md:block" minWidthClassName="min-w-[1080px]">
+          <ResponsiveTableShell className="hidden md:block" minWidthClassName="min-w-[1280px]">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Student</TableHead>
                   <TableHead>ID</TableHead>
                   <TableHead>Course</TableHead>
-                  <TableHead>Year</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead>Assign to</TableHead>
-                  <TableHead>Total Hours</TableHead>
+                  <TableHead>Late</TableHead>
+                  <TableHead>Absent</TableHead>
+                  <TableHead>Duty Hours</TableHead>
+                  <TableHead>Rate</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -183,15 +218,27 @@ export default function StudentsPage() {
                     </TableCell>
                     <TableCell>{student.studentId}</TableCell>
                     <TableCell>{student.course || "—"}</TableCell>
-                    <TableCell>{student.yearLevel || "—"}</TableCell>
                     <TableCell>
                       <Badge variant="outline">{student.studentType}</Badge>
                     </TableCell>
-                    <TableCell>
-                      {getStudentAssignmentLabel(student.assignment)}
+                    <TableCell className="tabular-nums">
+                      {student.stats?.lateCount ?? 0}
                     </TableCell>
-                    <TableCell className="font-medium">
-                      {formatTotalHours(student.totalMinutes ?? 0)}
+                    <TableCell className="tabular-nums">
+                      {student.stats?.absentCount ?? 0}
+                    </TableCell>
+                    <TableCell className="font-medium tabular-nums">
+                      {student.stats?.hoursCompleted ?? 0}/{REQUIRED_DUTY_HOURS}{" "}
+                      hr
+                      <span className="ml-1 font-normal text-muted-foreground">
+                        ({student.stats?.dutyProgressPercent ?? 0}%)
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <AttendanceRateBadge
+                        rate={student.stats?.rate ?? null}
+                        rateLabel={student.stats?.rateLabel}
+                      />
                     </TableCell>
                     <TableCell>
                       <Badge variant={student.isActive ? "secondary" : "outline"}>

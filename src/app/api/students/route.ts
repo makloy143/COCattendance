@@ -4,8 +4,8 @@ import {
   requireSession,
   resolveStudentDepartment,
 } from "@/lib/auth";
+import { computeStudentAttendanceStats } from "@/lib/attendance-stats";
 import { prisma } from "@/lib/db";
-import { getDurationMinutes } from "@/lib/date-utils";
 import { resolveDepartmentScope } from "@/lib/department-scope";
 import { readStudentPhoto, studentPhotoUrl } from "@/lib/uploads";
 import { assertActiveDepartment } from "@/lib/departments-server";
@@ -60,35 +60,34 @@ export async function GET(request: NextRequest) {
           : {}),
       },
       orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-    });
-
-    const attendanceRecords = await prisma.attendanceRecord.findMany({
-      where: {
-        studentId: { in: students.map((student) => student.id) },
-        timeIn: { not: null },
-        timeOut: { not: null },
-      },
-      select: {
-        studentId: true,
-        timeIn: true,
-        timeOut: true,
+      include: {
+        scheduleSlots: true,
+        attendance: {
+          select: {
+            date: true,
+            timeIn: true,
+            timeOut: true,
+          },
+        },
       },
     });
-
-    const totalMinutesByStudent = new Map<string, number>();
-    for (const record of attendanceRecords) {
-      const minutes = getDurationMinutes(record.timeIn, record.timeOut);
-      totalMinutesByStudent.set(
-        record.studentId,
-        (totalMinutesByStudent.get(record.studentId) ?? 0) + minutes
-      );
-    }
 
     return NextResponse.json(
-      students.map((student) => ({
-        ...student,
-        totalMinutes: totalMinutesByStudent.get(student.id) ?? 0,
-      }))
+      students.map((student) => {
+        const stats = computeStudentAttendanceStats(
+          student.scheduleSlots,
+          student.attendance,
+          { createdAt: student.createdAt }
+        );
+        const { attendance: _attendance, scheduleSlots: _slots, ...rest } =
+          student;
+
+        return {
+          ...rest,
+          totalMinutes: stats.totalMinutes,
+          stats,
+        };
+      })
     );
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") {

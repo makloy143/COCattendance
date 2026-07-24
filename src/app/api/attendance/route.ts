@@ -10,8 +10,9 @@ import {
   recordAttendanceAction,
   resetTodayAttendance,
 } from "@/lib/attendance";
+import { computeStudentAttendanceStats } from "@/lib/attendance-stats";
 import { prisma } from "@/lib/db";
-import { getTodayStart } from "@/lib/date-utils";
+import { formatManilaDateInput, getTodayStart } from "@/lib/date-utils";
 import { resolveDepartmentScope } from "@/lib/department-scope";
 import {
   attendanceActionSchema,
@@ -68,17 +69,34 @@ export async function GET(request: NextRequest) {
         where: { isActive: true, ...departmentFilter },
         orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
         include: {
+          scheduleSlots: true,
           attendance: {
-            where: { date: todayStart },
-            take: 1,
+            orderBy: { date: "asc" },
           },
         },
       });
 
-      const data = students.map((student) => ({
-        ...student,
-        todayRecord: student.attendance[0] ?? null,
-      }));
+      const data = students.map((student) => {
+        const todayKey = formatManilaDateInput(todayStart);
+        const todayRecord =
+          student.attendance.find(
+            (record) => formatManilaDateInput(record.date) === todayKey
+          ) ?? null;
+        const stats = computeStudentAttendanceStats(
+          student.scheduleSlots,
+          student.attendance,
+          { createdAt: student.createdAt }
+        );
+
+        const { attendance: _attendance, scheduleSlots: _slots, ...rest } =
+          student;
+
+        return {
+          ...rest,
+          todayRecord,
+          stats,
+        };
+      });
 
       return NextResponse.json({ students: data, canResetAttendance });
     }

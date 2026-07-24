@@ -5,9 +5,10 @@ import {
   requireSession,
   resolveStudentDepartment,
 } from "@/lib/auth";
+import { computeStudentAttendanceStats } from "@/lib/attendance-stats";
 import { prisma } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
-import { getTodayStart, getTotalMinutes } from "@/lib/date-utils";
+import { getTodayStart } from "@/lib/date-utils";
 import { readStudentPhoto, studentPhotoUrl } from "@/lib/uploads";
 import { assertActiveDepartment } from "@/lib/departments-server";
 import { assertActiveAssignment } from "@/lib/student-assignment-server";
@@ -55,7 +56,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 
     assertDepartmentAccess(session, student.department);
 
-    const [todayRecord, completedAttendance] = await Promise.all([
+    const [todayRecord, allAttendance] = await Promise.all([
       prisma.attendanceRecord.findUnique({
         where: {
           studentId_date: {
@@ -65,22 +66,26 @@ export async function GET(_request: NextRequest, context: RouteContext) {
         },
       }),
       prisma.attendanceRecord.findMany({
-        where: {
-          studentId: id,
-          timeIn: { not: null },
-          timeOut: { not: null },
-        },
+        where: { studentId: id },
         select: {
+          date: true,
           timeIn: true,
           timeOut: true,
         },
       }),
     ]);
 
+    const stats = computeStudentAttendanceStats(
+      student.scheduleSlots,
+      allAttendance,
+      { createdAt: student.createdAt }
+    );
+
     return NextResponse.json({
       ...student,
       todayRecord,
-      totalMinutes: getTotalMinutes(completedAttendance),
+      totalMinutes: stats.totalMinutes,
+      stats,
       canResetAttendance: isSuperAdmin(session),
     });
   } catch (error) {
