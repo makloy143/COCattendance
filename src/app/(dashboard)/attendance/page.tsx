@@ -17,6 +17,9 @@ import { StudentAvatar } from "@/components/student-avatar";
 import { AttendanceStatusBadge } from "@/components/attendance-status-badge";
 import { AttendanceActions } from "@/components/attendance-actions";
 import { AttendanceRateBadge } from "@/components/attendance-rate-badge";
+import {
+  AttendanceTallyPair,
+} from "@/components/attendance-tally-badge";
 import { ResponsiveTableShell } from "@/components/responsive-table-shell";
 import { DutyWeekCalendar } from "@/components/duty-week-calendar";
 import {
@@ -190,17 +193,14 @@ export default function AttendancePage() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Late</p>
-                        <p className="font-medium tabular-nums">
-                          {student.stats.lateCount}
+                      <div className="col-span-2">
+                        <p className="mb-1.5 text-xs text-muted-foreground">
+                          Attendance record
                         </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Absent</p>
-                        <p className="font-medium tabular-nums">
-                          {student.stats.absentCount}
-                        </p>
+                        <AttendanceTallyPair
+                          lateCount={student.stats.lateCount}
+                          absentCount={student.stats.absentCount}
+                        />
                       </div>
                       <div className="col-span-2">
                         <p className="text-xs text-muted-foreground">
@@ -257,8 +257,7 @@ export default function AttendancePage() {
                     <TableRow>
                       <TableHead>Student</TableHead>
                       <TableHead>Today</TableHead>
-                      <TableHead>Late</TableHead>
-                      <TableHead>Absent</TableHead>
+                      <TableHead>Late / Absent</TableHead>
                       <TableHead>Duty Hours</TableHead>
                       <TableHead>Rate</TableHead>
                       <TableHead>Time In</TableHead>
@@ -296,11 +295,12 @@ export default function AttendancePage() {
                             timeOut={student.todayRecord?.timeOut}
                           />
                         </TableCell>
-                        <TableCell className="tabular-nums">
-                          {student.stats.lateCount}
-                        </TableCell>
-                        <TableCell className="tabular-nums">
-                          {student.stats.absentCount}
+                        <TableCell>
+                          <AttendanceTallyPair
+                            lateCount={student.stats.lateCount}
+                            absentCount={student.stats.absentCount}
+                            compact
+                          />
                         </TableCell>
                         <TableCell className="text-sm">
                           <DutyHoursLabel stats={student.stats} />

@@ -16,6 +16,9 @@ import {
 import { StudentAvatar } from "@/components/student-avatar";
 import { Badge } from "@/components/ui/badge";
 import { AttendanceRateBadge } from "@/components/attendance-rate-badge";
+import {
+  AttendanceTallyPair,
+} from "@/components/attendance-tally-badge";
 import { ResponsiveTableShell } from "@/components/responsive-table-shell";
 import {
   REQUIRED_DUTY_HOURS,
@@ -151,17 +154,14 @@ export default function StudentsPage() {
                       {getStudentAssignmentLabel(student.assignment)}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Late</p>
-                    <p className="font-medium tabular-nums">
-                      {student.stats?.lateCount ?? 0}
+                  <div className="col-span-2">
+                    <p className="mb-1.5 text-xs text-muted-foreground">
+                      Attendance record
                     </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Absent</p>
-                    <p className="font-medium tabular-nums">
-                      {student.stats?.absentCount ?? 0}
-                    </p>
+                    <AttendanceTallyPair
+                      lateCount={student.stats?.lateCount ?? 0}
+                      absentCount={student.stats?.absentCount ?? 0}
+                    />
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Duty hours</p>
@@ -190,8 +190,7 @@ export default function StudentsPage() {
                   <TableHead>ID</TableHead>
                   <TableHead>Course</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead>Late</TableHead>
-                  <TableHead>Absent</TableHead>
+                  <TableHead>Late / Absent</TableHead>
                   <TableHead>Duty Hours</TableHead>
                   <TableHead>Rate</TableHead>
                   <TableHead>Status</TableHead>
@@ -221,11 +220,12 @@ export default function StudentsPage() {
                     <TableCell>
                       <Badge variant="outline">{student.studentType}</Badge>
                     </TableCell>
-                    <TableCell className="tabular-nums">
-                      {student.stats?.lateCount ?? 0}
-                    </TableCell>
-                    <TableCell className="tabular-nums">
-                      {student.stats?.absentCount ?? 0}
+                    <TableCell>
+                      <AttendanceTallyPair
+                        lateCount={student.stats?.lateCount ?? 0}
+                        absentCount={student.stats?.absentCount ?? 0}
+                        compact
+                      />
                     </TableCell>
                     <TableCell className="font-medium tabular-nums">
                       {student.stats?.hoursCompleted ?? 0}/{REQUIRED_DUTY_HOURS}{" "}

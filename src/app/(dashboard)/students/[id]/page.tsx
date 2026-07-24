@@ -21,6 +21,7 @@ import { StudentAvatar } from "@/components/student-avatar";
 import { AttendanceActions } from "@/components/attendance-actions";
 import { StudentQrCard } from "@/components/student-qr-card";
 import { AttendanceRateBadge } from "@/components/attendance-rate-badge";
+import { AttendanceTallyPair } from "@/components/attendance-tally-badge";
 import {
   REQUIRED_DUTY_HOURS,
   type AttendanceRate,
@@ -168,18 +169,12 @@ export default function StudentProfilePage({
                 {REQUIRED_DUTY_HOURS} hr ({student.stats?.dutyProgressPercent ?? 0}
                 %)
               </p>
-              <p>
-                Late:{" "}
-                <span className="font-medium text-foreground">
-                  {student.stats?.lateCount ?? 0}
-                </span>
-              </p>
-              <p>
-                Absent:{" "}
-                <span className="font-medium text-foreground">
-                  {student.stats?.absentCount ?? 0}
-                </span>
-              </p>
+              <div className="sm:col-span-2">
+                <AttendanceTallyPair
+                  lateCount={student.stats?.lateCount ?? 0}
+                  absentCount={student.stats?.absentCount ?? 0}
+                />
+              </div>
             </div>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto">
@@ -243,19 +238,11 @@ export default function StudentProfilePage({
       <Card>
         <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle>Attendance History</CardTitle>
-          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-            <span>
-              Late:{" "}
-              <span className="font-medium text-foreground">
-                {student.stats?.lateCount ?? 0}
-              </span>
-            </span>
-            <span>
-              Absent:{" "}
-              <span className="font-medium text-foreground">
-                {student.stats?.absentCount ?? 0}
-              </span>
-            </span>
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <AttendanceTallyPair
+              lateCount={student.stats?.lateCount ?? 0}
+              absentCount={student.stats?.absentCount ?? 0}
+            />
             <span>
               Duty:{" "}
               <span className="font-medium text-foreground">
