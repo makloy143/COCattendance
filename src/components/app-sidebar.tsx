@@ -9,7 +9,7 @@ import {
   GraduationCap,
   LayoutDashboard,
   LogOut,
-  ScanFace,
+  ScanLine,
   Shield,
   Users,
 } from "lucide-react";
@@ -48,7 +48,7 @@ const navItems = [
   { href: "/students", label: "Students", icon: Users },
   { href: "/schedule", label: "Duty Schedule", icon: CalendarDays },
   { href: "/attendance", label: "Attendance", icon: CalendarCheck },
-  { href: "/scan", label: "Face Scan", icon: ScanFace },
+  { href: "/scan", label: "Scan", icon: ScanLine },
   { href: "/reports", label: "Reports", icon: FileBarChart },
 ];
 

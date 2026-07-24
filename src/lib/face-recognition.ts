@@ -2,7 +2,15 @@
 
 import * as faceapi from "@vladmandic/face-api";
 
-export const FACE_MATCH_THRESHOLD = 0.55;
+/** Max Euclidean distance to accept a match (lower = stricter). */
+export const FACE_MATCH_THRESHOLD = 0.45;
+
+/** Best match must beat 2nd-best by at least this distance. */
+export const FACE_MATCH_MARGIN = 0.08;
+
+/** Minimum face box size (px) — small faces produce unreliable descriptors. */
+export const MIN_FACE_SIZE = 100;
+
 export const FACE_DESCRIPTOR_LENGTH = 128;
 
 const MODEL_URL = "/models";
@@ -16,6 +24,11 @@ export type EnrolledFace = {
   lastName: string;
   photoUrl: string | null;
   descriptor: number[];
+};
+
+export type FaceMatch = {
+  student: EnrolledFace;
+  distance: number;
 };
 
 export async function loadFaceModels(): Promise<void> {
@@ -32,9 +45,36 @@ export async function loadFaceModels(): Promise<void> {
 
 function detectorOptions() {
   return new faceapi.TinyFaceDetectorOptions({
-    inputSize: 320,
-    scoreThreshold: 0.5,
+    // Higher input size improves detection of angled / distant faces.
+    inputSize: 416,
+    scoreThreshold: 0.55,
   });
+}
+
+function faceBoxSize(detection: faceapi.FaceDetection): number {
+  const { width, height } = detection.box;
+  return Math.min(width, height);
+}
+
+function pickBestDetection<
+  T extends { detection: faceapi.FaceDetection; descriptor: Float32Array },
+>(detections: T[]): T | null {
+  let best: T | null = null;
+  let bestScore = -1;
+
+  for (const item of detections) {
+    const size = faceBoxSize(item.detection);
+    if (size < MIN_FACE_SIZE) continue;
+
+    // Prefer larger, higher-confidence faces.
+    const score = item.detection.score * Math.sqrt(size);
+    if (score > bestScore) {
+      best = item;
+      bestScore = score;
+    }
+  }
+
+  return best;
 }
 
 export async function getFaceDescriptorFromSource(
@@ -42,12 +82,13 @@ export async function getFaceDescriptorFromSource(
 ): Promise<Float32Array | null> {
   await loadFaceModels();
 
-  const detection = await faceapi
-    .detectSingleFace(source, detectorOptions())
+  const detections = await faceapi
+    .detectAllFaces(source, detectorOptions())
     .withFaceLandmarks()
-    .withFaceDescriptor();
+    .withFaceDescriptors();
 
-  return detection?.descriptor ?? null;
+  const best = pickBestDetection(detections);
+  return best?.descriptor ?? null;
 }
 
 export async function getFaceDescriptorFromFile(
@@ -85,8 +126,9 @@ export function isValidDescriptor(value: unknown): value is number[] {
 export function matchFace(
   query: Float32Array,
   enrolled: EnrolledFace[]
-): { student: EnrolledFace; distance: number } | null {
-  let best: { student: EnrolledFace; distance: number } | null = null;
+): FaceMatch | null {
+  let best: FaceMatch | null = null;
+  let secondBest: number | null = null;
 
   for (const student of enrolled) {
     if (!isValidDescriptor(student.descriptor)) continue;
@@ -96,11 +138,24 @@ export function matchFace(
       new Float32Array(student.descriptor)
     );
 
-    if (distance > FACE_MATCH_THRESHOLD) continue;
-
     if (!best || distance < best.distance) {
+      secondBest = best?.distance ?? secondBest;
       best = { student, distance };
+    } else if (secondBest === null || distance < secondBest) {
+      secondBest = distance;
     }
+  }
+
+  if (!best || best.distance > FACE_MATCH_THRESHOLD) {
+    return null;
+  }
+
+  // Reject ambiguous matches (two students similarly close).
+  if (
+    secondBest !== null &&
+    secondBest - best.distance < FACE_MATCH_MARGIN
+  ) {
+    return null;
   }
 
   return best;

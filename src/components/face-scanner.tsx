@@ -49,6 +49,11 @@ type FacesResponse = {
   pendingCount: number;
 };
 
+/** Same student must match this many consecutive frames before recording. */
+const CONFIRM_FRAMES = 3;
+/** Delay between detection passes (ms). */
+const DETECT_INTERVAL_MS = 450;
+
 export function FaceScanner() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -56,6 +61,9 @@ export function FaceScanner() {
   const enrolledRef = useRef<EnrolledFace[]>([]);
   const rafRef = useRef<number | null>(null);
   const lastDetectAtRef = useRef(0);
+  const pendingMatchRef = useRef<{ studentId: string; count: number } | null>(
+    null
+  );
 
   const [ready, setReady] = useState(false);
   const [status, setStatus] = useState("Loading face models...");
@@ -181,6 +189,7 @@ export function FaceScanner() {
   const recordMatch = useCallback(async (student: EnrolledFace) => {
     if (processingRef.current) return;
     processingRef.current = true;
+    pendingMatchRef.current = null;
     setStatus(`Recognized ${student.firstName}...`);
 
     try {
@@ -269,7 +278,7 @@ export function FaceScanner() {
             !processingRef.current &&
             enrolledRef.current.length > 0 &&
             video.readyState >= 2 &&
-            now - lastDetectAtRef.current >= 700
+            now - lastDetectAtRef.current >= DETECT_INTERVAL_MS
           ) {
             lastDetectAtRef.current = now;
 
@@ -280,8 +289,33 @@ export function FaceScanner() {
                 const match = matchFace(descriptor, enrolledRef.current);
 
                 if (match) {
-                  await recordMatch(match.student);
+                  const streak = pendingMatchRef.current;
+                  const nextCount =
+                    streak?.studentId === match.student.id
+                      ? streak.count + 1
+                      : 1;
+
+                  pendingMatchRef.current = {
+                    studentId: match.student.id,
+                    count: nextCount,
+                  };
+
+                  if (nextCount < CONFIRM_FRAMES) {
+                    setStatus(
+                      `Confirming ${match.student.firstName}... (${nextCount}/${CONFIRM_FRAMES})`
+                    );
+                  } else {
+                    await recordMatch(match.student);
+                  }
+                } else {
+                  if (pendingMatchRef.current) {
+                    pendingMatchRef.current = null;
+                    setStatus("Looking for a face...");
+                  }
                 }
+              } else if (!descriptor && pendingMatchRef.current) {
+                pendingMatchRef.current = null;
+                setStatus("Looking for a face...");
               }
             } catch {
               // Ignore transient detection errors between frames.
@@ -400,8 +434,8 @@ export function FaceScanner() {
       )}
 
       <p className="text-center text-xs text-muted-foreground">
-        Look at the camera to record time in or time out. Students need a
-        clear profile photo enrolled for recognition.
+        Face the camera closely with good lighting. Hold still briefly so the
+        scan can confirm — students need a clear front-facing profile photo.
       </p>
     </div>
   );
