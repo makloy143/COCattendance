@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ButtonLink } from "@/components/button-link";
+import { MonitoringStatusChart } from "@/components/monitoring-status-chart";
 import { requireMonitoringSession } from "@/lib/monitoring-auth";
 import { getMonitoringDashboardData } from "@/lib/monitoring";
 
@@ -97,39 +98,13 @@ export default async function MonitoringDashboardPage() {
                 {format(parseISO(data.lastUpdated), "MMM d, yyyy h:mm a")}
               </p>
             )}
-            {data.issues.length === 0 ? (
-              <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950/30">
-                <CheckCircle2 className="size-5 text-emerald-600" />
-                <p className="text-sm text-emerald-800 dark:text-emerald-200">
-                  All systems are up. No issues reported today.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {data.issues.map((issue) => (
-                  <div
-                    key={issue.systemName}
-                    className="flex items-start justify-between gap-3 rounded-lg border p-3"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{issue.systemName}</p>
-                      {issue.remarks && (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {issue.remarks}
-                        </p>
-                      )}
-                    </div>
-                    <Badge
-                      variant={
-                        issue.status === "Down" ? "destructive" : "secondary"
-                      }
-                    >
-                      {issue.status}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            )}
+            <MonitoringStatusChart
+              systemsUp={data.systemsUp}
+              systemsDown={data.systemsDown}
+              systemsDegraded={data.systemsDegraded}
+              totalSystems={data.totalSystems}
+              issues={data.issues}
+            />
           </CardContent>
         </Card>
 
