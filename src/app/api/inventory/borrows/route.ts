@@ -110,6 +110,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Item not found" }, { status: 404 });
     }
 
+    if (
+      item.assetStatus &&
+      item.assetStatus !== "AVAILABLE"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            item.assetStatus === "UNDER_MAINTENANCE"
+              ? "This equipment is under maintenance and cannot be borrowed"
+              : "This equipment is not available to borrow",
+        },
+        { status: 400 }
+      );
+    }
+
     if (item.itemType === "EQUIPMENT" && !data.signatureConfirmed) {
       return NextResponse.json(
         { error: "Signature confirmation is required for equipment borrows" },

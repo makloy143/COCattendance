@@ -38,6 +38,8 @@ type ReceivedItem = {
   senderSource: string;
   receivedByDepartment: string;
   dateReceived: string;
+  displayAssetStatus?: { key: string; label: string };
+  openMaintenance?: { id: string; status: string; maintenanceNumber: string } | null;
 };
 
 export default function ReceivedItemsPage() {
@@ -117,6 +119,21 @@ export default function ReceivedItemsPage() {
                   </div>
                   <Badge variant="outline">{getItemCategoryLabel(item.category)}</Badge>
                 </div>
+                {item.displayAssetStatus && item.displayAssetStatus.key !== "AVAILABLE" && (
+                  <Badge
+                    variant="outline"
+                    className={
+                      item.displayAssetStatus.key === "UNDER_MAINTENANCE"
+                        ? "mt-2 border-violet-400 text-violet-700"
+                        : "mt-2"
+                    }
+                  >
+                    {item.displayAssetStatus.label}
+                    {item.openMaintenance
+                      ? ` · ${item.openMaintenance.maintenanceNumber}`
+                      : ""}
+                  </Badge>
+                )}
                 <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <p className="text-xs text-muted-foreground">Available</p>
@@ -146,6 +163,7 @@ export default function ReceivedItemsPage() {
                   <TableHead>Item</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Available</TableHead>
                   <TableHead>Received by</TableHead>
                   <TableHead>Department</TableHead>
@@ -172,6 +190,18 @@ export default function ReceivedItemsPage() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">{getItemTypeLabel(item.itemType)}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={
+                          item.displayAssetStatus?.key === "UNDER_MAINTENANCE"
+                            ? "border-violet-400 text-violet-700"
+                            : undefined
+                        }
+                      >
+                        {item.displayAssetStatus?.label ?? "Available"}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       {item.availableQuantity} / {item.quantity}

@@ -1,22 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireInventorySession } from "@/lib/inventory-auth";
 import { prisma } from "@/lib/db";
-import { getAvailableQuantity } from "@/lib/inventory";
+import { getAvailableQuantity, getDisplayAssetStatus } from "@/lib/inventory";
 import { receivedItemSchema } from "@/lib/validations";
 import { parseISO, startOfDay } from "date-fns";
 import type { ItemCategory, ItemType } from "@/lib/inventory";
+import { ACTIVE_MAINTENANCE_STATUSES } from "@/lib/maintenance-shared";
 
 function parseDateOnly(value: string): Date {
   return startOfDay(parseISO(value));
 }
 
+const receivedItemListInclude = {
+  borrows: {
+    select: { quantityBorrowed: true, status: true },
+  },
+  maintenanceRecords: {
+    where: { status: { in: [...ACTIVE_MAINTENANCE_STATUSES] } },
+    select: {
+      id: true,
+      status: true,
+      maintenanceNumber: true,
+    },
+    orderBy: { dateReported: "desc" as const },
+    take: 1,
+  },
+};
+
 function serializeReceivedItem(
   item: Awaited<ReturnType<typeof fetchReceivedItems>>[number]
 ) {
   const availableQuantity = getAvailableQuantity(item);
+  const openMaintenance = item.maintenanceRecords[0] ?? null;
   return {
     ...item,
     availableQuantity,
+    openMaintenance,
+    displayAssetStatus: getDisplayAssetStatus({
+      ...item,
+      availableQuantity,
+    }),
   };
 }
 
@@ -45,11 +68,7 @@ async function fetchReceivedItems(options: {
           }
         : {}),
     },
-    include: {
-      borrows: {
-        select: { quantityBorrowed: true, status: true },
-      },
-    },
+    include: receivedItemListInclude,
     orderBy: [{ dateReceived: "desc" }, { createdAt: "desc" }],
   });
 }
@@ -120,11 +139,7 @@ export async function POST(request: NextRequest) {
         dateReceived: parseDateOnly(data.dateReceived),
         notes: data.notes?.trim() || null,
       },
-      include: {
-        borrows: {
-          select: { quantityBorrowed: true, status: true },
-        },
-      },
+      include: receivedItemListInclude,
     });
 
     return NextResponse.json(serializeReceivedItem(item), { status: 201 });

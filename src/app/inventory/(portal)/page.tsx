@@ -1,11 +1,12 @@
 import Link from "next/link";
 import {
+  AlertTriangle,
   ArrowLeftRight,
   BarChart3,
   Droplets,
   IdCard,
   Package,
-  AlertTriangle,
+  Wrench,
 } from "lucide-react";
 import { ButtonLink } from "@/components/button-link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +27,11 @@ async function getInventoryDashboardData() {
     totalReceivedItems,
     activeBorrows,
     pendingIdErrors,
+    maintenanceTotal,
+    maintenanceOpen,
+    maintenanceUnderRepair,
+    maintenanceCompleted,
+    maintenanceUnrepairable,
     analytics,
     recentReceived,
     recentBorrows,
@@ -37,6 +43,13 @@ async function getInventoryDashboardData() {
       where: { status: "ACTIVE", receivedItem: { itemType: "EQUIPMENT" } },
     }),
     prisma.idErrorRecord.count({ where: { status: "REPRINT" } }),
+    prisma.maintenanceRecord.count(),
+    prisma.maintenanceRecord.count({
+      where: { status: { in: ["OPEN", "DIAGNOSING"] } },
+    }),
+    prisma.maintenanceRecord.count({ where: { status: "UNDER_REPAIR" } }),
+    prisma.maintenanceRecord.count({ where: { status: "COMPLETED" } }),
+    prisma.maintenanceRecord.count({ where: { status: "UNREPAIRABLE" } }),
     getInventoryAnalyticsData(),
     prisma.receivedItem.findMany({
       orderBy: [{ dateReceived: "desc" }, { createdAt: "desc" }],
@@ -85,6 +98,11 @@ async function getInventoryDashboardData() {
     totalReceivedItems,
     activeBorrows,
     pendingIdErrors,
+    maintenanceTotal,
+    maintenanceOpen,
+    maintenanceUnderRepair,
+    maintenanceCompleted,
+    maintenanceUnrepairable,
     inkStockCount: analytics.allStock.filter((s) => s.category === "INK")
       .length,
     lowInkAlerts: analytics.summary.lowInkColors,
@@ -145,6 +163,13 @@ export default async function InventoryDashboardPage() {
       description: "Total consumable units available",
       accent: "cyan" as const,
     },
+    {
+      title: "Maintenance Issues",
+      value: data.maintenanceTotal,
+      icon: Wrench,
+      description: `${data.maintenanceOpen} open · ${data.maintenanceUnderRepair} under repair`,
+      accent: "violet" as const,
+    },
   ];
 
   const quickActions = [
@@ -154,6 +179,7 @@ export default async function InventoryDashboardPage() {
     { href: "/inventory/borrows/new", label: "Borrow Item" },
     { href: "/inventory/returns", label: "Item Return" },
     { href: "/inventory/id-errors/new", label: "Log ID Error" },
+    { href: "/inventory/maintenance/new", label: "Report Issue" },
   ];
 
   return (
@@ -163,15 +189,47 @@ export default async function InventoryDashboardPage() {
           Inventory Dashboard
         </h1>
         <p className="text-sm text-muted-foreground">
-          Overview of received items, borrows, and ID errors
+          Overview of received items, borrows, ID errors, and maintenance
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {stats.map((stat) => (
           <InventoryStatCard key={stat.title} {...stat} />
         ))}
       </div>
+
+      <Card className="border-l-4 border-l-violet-500">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-base">Maintenance Issues</CardTitle>
+          <Link
+            href="/inventory/maintenance"
+            className="text-xs text-primary hover:underline"
+          >
+            View all
+          </Link>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div>
+            <p className="text-xs text-muted-foreground">Open</p>
+            <p className="text-xl font-semibold">{data.maintenanceOpen}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Under Repair</p>
+            <p className="text-xl font-semibold">{data.maintenanceUnderRepair}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Completed</p>
+            <p className="text-xl font-semibold">{data.maintenanceCompleted}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Unrepairable</p>
+            <p className="text-xl font-semibold">
+              {data.maintenanceUnrepairable}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       <RestockRecommendationsCard
         recommendations={data.restockRecommendations}

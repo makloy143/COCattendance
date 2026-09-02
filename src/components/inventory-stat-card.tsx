@@ -7,7 +7,7 @@ type InventoryStatCardProps = {
   value: number | string;
   description: string;
   icon: LucideIcon;
-  accent?: "default" | "emerald" | "amber" | "orange" | "red" | "cyan";
+  accent?: "default" | "emerald" | "amber" | "orange" | "red" | "cyan" | "violet";
 };
 
 const accentClasses = {
@@ -17,6 +17,7 @@ const accentClasses = {
   orange: "border-l-orange-500",
   red: "border-l-red-500",
   cyan: "border-l-cyan-500",
+  violet: "border-l-violet-500",
 };
 
 export function InventoryStatCard({

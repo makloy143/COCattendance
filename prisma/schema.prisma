@@ -144,10 +144,98 @@ enum BorrowStatus {
   RETURNED
 }
 
+enum AssetStatus {
+  AVAILABLE
+  UNDER_MAINTENANCE
+  RETIRED
+  LOST
+  DAMAGED
+}
+
+enum MaintenanceStatus {
+  OPEN
+  DIAGNOSING
+  UNDER_REPAIR
+  AWAITING_PARTS
+  AWAITING_VENDOR
+  COMPLETED
+  UNREPAIRABLE
+  CANCELLED
+}
+
+enum MaintenancePriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum MaintenanceEventType {
+  CREATED
+  STATUS_CHANGED
+  TECHNICIAN_ASSIGNED
+  DIAGNOSTIC_UPDATED
+  PARTS_UPDATED
+  REMARKS_UPDATED
+  REPAIR_COMPLETED
+  UPDATED
+}
+
 enum IdErrorStatus {
   REPRINT
   RESOLVED
   CANCELLED
+}
+
+model MaintenanceRecord {
+  id                 String               @id @default(cuid())
+  maintenanceNumber  String               @unique
+  receivedItemId     String?
+  receivedItem       ReceivedItem?        @relation(fields: [receivedItemId], references: [id], onDelete: SetNull)
+  itemName           String
+  equipmentType      String
+  assetNumber        String
+  serialNumber       String?
+  problem            String
+  description        String?
+  dateReported       DateTime
+  reportedBy         String
+  location           String
+  priority           MaintenancePriority  @default(MEDIUM)
+  status             MaintenanceStatus    @default(OPEN)
+  assignedTechnician String?
+  diagnosticFindings String?
+  actionTaken        String?
+  partsReplaced      String?
+  repairCost         Float?
+  dateSentForRepair  DateTime?
+  dateCompleted      DateTime?
+  vendor             String?
+  warranty           String?
+  remarks            String?
+  attachmentData     Bytes?
+  attachmentMimeType String?
+  attachmentName     String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  events             MaintenanceEvent[]
+
+  @@index([status])
+  @@index([priority])
+  @@index([dateReported])
+  @@index([receivedItemId])
+}
+
+model MaintenanceEvent {
+  id            String                @id @default(cuid())
+  maintenanceId String
+  maintenance   MaintenanceRecord     @relation(fields: [maintenanceId], references: [id], onDelete: Cascade)
+  eventType     MaintenanceEventType
+  message       String
+  createdBy     String?
+  createdAt     DateTime              @default(now())
+
+  @@index([maintenanceId, createdAt])
 }
 
 model ReceivedItem {
@@ -167,7 +255,9 @@ model ReceivedItem {
   dateReceived         DateTime
   notes                String?
   createdAt            DateTime       @default(now())
+  assetStatus          AssetStatus    @default(AVAILABLE)
   borrows              BorrowRecord[]
+  maintenanceRecords   MaintenanceRecord[]
 }
 
 model BorrowRecord {

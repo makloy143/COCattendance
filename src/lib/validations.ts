@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { normalizeScheduleSlots } from "@/lib/schedule";
-import { ITEM_TYPES, ITEM_CATEGORIES, INK_COLORS, ID_ERROR_STATUSES } from "@/lib/inventory";
+import { ITEM_TYPES, ITEM_CATEGORIES, INK_COLORS, ID_ERROR_STATUSES, ASSET_STATUSES } from "@/lib/inventory";
+import {
+  MAINTENANCE_PRIORITIES,
+  MAINTENANCE_STATUSES,
+} from "@/lib/maintenance-shared";
 import { STUDENT_TYPES } from "@/lib/student-type";
 import { TODO_PRIORITIES } from "@/lib/todo";
 import { toOptionCode } from "@/lib/option-code";
@@ -240,6 +244,67 @@ export type IdErrorRecordFormValues = z.infer<typeof idErrorRecordSchema>;
 
 export const idErrorStatusUpdateSchema = z.object({
   status: z.enum(ID_ERROR_STATUSES),
+});
+
+const optionalText = z.string().max(2000).optional().or(z.literal(""));
+const optionalDate = z.string().optional().or(z.literal(""));
+
+const maintenanceAttachmentSchema = z.object({
+  data: z.string().min(1, "Attachment data is required"),
+  mimeType: z.string().min(1, "Attachment type is required"),
+  name: z.string().max(200).optional().or(z.literal("")),
+});
+
+export const maintenanceRecordSchema = z.object({
+  receivedItemId: z.string().optional().or(z.literal("")),
+  itemName: z.string().min(1, "Asset/Item is required").max(200),
+  equipmentType: z.string().min(1, "Equipment type is required").max(100),
+  assetNumber: z.string().min(1, "Asset/Inventory number is required").max(100),
+  serialNumber: z.string().max(100).optional().or(z.literal("")),
+  problem: z.string().min(1, "Problem/Issue is required").max(500),
+  description: optionalText,
+  dateReported: z.string().min(1, "Date reported is required"),
+  reportedBy: z.string().min(1, "Reported by is required").max(200),
+  location: z.string().min(1, "Location is required").max(200),
+  priority: z.enum(MAINTENANCE_PRIORITIES, {
+    message: "Priority is required",
+  }),
+  status: z.enum(MAINTENANCE_STATUSES).default("OPEN"),
+  assignedTechnician: z.string().max(200).optional().or(z.literal("")),
+  diagnosticFindings: optionalText,
+  actionTaken: optionalText,
+  partsReplaced: optionalText,
+  repairCost: z.coerce.number().min(0, "Repair cost cannot be negative").optional().or(z.literal("")),
+  dateSentForRepair: optionalDate,
+  dateCompleted: optionalDate,
+  vendor: z.string().max(200).optional().or(z.literal("")),
+  warranty: z.string().max(200).optional().or(z.literal("")),
+  remarks: optionalText,
+  restoreAssetStatus: z.enum(ASSET_STATUSES).optional(),
+  attachment: maintenanceAttachmentSchema.optional().nullable(),
+});
+
+export type MaintenanceRecordFormValues = z.infer<typeof maintenanceRecordSchema>;
+
+export const maintenanceRecordUpdateSchema = maintenanceRecordSchema.partial().extend({
+  itemName: z.string().min(1, "Asset/Item is required").max(200).optional(),
+  equipmentType: z.string().min(1, "Equipment type is required").max(100).optional(),
+  assetNumber: z.string().min(1, "Asset/Inventory number is required").max(100).optional(),
+  problem: z.string().min(1, "Problem/Issue is required").max(500).optional(),
+  dateReported: z.string().min(1, "Date reported is required").optional(),
+  reportedBy: z.string().min(1, "Reported by is required").max(200).optional(),
+  location: z.string().min(1, "Location is required").max(200).optional(),
+});
+
+export const maintenanceStatusUpdateSchema = z.object({
+  status: z.enum(MAINTENANCE_STATUSES, {
+    message: "Status is required",
+  }),
+  remarks: optionalText,
+  assignedTechnician: z.string().max(200).optional().or(z.literal("")),
+  dateCompleted: optionalDate,
+  dateSentForRepair: optionalDate,
+  restoreAssetStatus: z.enum(ASSET_STATUSES).optional(),
 });
 
 export const monitoringEntrySchema = z.object({

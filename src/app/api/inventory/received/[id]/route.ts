@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireInventorySession } from "@/lib/inventory-auth";
 import { prisma } from "@/lib/db";
-import { getAvailableQuantity } from "@/lib/inventory";
+import { getAvailableQuantity, getDisplayAssetStatus } from "@/lib/inventory";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -26,6 +26,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     return NextResponse.json({
       ...item,
       availableQuantity: getAvailableQuantity(item),
+      displayAssetStatus: getDisplayAssetStatus(item),
     });
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") {

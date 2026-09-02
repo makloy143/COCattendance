@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   LogOut,
   Package,
+  Wrench,
 } from "lucide-react";
 import {
   Sidebar,
@@ -66,6 +67,7 @@ const navItems = [
     icon: ArrowRightFromLine,
     match: ["/inventory/borrows"],
   },
+  { href: "/inventory/maintenance", label: "Maintenance", icon: Wrench },
 ];
 
 export function InventorySidebar({ username }: { username?: string }) {
@@ -166,7 +168,7 @@ export function InventoryShell({
           <Separator orientation="vertical" className="mr-1 hidden h-4 sm:block" />
           <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground sm:text-sm">
             <span className="hidden sm:inline">
-              Inventory portal — received items, borrows & ID errors
+              Inventory portal — received items, borrows, ID errors & maintenance
             </span>
             <span className="sm:hidden">COCiligan Inventory</span>
           </p>

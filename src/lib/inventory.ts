@@ -1,5 +1,9 @@
 import { format, parseISO } from "date-fns";
-import type { BorrowRecord, ReceivedItem } from "@/generated/prisma/client";
+import type {
+  AssetStatus as PrismaAssetStatus,
+  BorrowRecord,
+  ReceivedItem,
+} from "@/generated/prisma/client";
 
 export const ITEM_TYPES = ["CONSUMABLE", "EQUIPMENT"] as const;
 export type ItemType = (typeof ITEM_TYPES)[number];
@@ -71,6 +75,30 @@ export const IT_STAFF_NAMES = [
 export const BORROW_STATUSES = ["ACTIVE", "RETURNED"] as const;
 export type BorrowStatus = (typeof BORROW_STATUSES)[number];
 
+export const ASSET_STATUSES = [
+  "AVAILABLE",
+  "UNDER_MAINTENANCE",
+  "RETIRED",
+  "LOST",
+  "DAMAGED",
+] as const;
+export type AssetStatus = (typeof ASSET_STATUSES)[number];
+
+export const ASSET_STATUS_LABELS: Record<AssetStatus, string> = {
+  AVAILABLE: "Available",
+  UNDER_MAINTENANCE: "Under Maintenance",
+  RETIRED: "Retired",
+  LOST: "Lost",
+  DAMAGED: "Damaged",
+};
+
+export const UNAVAILABLE_ASSET_STATUSES: AssetStatus[] = [
+  "UNDER_MAINTENANCE",
+  "RETIRED",
+  "LOST",
+  "DAMAGED",
+];
+
 export const ID_ERROR_STATUSES = ["REPRINT", "RESOLVED", "CANCELLED"] as const;
 export type IdErrorStatus = (typeof ID_ERROR_STATUSES)[number];
 
@@ -105,6 +133,7 @@ export function getInkColorLabel(inkColor: InkColor): string {
 
 type ReceivedItemWithBorrows = ReceivedItem & {
   borrows: Pick<BorrowRecord, "quantityBorrowed" | "status">[];
+  assetStatus?: PrismaAssetStatus | AssetStatus | null;
 };
 
 export function getBorrowedQuantity(
@@ -122,7 +151,46 @@ export function getReleasedQuantity(
 }
 
 export function getAvailableQuantity(item: ReceivedItemWithBorrows): number {
+  if (
+    item.assetStatus &&
+    UNAVAILABLE_ASSET_STATUSES.includes(item.assetStatus as AssetStatus)
+  ) {
+    return 0;
+  }
   return Math.max(0, item.quantity - getBorrowedQuantity(item.borrows));
+}
+
+export function getDisplayAssetStatus(item: {
+  assetStatus?: AssetStatus | PrismaAssetStatus | null;
+  itemType?: ItemType;
+  quantity?: number;
+  availableQuantity?: number;
+  borrows?: Pick<BorrowRecord, "quantityBorrowed" | "status">[];
+}): { key: AssetStatus | "BORROWED"; label: string } {
+  if (
+    item.assetStatus &&
+    item.assetStatus !== "AVAILABLE" &&
+    UNAVAILABLE_ASSET_STATUSES.includes(item.assetStatus as AssetStatus)
+  ) {
+    const key = item.assetStatus as AssetStatus;
+    return { key, label: ASSET_STATUS_LABELS[key] };
+  }
+
+  const borrowedQty = item.borrows
+    ? getBorrowedQuantity(item.borrows)
+    : 0;
+  if (item.itemType === "EQUIPMENT" && borrowedQty > 0) {
+    return { key: "BORROWED", label: "Borrowed" };
+  }
+  if (
+    typeof item.quantity === "number" &&
+    borrowedQty >= item.quantity &&
+    borrowedQty > 0
+  ) {
+    return { key: "BORROWED", label: "Borrowed" };
+  }
+
+  return { key: "AVAILABLE", label: ASSET_STATUS_LABELS.AVAILABLE };
 }
 
 export function formatItemDescription(item: {
