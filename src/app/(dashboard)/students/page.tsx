@@ -6,6 +6,13 @@ import { Plus, Search } from "lucide-react";
 import { ButtonLink } from "@/components/button-link";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -29,6 +36,19 @@ import {
   type StudentAssignment,
 } from "@/lib/student-assignment";
 import type { StudentType } from "@/lib/student-type";
+
+type StatusFilter = "active" | "inactive" | "all";
+
+const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
+  { value: "active", label: "Active" },
+  { value: "inactive", label: "Deactivated" },
+  { value: "all", label: "All students" },
+];
+
+function parseStatusFilter(value: string | null): StatusFilter {
+  if (value === "inactive" || value === "all") return value;
+  return "active";
+}
 
 type StudentStats = {
   lateCount: number;
@@ -58,27 +78,64 @@ type Student = {
 export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
+  const [canFilterDeactivated, setCanFilterDeactivated] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadSession() {
+      try {
+        const response = await fetch("/api/auth");
+        if (!response.ok) return;
+        const data = await response.json();
+        setCanFilterDeactivated(data.role === "SUPER_ADMIN");
+      } catch {
+        setCanFilterDeactivated(false);
+      }
+    }
+
+    void loadSession();
+  }, []);
+
+  useEffect(() => {
+    if (!canFilterDeactivated && statusFilter !== "active") {
+      setStatusFilter("active");
+    }
+  }, [canFilterDeactivated, statusFilter]);
 
   useEffect(() => {
     async function loadStudents() {
       setLoading(true);
       const params = new URLSearchParams();
       if (search) params.set("search", search);
+      if (canFilterDeactivated && statusFilter !== "active") {
+        params.set("status", statusFilter);
+      }
       const response = await fetch(`/api/students?${params.toString()}`);
       const data = await response.json();
-      setStudents(data);
+      setStudents(Array.isArray(data) ? data : []);
       setLoading(false);
     }
 
     const timeout = setTimeout(loadStudents, 300);
     return () => clearTimeout(timeout);
-  }, [search]);
+  }, [search, statusFilter, canFilterDeactivated]);
 
   const countLabel = useMemo(() => {
     if (loading) return "Loading students...";
-    return `${students.length} student${students.length === 1 ? "" : "s"}`;
-  }, [students.length, loading]);
+    const noun =
+      statusFilter === "inactive"
+        ? "deactivated student"
+        : "student";
+    return `${students.length} ${noun}${students.length === 1 ? "" : "s"}`;
+  }, [students.length, loading, statusFilter]);
+
+  const emptyMessage =
+    statusFilter === "inactive"
+      ? "No deactivated students found."
+      : search
+        ? "No students found."
+        : "No students found. Register your first student to get started.";
 
   return (
     <div className="space-y-6">
@@ -93,19 +150,41 @@ export default function StudentsPage() {
         </ButtonLink>
       </div>
 
-      <div className="relative w-full max-w-md">
-        <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name, ID, or course..."
-          className="pl-9"
-        />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative w-full max-w-md">
+          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name, ID, or course..."
+            className="pl-9"
+          />
+        </div>
+        {canFilterDeactivated ? (
+          <Select
+            value={statusFilter}
+            items={STATUS_OPTIONS}
+            onValueChange={(value) =>
+              setStatusFilter(parseStatusFilter(value ?? "active"))
+            }
+          >
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Filter status" />
+            </SelectTrigger>
+            <SelectContent>
+              {STATUS_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : null}
       </div>
 
       {!loading && students.length === 0 ? (
         <p className="rounded-xl border bg-card py-10 text-center text-sm text-muted-foreground">
-          No students found. Register your first student to get started.
+          {emptyMessage}
         </p>
       ) : (
         <>

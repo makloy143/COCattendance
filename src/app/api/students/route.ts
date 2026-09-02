@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   getStudentDepartmentFilter,
+  isSuperAdmin,
   requireSession,
   resolveStudentDepartment,
 } from "@/lib/auth";
@@ -42,12 +43,21 @@ export async function GET(request: NextRequest) {
     );
 
     const search = searchParams.get("search")?.trim();
-    const includeInactive = searchParams.get("includeInactive") === "true";
+    const canViewInactive = isSuperAdmin(session);
+    const status = canViewInactive ? searchParams.get("status") : "active";
+    const includeInactive =
+      canViewInactive && searchParams.get("includeInactive") === "true";
+    const activeFilter =
+      status === "inactive"
+        ? { isActive: false }
+        : status === "all" || includeInactive
+          ? {}
+          : { isActive: true };
 
     const students = await prisma.student.findMany({
       where: {
         ...departmentFilter,
-        ...(includeInactive ? {} : { isActive: true }),
+        ...activeFilter,
         ...(search
           ? {
               OR: [
