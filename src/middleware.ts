@@ -98,6 +98,24 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  const isMaintenanceLogin = pathname === "/maintenance/login";
+  const isMaintenanceRoute =
+    pathname === "/maintenance" || pathname.startsWith("/maintenance/");
+
+  if (isMaintenanceLogin) {
+    if (inventoryAuthenticated) {
+      return NextResponse.redirect(new URL("/maintenance", request.url));
+    }
+    return NextResponse.next();
+  }
+
+  if (isMaintenanceRoute && !isMaintenanceLogin) {
+    if (!inventoryAuthenticated) {
+      return NextResponse.redirect(new URL("/maintenance/login", request.url));
+    }
+    return NextResponse.next();
+  }
+
   if (isInventoryApi || (isInventoryRoute && !isInventoryLogin)) {
     if (!inventoryAuthenticated) {
       if (pathname.startsWith("/api/")) {

@@ -7,6 +7,7 @@ import {
   GraduationCap,
   ListChecks,
   Package,
+  Wrench,
 } from "lucide-react";
 import {
   Card,
@@ -49,6 +50,15 @@ const portals = [
     icon: Package,
     iconClass: "bg-amber-600 text-white",
     cardClass: "hover:border-amber-500/50 hover:shadow-amber-500/10",
+  },
+  {
+    href: "/maintenance/login",
+    title: "Maintenance Dashboard",
+    description:
+      "Log and monitor broken, damaged, or malfunctioning IT equipment and repairs.",
+    icon: Wrench,
+    iconClass: "bg-violet-600 text-white",
+    cardClass: "hover:border-violet-500/50 hover:shadow-violet-500/10",
   },
   {
     href: "/todos/login",

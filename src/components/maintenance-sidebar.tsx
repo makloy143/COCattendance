@@ -3,14 +3,11 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  ArrowLeftToLine,
-  ArrowRightFromLine,
-  BarChart3,
   ClipboardList,
-  IdCard,
   LayoutDashboard,
   LogOut,
-  Package,
+  Plus,
+  Wrench,
 } from "lucide-react";
 import {
   Sidebar,
@@ -32,43 +29,17 @@ import { PortalBackLink } from "@/components/portal-back-link";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/inventory", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { href: "/maintenance", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { href: "/maintenance/records", label: "Maintenance Records", icon: ClipboardList },
   {
-    href: "/inventory/analytics",
-    label: "Analytics",
-    icon: BarChart3,
-    match: ["/inventory/analytics"],
-  },
-  { href: "/inventory/received", label: "Item Received", icon: Package },
-  {
-    href: "/inventory/received/release",
-    label: "Release Item",
-    icon: ArrowRightFromLine,
-    match: ["/inventory/received/release"],
-  },
-  {
-    href: "/inventory/releases",
-    label: "Release Logs",
-    icon: ClipboardList,
-    match: ["/inventory/releases"],
-  },
-  {
-    href: "/inventory/borrows/new",
-    label: "Borrow Item",
-    icon: ArrowRightFromLine,
-    match: ["/inventory/borrows/new"],
-  },
-  { href: "/inventory/returns", label: "Item Return", icon: ArrowLeftToLine },
-  { href: "/inventory/id-errors", label: "ID Errors", icon: IdCard },
-  {
-    href: "/inventory/borrows",
-    label: "Borrow History",
-    icon: ArrowRightFromLine,
-    match: ["/inventory/borrows"],
+    href: "/maintenance/new",
+    label: "Report Issue",
+    icon: Plus,
+    match: ["/maintenance/new"],
   },
 ];
 
-export function InventorySidebar({ username }: { username?: string }) {
+export function MaintenanceSidebar({ username }: { username?: string }) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -83,9 +54,6 @@ export function InventorySidebar({ username }: { username?: string }) {
     if (item.match) {
       return item.match.some((m) => pathname === m);
     }
-    if (item.href === "/inventory/borrows") {
-      return pathname === "/inventory/borrows";
-    }
     return pathname === item.href || pathname.startsWith(`${item.href}/`);
   }
 
@@ -93,12 +61,12 @@ export function InventorySidebar({ username }: { username?: string }) {
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
         <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <Package className="size-5" />
+          <div className="flex size-10 items-center justify-center rounded-xl bg-violet-600 text-white">
+            <Wrench className="size-5" />
           </div>
           <div>
             <p className="text-sm font-semibold">COCiligan</p>
-            <p className="text-xs text-muted-foreground">Inventory Portal</p>
+            <p className="text-xs text-muted-foreground">Maintenance Portal</p>
           </div>
         </div>
       </SidebarHeader>
@@ -150,7 +118,7 @@ export function InventorySidebar({ username }: { username?: string }) {
   );
 }
 
-export function InventoryShell({
+export function MaintenanceShell({
   children,
   username,
 }: {
@@ -159,16 +127,16 @@ export function InventoryShell({
 }) {
   return (
     <SidebarProvider>
-      <InventorySidebar username={username} />
+      <MaintenanceSidebar username={username} />
       <SidebarInset>
         <header className="flex h-14 shrink-0 items-center gap-2 border-b px-3 sm:px-4">
           <SidebarTrigger />
           <Separator orientation="vertical" className="mr-1 hidden h-4 sm:block" />
           <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground sm:text-sm">
             <span className="hidden sm:inline">
-              Inventory portal — received items, borrows & ID errors
+              Maintenance portal — equipment issues, repairs & service logs
             </span>
-            <span className="sm:hidden">COCiligan Inventory</span>
+            <span className="sm:hidden">COCiligan Maintenance</span>
           </p>
           <PortalBackLink />
         </header>

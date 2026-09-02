@@ -250,8 +250,8 @@ export function MaintenanceForm({
       );
       router.push(
         mode === "edit" && record
-          ? `/inventory/maintenance/${record.id}`
-          : "/inventory/maintenance"
+          ? `/maintenance/${record.id}`
+          : "/maintenance/records"
       );
       router.refresh();
     } catch {
@@ -686,8 +686,8 @@ export function MaintenanceForm({
           onClick={() =>
             router.push(
               mode === "edit" && record
-                ? `/inventory/maintenance/${record.id}`
-                : "/inventory/maintenance"
+                ? `/maintenance/${record.id}`
+                : "/maintenance/records"
             )
           }
         >

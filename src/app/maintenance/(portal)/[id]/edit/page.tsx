@@ -46,7 +46,7 @@ export default function EditMaintenancePage() {
         <p className="text-sm text-muted-foreground">
           Maintenance record not found.
         </p>
-        <ButtonLink href="/inventory/maintenance" variant="outline">
+        <ButtonLink href="/maintenance/records" variant="outline">
           Back to Maintenance
         </ButtonLink>
       </div>

@@ -97,7 +97,7 @@ export default function MaintenanceDetailsPage() {
         return;
       }
       toast.success("Maintenance record deleted successfully.");
-      router.push("/inventory/maintenance");
+      router.push("/maintenance/records");
       router.refresh();
     } catch {
       toast.error("Failed to delete maintenance record");
@@ -116,7 +116,7 @@ export default function MaintenanceDetailsPage() {
         <p className="text-sm text-muted-foreground">
           Maintenance record not found.
         </p>
-        <ButtonLink href="/inventory/maintenance" variant="outline">
+        <ButtonLink href="/maintenance/records" variant="outline">
           Back to Maintenance
         </ButtonLink>
       </div>
@@ -136,11 +136,11 @@ export default function MaintenanceDetailsPage() {
           <p className="text-sm text-muted-foreground">{record.itemName}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <ButtonLink href="/inventory/maintenance" variant="outline" size="sm">
+          <ButtonLink href="/maintenance/records" variant="outline" size="sm">
             Back
           </ButtonLink>
           <ButtonLink
-            href={`/inventory/maintenance/${record.id}/edit`}
+            href={`/maintenance/${record.id}/edit`}
             variant="outline"
             size="sm"
           >
