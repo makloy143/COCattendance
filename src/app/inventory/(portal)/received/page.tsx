@@ -75,6 +75,9 @@ export default function ReceivedItemsPage() {
           <p className="text-sm text-muted-foreground">{countLabel}</p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
+          <ButtonLink href="/inventory/releases" variant="outline">
+            Release Logs
+          </ButtonLink>
           <ButtonLink href="/inventory/received/release" variant="outline">
             <ArrowRightFromLine className="size-4" />
             Release Item

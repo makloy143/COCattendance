@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/button-link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,6 +19,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DepartmentSelect } from "@/components/department-select";
 import {
+  DEPARTMENTS,
   formatItemDescription,
   getCurrentTimeString,
   getItemCategoryLabel,
@@ -40,12 +42,12 @@ type AvailableItem = {
 const emptyValues: BorrowRecordFormValues = {
   receivedItemId: "",
   borrowerName: "",
-  department: "",
+  department: DEPARTMENTS[0],
   quantityBorrowed: 1,
   dateBorrowed: format(new Date(), "yyyy-MM-dd"),
   timeBorrowed: getCurrentTimeString(),
   dueDate: "",
-  signatureConfirmed: false,
+  signatureConfirmed: true,
   notes: "",
 };
 
@@ -59,12 +61,21 @@ export function ItemReleaseForm() {
   useEffect(() => {
     async function loadItems() {
       setItemsLoading(true);
-      const response = await fetch(
-        "/api/inventory/received?availableOnly=true&itemType=CONSUMABLE"
-      );
-      const data = await response.json();
-      setAvailableItems(data);
-      setItemsLoading(false);
+      try {
+        const response = await fetch(
+          "/api/inventory/received?availableOnly=true&itemType=CONSUMABLE"
+        );
+        const data = await response.json();
+        setAvailableItems(Array.isArray(data) ? data : []);
+        if (!response.ok) {
+          toast.error(data.error ?? "Failed to load items");
+        }
+      } catch {
+        setAvailableItems([]);
+        toast.error("Failed to load items");
+      } finally {
+        setItemsLoading(false);
+      }
     }
 
     loadItems();
@@ -87,8 +98,55 @@ export function ItemReleaseForm() {
     });
   }
 
+  const handleDepartmentChange = useCallback((department: string) => {
+    setValues((current) => ({ ...current, department }));
+  }, []);
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+
+    if (itemsLoading) {
+      toast.error("Items are still loading");
+      return;
+    }
+
+    if (availableItems.length === 0) {
+      toast.error("No items in stock. Log a received item first.");
+      return;
+    }
+
+    if (!values.receivedItemId) {
+      toast.error("Select the item to release");
+      return;
+    }
+
+    if (!values.borrowerName.trim()) {
+      toast.error("Used by is required");
+      return;
+    }
+
+    if (!values.department.trim()) {
+      toast.error("Department is required");
+      return;
+    }
+
+    if (values.quantityBorrowed < 1) {
+      toast.error("Quantity must be at least 1");
+      return;
+    }
+
+    if (
+      selectedItem &&
+      values.quantityBorrowed > selectedItem.availableQuantity
+    ) {
+      toast.error(
+        `Only ${selectedItem.availableQuantity} unit${
+          selectedItem.availableQuantity === 1 ? "" : "s"
+        } available`
+      );
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -97,6 +155,7 @@ export function ItemReleaseForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...values,
+          department: values.department.trim() || DEPARTMENTS[0],
           signatureConfirmed: true,
         }),
       });
@@ -107,8 +166,8 @@ export function ItemReleaseForm() {
         return;
       }
 
-      toast.success("Item released");
-      router.push("/inventory/received");
+      toast.success("Item released and logged");
+      router.push("/inventory/releases");
       router.refresh();
     } catch {
       toast.error("Failed to release item");
@@ -129,12 +188,17 @@ export function ItemReleaseForm() {
             {itemsLoading ? (
               <p className="text-sm text-muted-foreground">Loading items...</p>
             ) : availableItems.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No items in stock. Log a received item first.
-              </p>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  No items in stock. Log a received item first.
+                </p>
+                <ButtonLink href="/inventory/received/new" variant="outline" size="sm">
+                  Log received item
+                </ButtonLink>
+              </div>
             ) : (
               <Select
-                value={values.receivedItemId}
+                value={values.receivedItemId || null}
                 onValueChange={(value) => {
                   if (value) updateField("receivedItemId", value);
                 }}
@@ -171,7 +235,7 @@ export function ItemReleaseForm() {
             <DepartmentSelect
               id="department"
               value={values.department}
-              onValueChange={(v) => updateField("department", v)}
+              onValueChange={handleDepartmentChange}
             />
           </div>
 
@@ -231,11 +295,15 @@ export function ItemReleaseForm() {
       </Card>
 
       <div className="flex flex-col gap-2 sm:flex-row">
-        <Button
-          type="submit"
-          disabled={loading || itemsLoading || availableItems.length === 0}
-        >
+        <Button type="submit" disabled={loading || itemsLoading}>
           {loading ? "Saving..." : "Release item"}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => router.push("/inventory/releases")}
+        >
+          View release logs
         </Button>
         <Button
           type="button"

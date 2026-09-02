@@ -8,8 +8,8 @@ export default function ReleaseItemPage() {
           Release Item
         </h1>
         <p className="text-sm text-muted-foreground">
-          Record when a consumable item is used — available count on received
-          items will decrease
+          Record when a consumable item is used. Each release is saved to Release
+          Logs and decreases the available count.
         </p>
       </div>
       <ItemReleaseForm />

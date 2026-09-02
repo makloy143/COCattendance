@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import {
   Select,
   SelectContent,
@@ -22,11 +23,19 @@ export function DepartmentSelect({
   onValueChange,
   placeholder = "Select department",
 }: DepartmentSelectProps) {
+  const selected = value || DEPARTMENTS[0];
+
+  useEffect(() => {
+    if (!value) {
+      onValueChange(DEPARTMENTS[0]);
+    }
+  }, [value, onValueChange]);
+
   return (
     <Select
-      value={value || DEPARTMENTS[0]}
-      onValueChange={(v) => {
-        if (v) onValueChange(v);
+      value={selected}
+      onValueChange={(next) => {
+        if (next) onValueChange(next);
       }}
     >
       <SelectTrigger id={id} className="w-full">

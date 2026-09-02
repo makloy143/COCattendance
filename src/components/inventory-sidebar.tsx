@@ -6,6 +6,7 @@ import {
   ArrowLeftToLine,
   ArrowRightFromLine,
   BarChart3,
+  ClipboardList,
   IdCard,
   LayoutDashboard,
   LogOut,
@@ -44,6 +45,12 @@ const navItems = [
     label: "Release Item",
     icon: ArrowRightFromLine,
     match: ["/inventory/received/release"],
+  },
+  {
+    href: "/inventory/releases",
+    label: "Release Logs",
+    icon: ClipboardList,
+    match: ["/inventory/releases"],
   },
   {
     href: "/inventory/borrows/new",

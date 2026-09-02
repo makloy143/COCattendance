@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/button-link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,6 +19,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DepartmentSelect } from "@/components/department-select";
 import {
+  DEPARTMENTS,
   formatItemDescription,
   getCurrentTimeString,
   type ItemType,
@@ -39,7 +41,7 @@ type AvailableItem = {
 const emptyValues: BorrowRecordFormValues = {
   receivedItemId: "",
   borrowerName: "",
-  department: "",
+  department: DEPARTMENTS[0],
   quantityBorrowed: 1,
   dateBorrowed: format(new Date(), "yyyy-MM-dd"),
   timeBorrowed: getCurrentTimeString(),
@@ -58,12 +60,21 @@ export function BorrowItemForm() {
   useEffect(() => {
     async function loadItems() {
       setItemsLoading(true);
-      const response = await fetch(
-        "/api/inventory/received?availableOnly=true&itemType=EQUIPMENT"
-      );
-      const data = await response.json();
-      setAvailableItems(data);
-      setItemsLoading(false);
+      try {
+        const response = await fetch(
+          "/api/inventory/received?availableOnly=true&itemType=EQUIPMENT"
+        );
+        const data = await response.json();
+        setAvailableItems(Array.isArray(data) ? data : []);
+        if (!response.ok) {
+          toast.error(data.error ?? "Failed to load equipment");
+        }
+      } catch {
+        setAvailableItems([]);
+        toast.error("Failed to load equipment");
+      } finally {
+        setItemsLoading(false);
+      }
     }
 
     loadItems();
@@ -86,8 +97,37 @@ export function BorrowItemForm() {
     });
   }
 
+  const handleDepartmentChange = useCallback((department: string) => {
+    setValues((current) => ({ ...current, department }));
+  }, []);
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+
+    if (itemsLoading) {
+      toast.error("Equipment is still loading");
+      return;
+    }
+
+    if (availableItems.length === 0) {
+      toast.error("No equipment available. Log a received equipment item first.");
+      return;
+    }
+
+    if (!values.receivedItemId) {
+      toast.error("Select the equipment to borrow");
+      return;
+    }
+
+    if (!values.borrowerName.trim()) {
+      toast.error("Borrower name is required");
+      return;
+    }
+
+    if (!values.department.trim()) {
+      toast.error("Department is required");
+      return;
+    }
 
     if (!values.signatureConfirmed) {
       toast.error("Please confirm the borrow signature");
@@ -100,7 +140,11 @@ export function BorrowItemForm() {
       const response = await fetch("/api/inventory/borrows", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          ...values,
+          department: values.department.trim() || DEPARTMENTS[0],
+          quantityBorrowed: 1,
+        }),
       });
       const data = await response.json();
 
@@ -131,12 +175,19 @@ export function BorrowItemForm() {
             {itemsLoading ? (
               <p className="text-sm text-muted-foreground">Loading equipment...</p>
             ) : availableItems.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No equipment available to borrow. Log a received item first.
-              </p>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  No equipment available to borrow. Log a received item as
+                  Equipment first. Consumables should be recorded under Release
+                  Item.
+                </p>
+                <ButtonLink href="/inventory/received/new" variant="outline" size="sm">
+                  Log received equipment
+                </ButtonLink>
+              </div>
             ) : (
               <Select
-                value={values.receivedItemId}
+                value={values.receivedItemId || null}
                 onValueChange={(value) => {
                   if (value) updateField("receivedItemId", value);
                 }}
@@ -176,7 +227,7 @@ export function BorrowItemForm() {
             <DepartmentSelect
               id="department"
               value={values.department}
-              onValueChange={(v) => updateField("department", v)}
+              onValueChange={handleDepartmentChange}
             />
           </div>
 
@@ -232,6 +283,7 @@ export function BorrowItemForm() {
                 updateField("signatureConfirmed", e.target.checked)
               }
               className="mt-1 size-4 rounded border-input"
+              required
             />
             <Label htmlFor="signatureConfirmed" className="font-normal leading-snug">
               I confirm this borrow — borrower acknowledges receipt of the
@@ -242,10 +294,7 @@ export function BorrowItemForm() {
       </Card>
 
       <div className="flex flex-col gap-2 sm:flex-row">
-        <Button
-          type="submit"
-          disabled={loading || itemsLoading || availableItems.length === 0}
-        >
+        <Button type="submit" disabled={loading || itemsLoading}>
           {loading ? "Saving..." : "Create borrow record"}
         </Button>
         <Button

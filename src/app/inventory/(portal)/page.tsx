@@ -29,6 +29,7 @@ async function getInventoryDashboardData() {
     analytics,
     recentReceived,
     recentBorrows,
+    recentReleases,
     recentIdErrors,
   ] = await Promise.all([
     prisma.receivedItem.count(),
@@ -43,6 +44,22 @@ async function getInventoryDashboardData() {
     }),
     prisma.borrowRecord.findMany({
       where: { status: "ACTIVE", receivedItem: { itemType: "EQUIPMENT" } },
+      orderBy: [{ dateBorrowed: "desc" }, { createdAt: "desc" }],
+      take: 5,
+      include: {
+        receivedItem: {
+          select: {
+            itemName: true,
+            brand: true,
+            model: true,
+            color: true,
+            serialNumber: true,
+          },
+        },
+      },
+    }),
+    prisma.borrowRecord.findMany({
+      where: { receivedItem: { itemType: "CONSUMABLE" } },
       orderBy: [{ dateBorrowed: "desc" }, { createdAt: "desc" }],
       take: 5,
       include: {
@@ -76,6 +93,7 @@ async function getInventoryDashboardData() {
     restockRecommendations: analytics.restockRecommendations,
     recentReceived,
     recentBorrows,
+    recentReleases,
     recentIdErrors,
   };
 }
@@ -132,6 +150,7 @@ export default async function InventoryDashboardPage() {
   const quickActions = [
     { href: "/inventory/received/new", label: "Log Received Item" },
     { href: "/inventory/received/release", label: "Release Item" },
+    { href: "/inventory/releases", label: "Release Logs" },
     { href: "/inventory/borrows/new", label: "Borrow Item" },
     { href: "/inventory/returns", label: "Item Return" },
     { href: "/inventory/id-errors/new", label: "Log ID Error" },
@@ -180,7 +199,7 @@ export default async function InventoryDashboardPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Recent Received</CardTitle>
@@ -253,6 +272,45 @@ export default async function InventoryDashboardPage() {
                       </p>
                     </div>
                     <BorrowStatusBadge status={borrow.status} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Recent Releases</CardTitle>
+            <Link
+              href="/inventory/releases"
+              className="text-xs text-primary hover:underline"
+            >
+              View logs
+            </Link>
+          </CardHeader>
+          <CardContent>
+            {data.recentReleases.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No item releases logged yet.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {data.recentReleases.map((release) => (
+                  <div
+                    key={release.id}
+                    className="rounded-lg border border-l-4 border-l-cyan-500 p-3"
+                  >
+                    <p className="truncate font-medium">
+                      {formatItemDescription(release.receivedItem)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {release.borrowerName} · {release.department} · qty{" "}
+                      {release.quantityBorrowed}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {formatDateTime(release.dateBorrowed, release.timeBorrowed)}
+                    </p>
                   </div>
                 ))}
               </div>
