@@ -2,9 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { CalendarDays, List, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -52,6 +60,30 @@ type TodayStudent = {
 };
 
 type AttendanceView = "list" | "week";
+type StatusFilter = "all" | "present" | "in_only" | "complete";
+
+const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
+  { value: "all", label: "All students" },
+  { value: "present", label: "Present today" },
+  { value: "in_only", label: "Still in" },
+  { value: "complete", label: "Completed" },
+];
+
+function parseStatusFilter(value: string | null): StatusFilter {
+  if (value === "present" || value === "in_only" || value === "complete") {
+    return value;
+  }
+  return "all";
+}
+
+function matchesStatus(student: TodayStudent, status: StatusFilter) {
+  const timeIn = student.todayRecord?.timeIn;
+  const timeOut = student.todayRecord?.timeOut;
+  if (status === "present") return Boolean(timeIn);
+  if (status === "in_only") return Boolean(timeIn) && !timeOut;
+  if (status === "complete") return Boolean(timeIn) && Boolean(timeOut);
+  return true;
+}
 
 function DutyHoursLabel({ stats }: { stats: StudentStats }) {
   return (
@@ -65,11 +97,17 @@ function DutyHoursLabel({ stats }: { stats: StudentStats }) {
 }
 
 export default function AttendancePage() {
+  const searchParams = useSearchParams();
   const [students, setStudents] = useState<TodayStudent[]>([]);
   const [canReset, setCanReset] = useState(false);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<AttendanceView>("week");
+  const [view, setView] = useState<AttendanceView>(() =>
+    searchParams.get("view") === "list" ? "list" : "week"
+  );
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(() =>
+    parseStatusFilter(searchParams.get("status"))
+  );
 
   async function loadAttendance() {
     setLoading(true);
@@ -88,14 +126,16 @@ export default function AttendancePage() {
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return students;
-    return students.filter(
-      (student) =>
+    return students.filter((student) => {
+      if (!matchesStatus(student, statusFilter)) return false;
+      if (!query) return true;
+      return (
         student.firstName.toLowerCase().includes(query) ||
         student.lastName.toLowerCase().includes(query) ||
         student.studentId.toLowerCase().includes(query)
-    );
-  }, [students, search]);
+      );
+    });
+  }, [students, search, statusFilter]);
 
   return (
     <div className="space-y-6">
@@ -139,14 +179,33 @@ export default function AttendancePage() {
         <DutyWeekCalendar />
       ) : (
         <>
-          <div className="relative w-full max-w-md">
-            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search students..."
-              className="pl-9"
-            />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative w-full max-w-md">
+              <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search students..."
+                className="pl-9"
+              />
+            </div>
+            <Select
+              value={statusFilter}
+              onValueChange={(value) =>
+                setStatusFilter(parseStatusFilter(value ?? "all"))
+              }
+            >
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Filter status" />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {!loading && filtered.length === 0 ? (

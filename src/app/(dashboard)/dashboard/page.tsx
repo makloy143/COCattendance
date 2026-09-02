@@ -115,24 +115,28 @@ export default async function DashboardPage() {
       value: data.totalStudents,
       icon: Users,
       description: "Active registered students",
+      href: "/students",
     },
     {
       title: "Present Today",
       value: data.presentToday,
       icon: UserCheck,
       description: "Students who timed in",
+      href: "/attendance?view=list&status=present",
     },
     {
       title: "Still In",
       value: data.stillIn,
       icon: Clock,
       description: "Timed in, not yet out",
+      href: "/attendance?view=list&status=in_only",
     },
     {
       title: "Completed",
       value: data.completed,
       icon: CheckCircle2,
       description: "Full in and out today",
+      href: "/attendance?view=list&status=complete",
     },
   ];
 
@@ -153,18 +157,24 @@ export default async function DashboardPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat) => (
-          <Card key={stat.title}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {stat.title}
-              </CardTitle>
-              <stat.icon className="size-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground">{stat.description}</p>
-            </CardContent>
-          </Card>
+          <Link
+            key={stat.title}
+            href={stat.href}
+            className="rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Card className="h-full transition-colors hover:bg-muted/50">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {stat.title}
+                </CardTitle>
+                <stat.icon className="size-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{stat.value}</div>
+                <p className="text-xs text-muted-foreground">{stat.description}</p>
+              </CardContent>
+            </Card>
+          </Link>
         ))}
       </div>
 
