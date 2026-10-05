@@ -49,6 +49,82 @@ export const INK_MODEL_PRESETS: Record<InkColor, string[]> = {
   OTHER: ["MASKING TAPE", "OTHER SUPPLY"],
 };
 
+export type InventoryCatalogItem = {
+  id: string;
+  itemName: string;
+  itemType: ItemType;
+  category: ItemCategory;
+  inkColor: InkColor | null;
+  brand: string | null;
+  model: string | null;
+  color: string | null;
+  notes: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+};
+
+export const DEFAULT_INVENTORY_CATALOG_ITEMS: Array<{
+  itemName: string;
+  itemType: ItemType;
+  category: ItemCategory;
+  inkColor: InkColor | null;
+  brand: string | null;
+  model: string | null;
+  color: string | null;
+  notes: string | null;
+}> = [
+  ...Object.entries(INK_MODEL_PRESETS).flatMap(([inkColor, models]) =>
+    models.map((itemName) => ({
+      itemName,
+      itemType: "CONSUMABLE" as const,
+      category: (inkColor === "OTHER" && itemName !== "OTHER SUPPLY"
+        ? "GENERAL"
+        : "INK") as ItemCategory,
+      inkColor:
+        inkColor === "OTHER" && itemName !== "OTHER SUPPLY"
+          ? null
+          : (inkColor as InkColor),
+      brand: null,
+      model: itemName.includes(" ")
+        ? itemName.split(" ").slice(1).join(" ")
+        : null,
+      color: null,
+      notes: null,
+    }))
+  ),
+  {
+    itemName: "RJ45",
+    itemType: "CONSUMABLE",
+    category: "GENERAL",
+    inkColor: null,
+    brand: null,
+    model: null,
+    color: null,
+    notes: "Network connector",
+  },
+  {
+    itemName: "AP ARUBA",
+    itemType: "EQUIPMENT",
+    category: "GENERAL",
+    inkColor: null,
+    brand: "Aruba",
+    model: null,
+    color: null,
+    notes: "Access point",
+  },
+  {
+    itemName: "ID Ribbon",
+    itemType: "CONSUMABLE",
+    category: "ID_SUPPLIES",
+    inkColor: null,
+    brand: null,
+    model: null,
+    color: null,
+    notes: "ID printer ribbon",
+  },
+];
+
 export const DEPARTMENTS = [
   "IT- MAIN SCHOOL",
   "ITSD",

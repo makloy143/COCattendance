@@ -6,6 +6,7 @@ import { MONITORING_SYSTEM_CATALOG } from "../src/lib/monitoring-systems";
 import { DEFAULT_CHECK_TEMPLATES } from "../src/lib/checks-shared";
 import { DEFAULT_ATTENDANCE_DEPARTMENTS } from "../src/lib/departments";
 import { DEFAULT_STUDENT_ASSIGNMENTS } from "../src/lib/student-assignment";
+import { DEFAULT_INVENTORY_CATALOG_ITEMS } from "../src/lib/inventory";
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
@@ -99,6 +100,27 @@ async function main() {
   );
   console.log(
     "Seeded inventory admin (username: inventory, password: inventory123)"
+  );
+
+  for (const item of DEFAULT_INVENTORY_CATALOG_ITEMS) {
+    const existing = await prisma.inventoryCatalogItem.findFirst({
+      where: {
+        itemName: { equals: item.itemName, mode: "insensitive" },
+        category: item.category,
+        itemType: item.itemType,
+        inkColor: item.inkColor,
+        brand: item.brand,
+        model: item.model,
+      },
+    });
+
+    if (!existing) {
+      await prisma.inventoryCatalogItem.create({ data: item });
+    }
+  }
+
+  console.log(
+    `Seeded ${DEFAULT_INVENTORY_CATALOG_ITEMS.length} inventory catalog items`
   );
 
   const monitoringPasswordHash = await bcrypt.hash("monitoring123", 10);

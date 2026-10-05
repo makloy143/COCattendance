@@ -187,6 +187,50 @@ export const receivedItemSchema = z
 
 export type ReceivedItemFormValues = z.infer<typeof receivedItemSchema>;
 
+const inventoryCatalogItemFields = z.object({
+  itemName: z.string().min(1, "Item name is required").max(200),
+  itemType: z.enum(ITEM_TYPES, {
+    message: "Item type must be Consumable or Equipment",
+  }),
+  category: z.enum(ITEM_CATEGORIES, {
+    message: "Category is required",
+  }),
+  inkColor: z.enum(INK_COLORS).optional().or(z.literal("")),
+  brand: z.string().max(100).optional().or(z.literal("")),
+  model: z.string().max(100).optional().or(z.literal("")),
+  color: z.string().max(50).optional().or(z.literal("")),
+  notes: z.string().max(500).optional().or(z.literal("")),
+  isActive: z.boolean().optional(),
+});
+
+export const inventoryCatalogItemSchema = inventoryCatalogItemFields.superRefine(
+  (data, ctx) => {
+    if (data.category === "INK" && !data.inkColor) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Ink color is required for ink items",
+        path: ["inkColor"],
+      });
+    }
+  }
+);
+
+export const inventoryCatalogItemUpdateSchema = z.object({
+  itemName: z.string().min(1, "Item name is required").max(200).optional(),
+  itemType: z.enum(ITEM_TYPES).optional(),
+  category: z.enum(ITEM_CATEGORIES).optional(),
+  inkColor: z.enum(INK_COLORS).optional().or(z.literal("")),
+  brand: z.string().max(100).optional().or(z.literal("")),
+  model: z.string().max(100).optional().or(z.literal("")),
+  color: z.string().max(50).optional().or(z.literal("")),
+  notes: z.string().max(500).optional().or(z.literal("")),
+  isActive: z.boolean().optional(),
+});
+
+export type InventoryCatalogItemFormValues = z.infer<
+  typeof inventoryCatalogItemSchema
+>;
+
 export const borrowRecordSchema = z
   .object({
     receivedItemId: z.string().min(1, "Item is required"),

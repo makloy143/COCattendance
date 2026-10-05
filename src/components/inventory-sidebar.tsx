@@ -6,6 +6,7 @@ import {
   ArrowLeftToLine,
   ArrowRightFromLine,
   BarChart3,
+  Boxes,
   ClipboardList,
   IdCard,
   LayoutDashboard,
@@ -39,6 +40,7 @@ const navItems = [
     icon: BarChart3,
     match: ["/inventory/analytics"],
   },
+  { href: "/inventory/items", label: "Items", icon: Boxes },
   { href: "/inventory/received", label: "Item Received", icon: Package },
   {
     href: "/inventory/received/release",

@@ -148,6 +148,7 @@ export default async function InventoryDashboardPage() {
   ];
 
   const quickActions = [
+    { href: "/inventory/items", label: "Create Item" },
     { href: "/inventory/received/new", label: "Log Received Item" },
     { href: "/inventory/received/release", label: "Release Item" },
     { href: "/inventory/releases", label: "Release Logs" },

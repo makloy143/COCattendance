@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DepartmentSelect } from "@/components/department-select";
+import { ButtonLink } from "@/components/button-link";
 import {
   ITEM_TYPES,
   ITEM_TYPE_LABELS,
@@ -25,6 +26,8 @@ import {
   INK_COLORS,
   INK_COLOR_LABELS,
   INK_MODEL_PRESETS,
+  formatItemDescription,
+  type InventoryCatalogItem,
   type ItemCategory,
   type InkColor,
 } from "@/lib/inventory";
@@ -61,6 +64,33 @@ export function ReceivedItemForm({
     category: defaultCategory,
     itemType: defaultCategory === "INK" ? "CONSUMABLE" : "CONSUMABLE",
   });
+  const [catalogItems, setCatalogItems] = useState<InventoryCatalogItem[]>([]);
+  const [selectedCatalogId, setSelectedCatalogId] = useState("");
+
+  useEffect(() => {
+    async function loadCatalog() {
+      const response = await fetch("/api/inventory/items");
+      const data = await response.json();
+      if (response.ok) {
+        setCatalogItems(data);
+      }
+    }
+    void loadCatalog();
+  }, []);
+
+  function applyCatalogItem(item: InventoryCatalogItem) {
+    setSelectedCatalogId(item.id);
+    setValues((current) => ({
+      ...current,
+      itemName: item.itemName,
+      itemType: item.itemType,
+      category: item.category,
+      inkColor: item.inkColor ?? "",
+      brand: item.brand ?? "",
+      model: item.model ?? "",
+      color: item.color ?? "",
+    }));
+  }
 
   function updateField<K extends keyof ReceivedItemFormValues>(
     field: K,
@@ -122,6 +152,26 @@ export function ReceivedItemForm({
   const isEquipment = values.itemType === "EQUIPMENT";
   const isInk = values.category === "INK";
   const cancelHref = "/inventory/received";
+  const inkModelOptions = useMemo(() => {
+    const fromCatalog = catalogItems
+      .filter(
+        (item) =>
+          item.category === "INK" &&
+          item.inkColor === values.inkColor
+      )
+      .map((item) => item.itemName);
+    if (fromCatalog.length > 0) return fromCatalog;
+    if (values.inkColor) {
+      return INK_MODEL_PRESETS[values.inkColor as InkColor] ?? [];
+    }
+    return [];
+  }, [catalogItems, values.inkColor]);
+  const filteredCatalog = useMemo(() => {
+    if (defaultCategory === "INK") {
+      return catalogItems.filter((item) => item.category === "INK");
+    }
+    return catalogItems;
+  }, [catalogItems, defaultCategory]);
 
   return (
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
@@ -130,6 +180,41 @@ export function ReceivedItemForm({
           <CardTitle>Item details</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
+          {filteredCatalog.length > 0 ? (
+            <div className="space-y-2 sm:col-span-2">
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor="catalogItem">Catalog item</Label>
+                <ButtonLink
+                  href="/inventory/items"
+                  variant="link"
+                  size="sm"
+                  className="h-auto px-0"
+                >
+                  Manage items
+                </ButtonLink>
+              </div>
+              <Select
+                value={selectedCatalogId || undefined}
+                onValueChange={(value) => {
+                  const selected = filteredCatalog.find((item) => item.id === value);
+                  if (selected) applyCatalogItem(selected);
+                }}
+              >
+                <SelectTrigger id="catalogItem" className="w-full">
+                  <SelectValue placeholder="Choose an existing item (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredCatalog.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {formatItemDescription(item)} ·{" "}
+                      {ITEM_CATEGORY_LABELS[item.category]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
+
           <div className="space-y-2">
             <Label htmlFor="category">Category</Label>
             <Select
@@ -216,14 +301,25 @@ export function ReceivedItemForm({
               placeholder={isInk ? "e.g. BK 664" : "e.g. RJ45, AP ARUBA"}
               required
             />
-            {isInk && values.inkColor && (
+            {isInk && values.inkColor && inkModelOptions.length > 0 && (
               <div className="flex flex-wrap gap-1.5 pt-1">
-                {INK_MODEL_PRESETS[values.inkColor as InkColor]?.map((preset) => (
+                {inkModelOptions.map((preset) => (
                   <button
                     key={preset}
                     type="button"
                     className="rounded-md border px-2 py-0.5 text-xs hover:bg-muted"
-                    onClick={() => updateField("itemName", preset)}
+                    onClick={() => {
+                      const match = catalogItems.find(
+                        (item) =>
+                          item.itemName === preset &&
+                          item.inkColor === values.inkColor
+                      );
+                      if (match) {
+                        applyCatalogItem(match);
+                      } else {
+                        updateField("itemName", preset);
+                      }
+                    }}
                   >
                     {preset}
                   </button>

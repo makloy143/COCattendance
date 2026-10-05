@@ -238,6 +238,26 @@ model MaintenanceEvent {
   @@index([maintenanceId, createdAt])
 }
 
+model InventoryCatalogItem {
+  id        String       @id @default(cuid())
+  itemName  String
+  itemType  ItemType     @default(CONSUMABLE)
+  category  ItemCategory @default(GENERAL)
+  inkColor  InkColor?
+  brand     String?
+  model     String?
+  color     String?
+  notes     String?
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([category])
+  @@index([itemType])
+  @@index([isActive])
+  @@index([itemName])
+}
+
 model ReceivedItem {
   id                   String         @id @default(cuid())
   itemName             String
