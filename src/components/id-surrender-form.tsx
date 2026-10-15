@@ -49,7 +49,7 @@ export function IdSurrenderForm() {
         toast.error(data.error ?? "Failed to record withdrawal");
         return;
       }
-      toast.success("Withdrawal recorded. The ID and sling are back in stock.");
+      toast.success("Withdrawal recorded");
       setPersonName("");
       setCourse("");
       setYearLevel("");
@@ -71,7 +71,7 @@ export function IdSurrenderForm() {
         <h2 className="text-base font-semibold">Student withdrawal</h2>
         <p className="mt-1 text-sm text-slate-600">
           Record the student who withdrew and turned in an ID card and sling.
-          Returned cards and student slings go back into stock.
+          This saves the student information only and does not change stock.
         </p>
       </div>
       <IdStudentLookup

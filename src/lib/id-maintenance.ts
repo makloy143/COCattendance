@@ -286,19 +286,12 @@ export function calculateIdStock(input: {
   cardsReceived: number;
   cardsReleased: number;
   cardsWasted: number;
-  cardsSurrendered?: number;
   slingsReceived: number;
   slingsUsed: number;
-  slingsSurrendered?: number;
 }) {
   return {
-    cardsRemaining:
-      input.cardsReceived -
-      input.cardsReleased -
-      input.cardsWasted +
-      (input.cardsSurrendered ?? 0),
-    slingsRemaining:
-      input.slingsReceived - input.slingsUsed + (input.slingsSurrendered ?? 0),
+    cardsRemaining: input.cardsReceived - input.cardsReleased - input.cardsWasted,
+    slingsRemaining: input.slingsReceived - input.slingsUsed,
   };
 }
 
@@ -369,7 +362,6 @@ export type IdStockView = {
   cardsReceived: number;
   cardsReleased: number;
   cardsWasted: number;
-  cardsSurrendered: number;
   cardsRemaining: number;
   cardPackNote: string;
   slingPacks: number;
@@ -379,7 +371,6 @@ export type IdStockView = {
   slingPackNote: string;
   studentSlingsReceived: number;
   studentSlingsUsed: number;
-  studentSlingsSurrendered: number;
   studentSlingsRemaining: number;
   employeeSlingsReceived: number;
   employeeSlingsUsed: number;

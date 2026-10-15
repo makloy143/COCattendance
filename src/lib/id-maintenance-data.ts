@@ -39,7 +39,7 @@ function periodFilter(period: IdPeriod) {
 }
 
 export async function getIdStockView(): Promise<IdStockView> {
-  const [settings, receipts, itemOptions, releaseGroups, wasteAgg, surrenderAgg] = await Promise.all([
+  const [settings, receipts, itemOptions, releaseGroups, wasteAgg] = await Promise.all([
     getIdMaintenanceSettings(),
     prisma.idStockReceipt.findMany({
       select: {
@@ -61,9 +61,6 @@ export async function getIdStockView(): Promise<IdStockView> {
     prisma.idBadPrintEntry.aggregate({
       where: { status: { not: "CANCELLED" } },
       _sum: { quantity: true },
-    }),
-    prisma.idSurrenderEntry.aggregate({
-      _sum: { idCardsReturned: true, slingsReturned: true },
     }),
   ]);
 
@@ -105,13 +102,9 @@ export async function getIdStockView(): Promise<IdStockView> {
     .filter((row) => row.slingKind === "EMPLOYEE")
     .reduce((sum, row) => sum + (row._sum.slingsUsed ?? 0), 0);
   const cardsWasted = wasteAgg._sum.quantity ?? 0;
-  const cardsSurrendered = surrenderAgg._sum.idCardsReturned ?? 0;
-  const studentSlingsSurrendered = surrenderAgg._sum.slingsReturned ?? 0;
-  const studentSlingsRemaining =
-    studentSlingsReceived - studentSlingsUsed + studentSlingsSurrendered;
+  const studentSlingsRemaining = studentSlingsReceived - studentSlingsUsed;
   const employeeSlingsRemaining = employeeSlingsReceived - employeeSlingsUsed;
-  const cardsRemaining =
-    cardsReceived - cardsReleased - cardsWasted + cardsSurrendered;
+  const cardsRemaining = cardsReceived - cardsReleased - cardsWasted;
   const slingsRemaining = studentSlingsRemaining + employeeSlingsRemaining;
   const cardItemName =
     itemOptions.find((option) => option.category === "ID_CARD" && option.active)?.name ??
@@ -145,7 +138,6 @@ export async function getIdStockView(): Promise<IdStockView> {
     cardsReceived,
     cardsReleased,
     cardsWasted,
-    cardsSurrendered,
     cardsRemaining,
     cardPackNote: buildCardPackNote(cardReceipts, settings.cardsPerBox, cardItemName),
     slingPacks: slingReceipts.reduce((sum, row) => sum + row.packsReceived, 0),
@@ -155,7 +147,6 @@ export async function getIdStockView(): Promise<IdStockView> {
     slingPackNote: buildSlingPackNote(slingReceipts, settings.slingsPerBundle),
     studentSlingsReceived,
     studentSlingsUsed,
-    studentSlingsSurrendered,
     studentSlingsRemaining,
     employeeSlingsReceived,
     employeeSlingsUsed,
@@ -509,19 +500,6 @@ export async function deleteIdSurrender(id: string) {
   if (!record) {
     throw new IdStockError("Withdrawal record was not found.");
   }
-
-  const stock = await getIdStockView();
-  if (stock.cardsRemaining - record.idCardsReturned < 0) {
-    throw new IdStockError(
-      "Those returned cards have already been used again, so this withdrawal cannot be removed."
-    );
-  }
-  if (stock.studentSlingsRemaining - record.slingsReturned < 0) {
-    throw new IdStockError(
-      "Those returned slings have already been used again, so this withdrawal cannot be removed."
-    );
-  }
-
   await prisma.idSurrenderEntry.delete({ where: { id } });
 }
 
@@ -724,8 +702,8 @@ export async function listIdHistory(period: IdPeriod): Promise<IdHistoryEvent[]>
       kind: "SURRENDER" as const,
       title: record.personName,
       detail: `${record.course}${record.yearLevel ? ` · ${record.yearLevel}` : ""} · ${record.idNumber} · ${record.reason} · received by ${record.receivedBy}`,
-      cards: record.idCardsReturned,
-      slings: record.slingsReturned,
+      cards: 0,
+      slings: 0,
       sort: record.surrenderDate.getTime(),
     })),
   ];

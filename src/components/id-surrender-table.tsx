@@ -64,7 +64,7 @@ export function IdSurrenderTable({
                   <TableCell>
                     <IdRemoveButton
                       endpoint={`/api/inventory/id/surrenders/${row.id}`}
-                      confirmMessage="Remove this withdrawal? The returned ID and sling will leave stock again."
+                      confirmMessage="Remove this withdrawal record?"
                     />
                   </TableCell>
                 ) : null}
