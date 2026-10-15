@@ -2,6 +2,11 @@ import { z } from "zod";
 import { normalizeScheduleSlots } from "@/lib/schedule";
 import { ITEM_TYPES, ITEM_CATEGORIES, INK_COLORS, ID_ERROR_STATUSES, ASSET_STATUSES } from "@/lib/inventory";
 import {
+  ID_BAD_PRINT_STATUSES,
+  ID_RELEASE_STATUSES,
+  ID_STOCK_ITEM_TYPES,
+} from "@/lib/id-maintenance";
+import {
   MAINTENANCE_PRIORITIES,
   MAINTENANCE_STATUSES,
 } from "@/lib/maintenance-shared";
@@ -497,3 +502,68 @@ export const adminAccountUpdateSchema = z
       });
     }
   });
+
+const idDateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Use a valid date");
+
+export const idStockReceiptSchema = z.object({
+  itemType: z.enum(ID_STOCK_ITEM_TYPES),
+  packsReceived: z.coerce
+    .number()
+    .int()
+    .min(1, "Enter at least 1 box or bundle")
+    .max(500),
+  receivedFrom: z.string().trim().min(1, "Received from is required").max(200),
+  dateReceived: idDateSchema,
+  notes: z.string().max(500).optional().or(z.literal("")),
+});
+
+export const idReleaseEntrySchema = z.object({
+  personName: z.string().trim().min(1, "Name is required").max(200),
+  course: z.string().trim().min(1, "Course is required").max(100),
+  idNumber: z.string().trim().min(1, "ID number is required").max(50),
+  transactionDate: idDateSchema,
+  status: z.enum(ID_RELEASE_STATUSES),
+  reason: z.string().trim().min(1, "Reason is required").max(200),
+  printedBy: z.string().trim().min(1, "Printed by is required").max(200),
+  idCardsUsed: z.coerce
+    .number()
+    .int()
+    .min(0, "ID cards used cannot be negative")
+    .max(100, "ID cards used cannot be more than 100 on one record"),
+  slingsUsed: z.coerce
+    .number()
+    .int()
+    .min(0, "Slings used cannot be negative")
+    .max(100, "Slings used cannot be more than 100 on one record"),
+  notes: z.string().max(500).optional().or(z.literal("")),
+  studentId: z.string().optional().or(z.literal("")),
+});
+
+export const idBadPrintSchema = z.object({
+  personName: z.string().trim().min(1, "Name is required").max(200),
+  course: z.string().trim().min(1, "Course is required").max(100),
+  idNumber: z.string().trim().min(1, "ID number is required").max(50),
+  datePrinted: idDateSchema,
+  status: z.enum(ID_BAD_PRINT_STATUSES).default("REPRINT"),
+  reason: z.string().trim().min(1, "Reason is required").max(200),
+  quantity: z.coerce
+    .number()
+    .int()
+    .min(1, "Enter the number of physical cards wasted")
+    .max(100, "Wasted quantity cannot be more than 100 on one record"),
+  notes: z.string().max(500).optional().or(z.literal("")),
+  studentId: z.string().optional().or(z.literal("")),
+});
+
+export const idBadPrintStatusSchema = z.object({
+  status: z.enum(ID_BAD_PRINT_STATUSES),
+});
+
+export const idMaintenanceSettingsSchema = z.object({
+  cardsPerBox: z.coerce.number().int().min(1).max(1000),
+  slingsPerBundle: z.coerce.number().int().min(1).max(1000),
+  lowIdCardThreshold: z.coerce.number().int().min(0).max(100000),
+  lowSlingThreshold: z.coerce.number().int().min(0).max(100000),
+});

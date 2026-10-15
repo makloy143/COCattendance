@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { InventoryDashboardSwitcher } from "@/components/inventory-dashboard-switcher";
+import { IdMaintenanceShell } from "@/components/id-maintenance-shell";
+import { isIdMaintenancePath } from "@/lib/id-maintenance";
 import {
   ArrowLeftToLine,
   ArrowRightFromLine,
@@ -106,6 +109,13 @@ export function InventorySidebar({ username }: { username?: string }) {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
+          <SidebarGroupContent>
+            <div className="px-2 pb-2">
+              <InventoryDashboardSwitcher />
+            </div>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
           <SidebarGroupLabel>Menu</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -159,6 +169,11 @@ export function InventoryShell({
   children: React.ReactNode;
   username?: string;
 }) {
+  const pathname = usePathname();
+  if (isIdMaintenancePath(pathname)) {
+    return <IdMaintenanceShell username={username}>{children}</IdMaintenanceShell>;
+  }
+
   return (
     <SidebarProvider>
       <InventorySidebar username={username} />

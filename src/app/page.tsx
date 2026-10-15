@@ -46,7 +46,7 @@ const portals = [
     href: "/inventory/login",
     title: "Inventory Dashboard",
     description:
-      "Manage received items and borrow records from COC Main inventory.",
+      "Track general stock, and open ID Maintenance for ID cards, slings, and bad printing.",
     icon: Package,
     iconClass: "bg-amber-600 text-white",
     cardClass: "hover:border-amber-500/50 hover:shadow-amber-500/10",

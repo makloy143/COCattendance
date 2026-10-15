@@ -7,6 +7,7 @@ import {
   IdCard,
   Package,
 } from "lucide-react";
+import { INVENTORY_DASHBOARDS } from "@/lib/id-maintenance";
 import { ButtonLink } from "@/components/button-link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RestockRecommendationsCard } from "@/components/inventory-analytics-cards";
@@ -20,6 +21,7 @@ import {
 } from "@/lib/inventory";
 import { getInventoryAnalyticsData } from "@/lib/inventory-analytics";
 import { BorrowStatusBadge } from "@/components/borrow-status-badge";
+import { cn } from "@/lib/utils";
 
 async function getInventoryDashboardData() {
   const [
@@ -164,8 +166,46 @@ export default async function InventoryDashboardPage() {
           Inventory Dashboard
         </h1>
         <p className="text-sm text-muted-foreground">
-          Overview of received items, borrows, and ID errors
+          Choose a dashboard. ID card and sling stock lives in ID Maintenance.
+          Ink can be added as its own dashboard later.
         </p>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-3">
+        {INVENTORY_DASHBOARDS.map((dashboard) => {
+          const current = dashboard.id === "general";
+          const body = (
+            <div
+              className={cn(
+                "h-full rounded-xl border p-4 transition-colors",
+                current && "border-primary bg-primary/5",
+                !dashboard.available && "bg-muted/40"
+              )}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-medium">{dashboard.label}</p>
+                {current ? (
+                  <span className="text-xs font-medium text-primary">Current</span>
+                ) : !dashboard.available ? (
+                  <span className="text-xs font-medium text-muted-foreground">Soon</span>
+                ) : (
+                  <span className="text-xs font-medium text-primary">Open</span>
+                )}
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">{dashboard.description}</p>
+            </div>
+          );
+
+          if (!dashboard.available || current) {
+            return <div key={dashboard.id}>{body}</div>;
+          }
+
+          return (
+            <Link key={dashboard.id} href={dashboard.href} className="block hover:opacity-90">
+              {body}
+            </Link>
+          );
+        })}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">

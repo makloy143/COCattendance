@@ -1,0 +1,262 @@
+import { APP_TIMEZONE, formatManilaDateInput, getManilaDayStart } from "@/lib/date-utils";
+
+export const ID_STOCK_ITEM_TYPES = ["ID_CARD_BOX", "SLING_BUNDLE"] as const;
+export type IdStockItemType = (typeof ID_STOCK_ITEM_TYPES)[number];
+
+export const ID_STOCK_ITEM_LABELS: Record<IdStockItemType, string> = {
+  ID_CARD_BOX: "ID Card Box",
+  SLING_BUNDLE: "Sling Bundle",
+};
+
+export const ID_RELEASE_STATUSES = ["NEW_ID", "REPRINT"] as const;
+export type IdReleaseStatus = (typeof ID_RELEASE_STATUSES)[number];
+
+export const ID_RELEASE_STATUS_LABELS: Record<IdReleaseStatus, string> = {
+  NEW_ID: "NEW ID",
+  REPRINT: "REPRINT",
+};
+
+export const ID_BAD_PRINT_STATUSES = ["REPRINT", "RESOLVED", "CANCELLED"] as const;
+export type IdBadPrintStatus = (typeof ID_BAD_PRINT_STATUSES)[number];
+
+export const ID_BAD_PRINT_STATUS_LABELS: Record<IdBadPrintStatus, string> = {
+  REPRINT: "REPRINT",
+  RESOLVED: "RESOLVED",
+  CANCELLED: "CANCELLED",
+};
+
+export const ID_RELEASE_REASON_PRESETS = [
+  "NEW ENROLLMENT",
+  "REPLACEMENT",
+  "BAD PRINTING",
+  "LOST ID",
+] as const;
+
+export const ID_BAD_PRINT_REASON_PRESETS = [
+  "INK NOT GOOD",
+  "BAD PRINTING INK",
+  "WRONG SPELLING",
+  "WRONG INFORMATION",
+  "INPUT WRONG COURSE",
+  "CHANGING COURSE",
+  "WRONG PRINT USER",
+  "WRONG WEARING OF UNIFORM",
+] as const;
+
+export const ID_PERIODS = ["month", "year", "all"] as const;
+export type IdPeriod = (typeof ID_PERIODS)[number];
+
+export const ID_PERIOD_LABELS: Record<IdPeriod, string> = {
+  month: "This Month",
+  year: "This Year",
+  all: "All Time",
+};
+
+export const INVENTORY_DASHBOARDS = [
+  {
+    id: "general",
+    label: "General Inventory",
+    href: "/inventory",
+    available: true,
+    description: "Received items, equipment borrows, and releases",
+  },
+  {
+    id: "id",
+    label: "ID Maintenance",
+    href: "/inventory/id",
+    available: true,
+    description: "ID card boxes, slings, bad printing, and ID releases",
+  },
+  {
+    id: "ink",
+    label: "Ink",
+    href: "/inventory/inks",
+    available: false,
+    description: "Ink dashboard can be added later",
+  },
+] as const;
+
+export type InventoryDashboardId = (typeof INVENTORY_DASHBOARDS)[number]["id"];
+
+export class IdStockError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "IdStockError";
+  }
+}
+
+export function parseIdPeriod(value: string | undefined | null): IdPeriod {
+  if (value === "year" || value === "all" || value === "month") return value;
+  return "month";
+}
+
+export function inventoryDashboardIdFromPath(pathname: string): "general" | "id" {
+  if (pathname === "/inventory/id" || pathname.startsWith("/inventory/id/")) {
+    return "id";
+  }
+  return "general";
+}
+
+export function isIdMaintenancePath(pathname: string) {
+  return inventoryDashboardIdFromPath(pathname) === "id";
+}
+
+export function getIdPeriodRange(
+  period: IdPeriod,
+  now = new Date()
+): { start: Date; end: Date } | null {
+  if (period === "all") return null;
+
+  const key = formatManilaDateInput(now);
+  const year = Number(key.slice(0, 4));
+  const month = Number(key.slice(5, 7));
+
+  if (period === "year") {
+    return {
+      start: getManilaDayStart(`${year}-01-01`),
+      end: getManilaDayEndOfYear(year),
+    };
+  }
+
+  const startKey = `${year}-${String(month).padStart(2, "0")}-01`;
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextYear = month === 12 ? year + 1 : year;
+  const nextKey = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
+
+  return {
+    start: getManilaDayStart(startKey),
+    end: new Date(getManilaDayStart(nextKey).getTime() - 1),
+  };
+}
+
+function getManilaDayEndOfYear(year: number) {
+  return new Date(getManilaDayStart(`${year + 1}-01-01`).getTime() - 1);
+}
+
+export function formatCount(value: number) {
+  return new Intl.NumberFormat("en-US").format(value);
+}
+
+export function formatIdDate(date: Date | string) {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: APP_TIMEZONE,
+    month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+  }).format(typeof date === "string" ? new Date(date) : date);
+}
+
+export function calculateIdStock(input: {
+  cardsReceived: number;
+  cardsReleased: number;
+  cardsWasted: number;
+  slingsReceived: number;
+  slingsUsed: number;
+}) {
+  return {
+    cardsRemaining: input.cardsReceived - input.cardsReleased - input.cardsWasted,
+    slingsRemaining: input.slingsReceived - input.slingsUsed,
+  };
+}
+
+export function wastesCardStock(status: IdBadPrintStatus) {
+  return status !== "CANCELLED";
+}
+
+type PackRow = {
+  packsReceived: number;
+  unitsPerPack: number;
+  unitsAdded: number;
+};
+
+export function buildCardPackNote(rows: PackRow[], cardsPerBox: number) {
+  const packs = rows.reduce((sum, row) => sum + row.packsReceived, 0);
+  const units = rows.reduce((sum, row) => sum + row.unitsAdded, 0);
+  if (packs === 0) {
+    return `Each box contains ${formatCount(cardsPerBox)} ID cards.`;
+  }
+  const rates = new Set(rows.map((row) => row.unitsPerPack));
+  if (rates.size === 1) {
+    const rate = rows[0]?.unitsPerPack ?? cardsPerBox;
+    return `${formatCount(packs)} boxes × ${formatCount(rate)} cards = ${formatCount(units)} cards received`;
+  }
+  return `${formatCount(units)} cards received from ${formatCount(packs)} boxes`;
+}
+
+export function buildSlingPackNote(rows: PackRow[], slingsPerBundle: number) {
+  const packs = rows.reduce((sum, row) => sum + row.packsReceived, 0);
+  const units = rows.reduce((sum, row) => sum + row.unitsAdded, 0);
+  if (packs === 0) {
+    return `Each bundle contains ${formatCount(slingsPerBundle)} slings. Each sling is counted individually.`;
+  }
+  const rates = new Set(rows.map((row) => row.unitsPerPack));
+  if (rates.size === 1) {
+    const rate = rows[0]?.unitsPerPack ?? slingsPerBundle;
+    return `${formatCount(packs)} bundles × ${formatCount(rate)} slings = ${formatCount(units)} slings received`;
+  }
+  return `${formatCount(units)} slings received from ${formatCount(packs)} bundles`;
+}
+
+export type IdStockView = {
+  cardsPerBox: number;
+  slingsPerBundle: number;
+  lowIdCardThreshold: number;
+  lowSlingThreshold: number;
+  cardPacks: number;
+  cardsReceived: number;
+  cardsReleased: number;
+  cardsWasted: number;
+  cardsRemaining: number;
+  cardPackNote: string;
+  slingPacks: number;
+  slingsReceived: number;
+  slingsUsed: number;
+  slingsRemaining: number;
+  slingPackNote: string;
+  lowCards: boolean;
+  lowSlings: boolean;
+};
+
+export type IdPeriodActivity = {
+  cardsReleased: number;
+  slingsUsed: number;
+  releaseCount: number;
+  cardsWasted: number;
+  badPrintCount: number;
+};
+
+export type IdBadPrintRow = {
+  id: string;
+  personName: string;
+  course: string;
+  idNumber: string;
+  dateLabel: string;
+  status: IdBadPrintStatus;
+  reason: string;
+  quantity: number;
+};
+
+export type IdReleaseRow = {
+  id: string;
+  personName: string;
+  course: string;
+  idNumber: string;
+  dateLabel: string;
+  status: IdReleaseStatus;
+  reason: string;
+  printedBy: string;
+  idCardsUsed: number;
+  slingsUsed: number;
+};
+
+export type IdHistoryKind = "RECEIPT" | "RELEASE" | "BAD_PRINT";
+
+export type IdHistoryEvent = {
+  id: string;
+  dateLabel: string;
+  kind: IdHistoryKind;
+  title: string;
+  detail: string;
+  cards: number;
+  slings: number;
+};

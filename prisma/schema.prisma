@@ -80,10 +80,12 @@ model Student {
   faceDescriptor Json?
   isActive       Boolean               @default(true)
   createdAt      DateTime              @default(now())
-  attendance     AttendanceRecord[]
-  scheduleSlots  StudentScheduleSlot[]
-  idErrors       IdErrorRecord[]
-  photo          StudentPhoto?
+  attendance        AttendanceRecord[]
+  scheduleSlots     StudentScheduleSlot[]
+  idErrors          IdErrorRecord[]
+  idReleaseEntries  IdReleaseEntry[]
+  idBadPrintEntries IdBadPrintEntry[]
+  photo             StudentPhoto?
 
   @@unique([department, studentId])
 }
@@ -312,6 +314,87 @@ model IdErrorRecord {
   studentId        String?
   student          Student?      @relation(fields: [studentId], references: [id], onDelete: SetNull)
   createdAt        DateTime      @default(now())
+}
+
+enum IdStockItemType {
+  ID_CARD_BOX
+  SLING_BUNDLE
+}
+
+enum IdReleaseStatus {
+  NEW_ID
+  REPRINT
+}
+
+enum IdBadPrintStatus {
+  REPRINT
+  RESOLVED
+  CANCELLED
+}
+
+model IdMaintenanceSettings {
+  id                 String   @id @default("default")
+  cardsPerBox        Int      @default(100)
+  slingsPerBundle    Int      @default(100)
+  lowIdCardThreshold Int      @default(300)
+  lowSlingThreshold  Int      @default(100)
+  updatedAt          DateTime @updatedAt
+}
+
+model IdStockReceipt {
+  id            String          @id @default(cuid())
+  itemType      IdStockItemType
+  packsReceived Int
+  unitsPerPack  Int
+  unitsAdded    Int
+  receivedFrom  String          @default("Main COC")
+  dateReceived  DateTime
+  notes         String?
+  recordedBy    String?
+  createdAt     DateTime        @default(now())
+
+  @@index([itemType])
+  @@index([dateReceived])
+}
+
+model IdReleaseEntry {
+  id              String          @id @default(cuid())
+  personName      String
+  course          String
+  idNumber        String
+  transactionDate DateTime
+  status          IdReleaseStatus
+  reason          String
+  printedBy       String
+  idCardsUsed     Int             @default(0)
+  slingsUsed      Int             @default(0)
+  notes           String?
+  studentId       String?
+  student         Student?        @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  createdAt       DateTime        @default(now())
+
+  @@index([transactionDate])
+  @@index([status])
+  @@index([studentId])
+}
+
+model IdBadPrintEntry {
+  id          String           @id @default(cuid())
+  personName  String
+  course      String
+  idNumber    String
+  datePrinted DateTime
+  status      IdBadPrintStatus @default(REPRINT)
+  reason      String
+  quantity    Int              @default(1)
+  notes       String?
+  studentId   String?
+  student     Student?         @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  createdAt   DateTime         @default(now())
+
+  @@index([datePrinted])
+  @@index([status])
+  @@index([studentId])
 }
 
 enum MonitoringCategory {
