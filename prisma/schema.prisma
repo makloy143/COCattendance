@@ -428,6 +428,7 @@ model IdSurrenderEntry {
   yearLevel       String?
   idNumber        String
   surrenderDate   DateTime
+  reason          String
   idCardsReturned Int       @default(1)
   slingsReturned  Int       @default(1)
   receivedBy      String

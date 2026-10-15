@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatManilaDateInput } from "@/lib/date-utils";
+import { ID_WITHDRAWAL_REASON_PRESETS } from "@/lib/id-maintenance";
 
 export function IdSurrenderForm() {
   const router = useRouter();
@@ -18,6 +19,7 @@ export function IdSurrenderForm() {
   const [idNumber, setIdNumber] = useState("");
   const [studentId, setStudentId] = useState("");
   const [surrenderDate, setSurrenderDate] = useState(() => formatManilaDateInput(new Date()));
+  const [reason, setReason] = useState("");
   const [idCardsReturned, setIdCardsReturned] = useState("1");
   const [slingsReturned, setSlingsReturned] = useState("1");
   const [receivedBy, setReceivedBy] = useState("");
@@ -35,6 +37,7 @@ export function IdSurrenderForm() {
           yearLevel,
           idNumber,
           surrenderDate,
+          reason,
           idCardsReturned,
           slingsReturned,
           receivedBy,
@@ -52,6 +55,7 @@ export function IdSurrenderForm() {
       setYearLevel("");
       setIdNumber("");
       setStudentId("");
+      setReason("");
       setReceivedBy("");
       router.refresh();
     } catch {
@@ -99,6 +103,22 @@ export function IdSurrenderForm() {
         <div className="space-y-1.5">
           <Label htmlFor="surrenderDate">Date surrendered</Label>
           <Input id="surrenderDate" type="date" value={surrenderDate} onChange={(event) => setSurrenderDate(event.target.value)} required />
+        </div>
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor="surrenderReason">Reason for withdrawal</Label>
+          <Input
+            id="surrenderReason"
+            list="withdrawal-reasons"
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            placeholder="TRANSFERRED"
+            required
+          />
+          <datalist id="withdrawal-reasons">
+            {ID_WITHDRAWAL_REASON_PRESETS.map((preset) => (
+              <option key={preset} value={preset} />
+            ))}
+          </datalist>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="receivedBy">Received by</Label>

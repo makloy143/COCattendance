@@ -476,6 +476,7 @@ export async function createIdSurrender(input: {
   yearLevel?: string | null;
   idNumber: string;
   surrenderDate: string;
+  reason: string;
   idCardsReturned: number;
   slingsReturned: number;
   receivedBy: string;
@@ -493,6 +494,7 @@ export async function createIdSurrender(input: {
       yearLevel: input.yearLevel?.trim() || null,
       idNumber: input.idNumber.trim(),
       surrenderDate: getManilaDayStart(input.surrenderDate),
+      reason: input.reason.trim(),
       idCardsReturned: input.idCardsReturned,
       slingsReturned: input.slingsReturned,
       receivedBy: input.receivedBy.trim(),
@@ -721,7 +723,7 @@ export async function listIdHistory(period: IdPeriod): Promise<IdHistoryEvent[]>
       dateLabel: formatIdDate(record.surrenderDate),
       kind: "SURRENDER" as const,
       title: record.personName,
-      detail: `${record.course}${record.yearLevel ? ` · ${record.yearLevel}` : ""} · ${record.idNumber} · withdrew, received by ${record.receivedBy}`,
+      detail: `${record.course}${record.yearLevel ? ` · ${record.yearLevel}` : ""} · ${record.idNumber} · ${record.reason} · received by ${record.receivedBy}`,
       cards: record.idCardsReturned,
       slings: record.slingsReturned,
       sort: record.surrenderDate.getTime(),

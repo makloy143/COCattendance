@@ -27,7 +27,7 @@ export function IdSurrenderTable({
       <Table>
         <TableHeader className="bg-[#e7f5ee]">
           <TableRow className="hover:bg-transparent">
-            {["Name", "Course", "Year", "ID #", "Date", "ID returned", "Sling returned", "Received by"].map(
+            {["Name", "Course", "Year", "ID #", "Date", "Reason", "ID returned", "Sling returned", "Received by"].map(
               (heading) => (
                 <TableHead key={heading} className="text-xs font-semibold tracking-wide text-slate-800 uppercase">
                   {heading}
@@ -44,7 +44,7 @@ export function IdSurrenderTable({
         <TableBody>
           {rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={showActions ? 9 : 8} className="py-8 text-center text-sm text-slate-500">
+              <TableCell colSpan={showActions ? 10 : 9} className="py-8 text-center text-sm text-slate-500">
                 No withdrawals for this period.
               </TableCell>
             </TableRow>
@@ -56,6 +56,7 @@ export function IdSurrenderTable({
                 <TableCell>{row.yearLevel || "—"}</TableCell>
                 <TableCell className="tabular-nums">{row.idNumber}</TableCell>
                 <TableCell className="tabular-nums">{row.dateLabel}</TableCell>
+                <TableCell>{row.reason}</TableCell>
                 <TableCell className="tabular-nums">{row.idCardsReturned}</TableCell>
                 <TableCell className="tabular-nums">{row.slingsReturned}</TableCell>
                 <TableCell>{row.receivedBy}</TableCell>

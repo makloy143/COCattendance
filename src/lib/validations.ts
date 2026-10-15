@@ -581,6 +581,7 @@ export const idSurrenderSchema = z
     yearLevel: z.string().trim().max(50).optional().or(z.literal("")),
     idNumber: z.string().trim().min(1, "ID number is required").max(50),
     surrenderDate: idDateSchema,
+    reason: z.string().trim().min(1, "Reason is required").max(200),
     idCardsReturned: z.coerce
       .number()
       .int()

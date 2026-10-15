@@ -152,6 +152,15 @@ export const ID_BAD_PRINT_STATUS_LABELS: Record<IdBadPrintStatus, string> = {
   CANCELLED: "CANCELLED",
 };
 
+export const ID_WITHDRAWAL_REASON_PRESETS = [
+  "TRANSFERRED",
+  "FINANCIAL",
+  "PERSONAL",
+  "FAMILY REASON",
+  "HEALTH",
+  "STOPPED SCHOOLING",
+] as const;
+
 export const ID_RELEASE_REASON_PRESETS = [
   "NEW ENROLLMENT",
   "REPLACEMENT",
@@ -421,6 +430,7 @@ export type IdSurrenderRow = {
   yearLevel: string | null;
   idNumber: string;
   dateLabel: string;
+  reason: string;
   idCardsReturned: number;
   slingsReturned: number;
   receivedBy: string;

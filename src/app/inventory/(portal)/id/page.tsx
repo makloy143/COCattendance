@@ -72,6 +72,7 @@ export default async function IdMaintenanceDashboardPage({
     yearLevel: record.yearLevel,
     idNumber: record.idNumber,
     dateLabel: formatIdDate(record.surrenderDate),
+    reason: record.reason,
     idCardsReturned: record.idCardsReturned,
     slingsReturned: record.slingsReturned,
     receivedBy: record.receivedBy,
