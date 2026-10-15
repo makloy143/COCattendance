@@ -3,8 +3,10 @@ import { normalizeScheduleSlots } from "@/lib/schedule";
 import { ITEM_TYPES, ITEM_CATEGORIES, INK_COLORS, ID_ERROR_STATUSES, ASSET_STATUSES } from "@/lib/inventory";
 import {
   ID_BAD_PRINT_STATUSES,
+  ID_RECEIPT_ITEM_TYPES,
+  ID_RECEIPT_UNITS,
   ID_RELEASE_STATUSES,
-  ID_STOCK_ITEM_TYPES,
+  ID_SLING_KINDS,
 } from "@/lib/id-maintenance";
 import {
   MAINTENANCE_PRIORITIES,
@@ -508,11 +510,17 @@ const idDateSchema = z
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Use a valid date");
 
 export const idStockReceiptSchema = z.object({
-  itemType: z.enum(ID_STOCK_ITEM_TYPES),
+  itemType: z.enum(ID_RECEIPT_ITEM_TYPES),
+  unit: z.enum(ID_RECEIPT_UNITS).optional(),
+  descriptionCode: z
+    .string()
+    .trim()
+    .min(1, "Description # is required")
+    .max(40, "Description # is too long"),
   packsReceived: z.coerce
     .number()
     .int()
-    .min(1, "Enter at least 1 box or bundle")
+    .min(1, "Enter at least 1")
     .max(500),
   receivedFrom: z.string().trim().min(1, "Received from is required").max(200),
   dateReceived: idDateSchema,
@@ -537,8 +545,17 @@ export const idReleaseEntrySchema = z.object({
     .int()
     .min(0, "Slings used cannot be negative")
     .max(100, "Slings used cannot be more than 100 on one record"),
+  slingKind: z.enum(ID_SLING_KINDS).optional().or(z.literal("")),
   notes: z.string().max(500).optional().or(z.literal("")),
   studentId: z.string().optional().or(z.literal("")),
+}).superRefine((data, ctx) => {
+  if (data.slingsUsed > 0 && !data.slingKind) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Choose student or employee sling",
+      path: ["slingKind"],
+    });
+  }
 });
 
 export const idBadPrintSchema = z.object({

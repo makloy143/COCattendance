@@ -5,14 +5,24 @@ import {
   buildCardPackNote,
   buildSlingPackNote,
   calculateIdStock,
+  formatDescriptionCode,
   formatIdDate,
+  formatStockItemTitle,
   getIdPeriodRange,
+  isIdCardItem,
+  isPrinterSupplyItem,
+  isSlingItem,
+  normalizeDescriptionCode,
+  slingKindForItem,
   wastesCardStock,
   type IdBadPrintStatus,
   type IdHistoryEvent,
   type IdPeriod,
   type IdPeriodActivity,
+  type IdReceiptItemType,
+  type IdReceiptUnit,
   type IdReleaseStatus,
+  type IdSlingKind,
   type IdStockItemType,
   type IdStockView,
 } from "@/lib/id-maintenance";
@@ -32,17 +42,19 @@ function periodFilter(period: IdPeriod) {
 }
 
 export async function getIdStockView(): Promise<IdStockView> {
-  const [settings, receipts, releaseAgg, wasteAgg] = await Promise.all([
+  const [settings, receipts, releaseGroups, wasteAgg] = await Promise.all([
     getIdMaintenanceSettings(),
     prisma.idStockReceipt.findMany({
       select: {
         itemType: true,
+        unit: true,
         packsReceived: true,
         unitsPerPack: true,
         unitsAdded: true,
       },
     }),
-    prisma.idReleaseEntry.aggregate({
+    prisma.idReleaseEntry.groupBy({
+      by: ["slingKind"],
       _sum: { idCardsUsed: true, slingsUsed: true },
     }),
     prisma.idBadPrintEntry.aggregate({
@@ -51,12 +63,38 @@ export async function getIdStockView(): Promise<IdStockView> {
     }),
   ]);
 
-  const cardReceipts = receipts.filter((row) => row.itemType === "ID_CARD_BOX");
-  const slingReceipts = receipts.filter((row) => row.itemType === "SLING_BUNDLE");
+  const cardReceipts = receipts.filter((row) => isIdCardItem(row.itemType));
+  const slingReceipts = receipts.filter((row) => isSlingItem(row.itemType));
+  const studentSlingReceipts = slingReceipts.filter(
+    (row) => slingKindForItem(row.itemType) === "STUDENT"
+  );
+  const employeeSlingReceipts = slingReceipts.filter(
+    (row) => slingKindForItem(row.itemType) === "EMPLOYEE"
+  );
   const cardsReceived = cardReceipts.reduce((sum, row) => sum + row.unitsAdded, 0);
   const slingsReceived = slingReceipts.reduce((sum, row) => sum + row.unitsAdded, 0);
-  const cardsReleased = releaseAgg._sum.idCardsUsed ?? 0;
-  const slingsUsed = releaseAgg._sum.slingsUsed ?? 0;
+  const studentSlingsReceived = studentSlingReceipts.reduce(
+    (sum, row) => sum + row.unitsAdded,
+    0
+  );
+  const employeeSlingsReceived = employeeSlingReceipts.reduce(
+    (sum, row) => sum + row.unitsAdded,
+    0
+  );
+  const cardsReleased = releaseGroups.reduce(
+    (sum, row) => sum + (row._sum.idCardsUsed ?? 0),
+    0
+  );
+  const slingsUsed = releaseGroups.reduce(
+    (sum, row) => sum + (row._sum.slingsUsed ?? 0),
+    0
+  );
+  const studentSlingsUsed = releaseGroups
+    .filter((row) => row.slingKind !== "EMPLOYEE")
+    .reduce((sum, row) => sum + (row._sum.slingsUsed ?? 0), 0);
+  const employeeSlingsUsed = releaseGroups
+    .filter((row) => row.slingKind === "EMPLOYEE")
+    .reduce((sum, row) => sum + (row._sum.slingsUsed ?? 0), 0);
   const cardsWasted = wasteAgg._sum.quantity ?? 0;
   const { cardsRemaining, slingsRemaining } = calculateIdStock({
     cardsReceived,
@@ -65,6 +103,12 @@ export async function getIdStockView(): Promise<IdStockView> {
     slingsReceived,
     slingsUsed,
   });
+  const colorRibbonPieces = receipts
+    .filter((row) => row.itemType === "XID_COLOR")
+    .reduce((sum, row) => sum + row.unitsAdded, 0);
+  const retransferFilmPieces = receipts
+    .filter((row) => row.itemType === "XID_RETRANSFER_FILM")
+    .reduce((sum, row) => sum + row.unitsAdded, 0);
 
   return {
     cardsPerBox: settings.cardsPerBox,
@@ -82,6 +126,14 @@ export async function getIdStockView(): Promise<IdStockView> {
     slingsUsed,
     slingsRemaining,
     slingPackNote: buildSlingPackNote(slingReceipts, settings.slingsPerBundle),
+    studentSlingsReceived,
+    studentSlingsUsed,
+    studentSlingsRemaining: studentSlingsReceived - studentSlingsUsed,
+    employeeSlingsReceived,
+    employeeSlingsUsed,
+    employeeSlingsRemaining: employeeSlingsReceived - employeeSlingsUsed,
+    colorRibbonPieces,
+    retransferFilmPieces,
     lowCards: cardReceipts.length > 0 && cardsRemaining <= settings.lowIdCardThreshold,
     lowSlings:
       slingReceipts.length > 0 && slingsRemaining <= settings.lowSlingThreshold,
@@ -133,9 +185,11 @@ export async function listIdBadPrints(period: IdPeriod) {
   });
 }
 
-export async function listIdReceipts(itemType?: IdStockItemType) {
+export async function listIdReceipts(itemType?: IdStockItemType | IdStockItemType[]) {
   return prisma.idStockReceipt.findMany({
-    where: itemType ? { itemType } : undefined,
+    where: itemType
+      ? { itemType: Array.isArray(itemType) ? { in: itemType } : itemType }
+      : undefined,
     orderBy: [{ dateReceived: "desc" }, { createdAt: "desc" }],
   });
 }
@@ -158,16 +212,37 @@ function assertCardsAvailable(remaining: number, requested: number) {
   }
 }
 
-function assertSlingsAvailable(remaining: number, requested: number) {
+function assertSlingsAvailable(remaining: number, requested: number, label: string) {
   if (requested > remaining) {
     throw new IdStockError(
-      `Not enough slings in stock. Remaining ${remaining}, requested ${requested}. Receive stock before recording this sling use.`
+      `Not enough ${label} in stock. Remaining ${remaining}, requested ${requested}. Receive stock before recording this sling use.`
     );
   }
 }
 
+function receiptUnits(input: {
+  itemType: IdReceiptItemType;
+  unit?: IdReceiptUnit;
+  cardsPerBox: number;
+  slingsPerBundle: number;
+}) {
+  if (isIdCardItem(input.itemType)) {
+    const unit = input.unit === "PIECE" ? "PIECE" : "BOX";
+    return {
+      unit,
+      unitsPerPack: unit === "PIECE" ? 1 : input.cardsPerBox,
+    } as const;
+  }
+  if (isPrinterSupplyItem(input.itemType)) {
+    return { unit: "PIECE" as const, unitsPerPack: 1 };
+  }
+  return { unit: "BOX" as const, unitsPerPack: input.slingsPerBundle };
+}
+
 export async function createIdStockReceipt(input: {
-  itemType: IdStockItemType;
+  itemType: IdReceiptItemType;
+  unit?: IdReceiptUnit;
+  descriptionCode: string;
   packsReceived: number;
   receivedFrom: string;
   dateReceived: string;
@@ -175,12 +250,18 @@ export async function createIdStockReceipt(input: {
   recordedBy?: string | null;
 }) {
   const settings = await getIdMaintenanceSettings();
-  const unitsPerPack =
-    input.itemType === "ID_CARD_BOX" ? settings.cardsPerBox : settings.slingsPerBundle;
+  const { unit, unitsPerPack } = receiptUnits({
+    itemType: input.itemType,
+    unit: input.unit,
+    cardsPerBox: settings.cardsPerBox,
+    slingsPerBundle: settings.slingsPerBundle,
+  });
 
   return prisma.idStockReceipt.create({
     data: {
       itemType: input.itemType,
+      unit,
+      descriptionCode: normalizeDescriptionCode(input.descriptionCode),
       packsReceived: input.packsReceived,
       unitsPerPack,
       unitsAdded: input.packsReceived * unitsPerPack,
@@ -199,16 +280,22 @@ export async function deleteIdStockReceipt(id: string) {
   }
 
   const stock = await getIdStockView();
-  if (receipt.itemType === "ID_CARD_BOX") {
+  if (isIdCardItem(receipt.itemType)) {
     if (stock.cardsRemaining - receipt.unitsAdded < 0) {
       throw new IdStockError(
         "These cards have already been released or wasted, so this receipt cannot be removed."
       );
     }
-  } else if (stock.slingsRemaining - receipt.unitsAdded < 0) {
-    throw new IdStockError(
-      "These slings have already been used, so this receipt cannot be removed."
-    );
+  } else if (isSlingItem(receipt.itemType)) {
+    const remaining =
+      slingKindForItem(receipt.itemType) === "EMPLOYEE"
+        ? stock.employeeSlingsRemaining
+        : stock.studentSlingsRemaining;
+    if (remaining - receipt.unitsAdded < 0) {
+      throw new IdStockError(
+        "These slings have already been used, so this receipt cannot be removed."
+      );
+    }
   }
 
   await prisma.idStockReceipt.delete({ where: { id } });
@@ -224,12 +311,30 @@ export async function createIdReleaseEntry(input: {
   printedBy: string;
   idCardsUsed: number;
   slingsUsed: number;
+  slingKind?: IdSlingKind | "" | null;
   notes?: string | null;
   studentId?: string | null;
 }) {
   const stock = await getIdStockView();
   assertCardsAvailable(stock.cardsRemaining, input.idCardsUsed);
-  assertSlingsAvailable(stock.slingsRemaining, input.slingsUsed);
+  const slingKind =
+    input.slingKind === "STUDENT" || input.slingKind === "EMPLOYEE"
+      ? input.slingKind
+      : null;
+  if (input.slingsUsed > 0) {
+    if (!slingKind) {
+      throw new IdStockError("Choose student or employee sling.");
+    }
+    const remaining =
+      slingKind === "EMPLOYEE"
+        ? stock.employeeSlingsRemaining
+        : stock.studentSlingsRemaining;
+    assertSlingsAvailable(
+      remaining,
+      input.slingsUsed,
+      slingKind === "EMPLOYEE" ? "employee slings" : "student slings"
+    );
+  }
 
   return prisma.idReleaseEntry.create({
     data: {
@@ -242,6 +347,7 @@ export async function createIdReleaseEntry(input: {
       printedBy: input.printedBy.trim(),
       idCardsUsed: input.idCardsUsed,
       slingsUsed: input.slingsUsed,
+      slingKind: input.slingsUsed > 0 ? slingKind : null,
       notes: input.notes?.trim() || null,
       studentId: await resolveStudentId(input.studentId),
     },
@@ -352,11 +458,14 @@ export async function listIdHistory(period: IdPeriod): Promise<IdHistoryEvent[]>
       id: `receipt-${receipt.id}`,
       dateLabel: formatIdDate(receipt.dateReceived),
       kind: "RECEIPT" as const,
-      title:
-        receipt.itemType === "ID_CARD_BOX" ? "ID card boxes received" : "Sling bundles received",
-      detail: `${receipt.packsReceived} × ${receipt.unitsPerPack} from ${receipt.receivedFrom}`,
-      cards: receipt.itemType === "ID_CARD_BOX" ? receipt.unitsAdded : 0,
-      slings: receipt.itemType === "SLING_BUNDLE" ? receipt.unitsAdded : 0,
+      title: `${formatStockItemTitle(receipt.itemType, receipt.descriptionCode)} received`,
+      detail: `${receipt.packsReceived} × ${receipt.unitsPerPack} from ${receipt.receivedFrom}${
+        formatDescriptionCode(receipt.descriptionCode)
+          ? ` · ${formatDescriptionCode(receipt.descriptionCode)}`
+          : ""
+      }`,
+      cards: isIdCardItem(receipt.itemType) ? receipt.unitsAdded : 0,
+      slings: isSlingItem(receipt.itemType) ? receipt.unitsAdded : 0,
       sort: receipt.dateReceived.getTime(),
     })),
     ...releases.map((release) => ({
@@ -364,7 +473,11 @@ export async function listIdHistory(period: IdPeriod): Promise<IdHistoryEvent[]>
       dateLabel: formatIdDate(release.transactionDate),
       kind: "RELEASE" as const,
       title: release.personName,
-      detail: `${release.course} · ${release.idNumber} · ${release.reason} · printed by ${release.printedBy}`,
+      detail: `${release.course} · ${release.idNumber} · ${release.reason} · printed by ${release.printedBy}${
+        release.slingsUsed > 0
+          ? ` · ${release.slingKind === "EMPLOYEE" ? "employee" : "student"} sling`
+          : ""
+      }`,
       cards: -release.idCardsUsed,
       slings: -release.slingsUsed,
       sort: release.transactionDate.getTime(),

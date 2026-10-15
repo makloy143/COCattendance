@@ -19,7 +19,10 @@ import {
   ID_RELEASE_REASON_PRESETS,
   ID_RELEASE_STATUSES,
   ID_RELEASE_STATUS_LABELS,
+  ID_SLING_KIND_LABELS,
+  ID_SLING_KINDS,
   type IdReleaseStatus,
+  type IdSlingKind,
 } from "@/lib/id-maintenance";
 
 export function IdReleaseForm() {
@@ -37,6 +40,7 @@ export function IdReleaseForm() {
   const [printedBy, setPrintedBy] = useState("");
   const [idCardsUsed, setIdCardsUsed] = useState("1");
   const [slingsUsed, setSlingsUsed] = useState("1");
+  const [slingKind, setSlingKind] = useState<IdSlingKind>("STUDENT");
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -55,6 +59,7 @@ export function IdReleaseForm() {
           printedBy,
           idCardsUsed,
           slingsUsed,
+          slingKind: Number(slingsUsed) > 0 ? slingKind : "",
           studentId,
         }),
       });
@@ -152,6 +157,26 @@ export function IdReleaseForm() {
         <div className="space-y-1.5">
           <Label htmlFor="slingsUsed">Slings used</Label>
           <Input id="slingsUsed" inputMode="numeric" value={slingsUsed} onChange={(event) => setSlingsUsed(event.target.value)} required />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="slingKind">Sling for</Label>
+          <Select
+            value={slingKind}
+            onValueChange={(value) => {
+              if (value === "STUDENT" || value === "EMPLOYEE") setSlingKind(value);
+            }}
+          >
+            <SelectTrigger id="slingKind" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ID_SLING_KINDS.map((value) => (
+                <SelectItem key={value} value={value}>
+                  {ID_SLING_KIND_LABELS[value]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
       <Button type="submit" disabled={loading} className="bg-[#0e6b43] text-white hover:bg-[#0c5b39]">

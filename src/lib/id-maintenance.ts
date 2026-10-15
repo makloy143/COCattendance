@@ -1,12 +1,90 @@
 import { APP_TIMEZONE, formatManilaDateInput, getManilaDayStart } from "@/lib/date-utils";
 
-export const ID_STOCK_ITEM_TYPES = ["ID_CARD_BOX", "SLING_BUNDLE"] as const;
+export const ID_STOCK_ITEM_TYPES = [
+  "ID_CARD",
+  "ID_CARD_BOX",
+  "SLING_STUDENT",
+  "SLING_EMPLOYEE",
+  "SLING_BUNDLE",
+  "XID_COLOR",
+  "XID_RETRANSFER_FILM",
+] as const;
 export type IdStockItemType = (typeof ID_STOCK_ITEM_TYPES)[number];
 
+export const ID_RECEIPT_ITEM_TYPES = [
+  "ID_CARD",
+  "SLING_STUDENT",
+  "SLING_EMPLOYEE",
+  "XID_COLOR",
+  "XID_RETRANSFER_FILM",
+] as const;
+export type IdReceiptItemType = (typeof ID_RECEIPT_ITEM_TYPES)[number];
+
 export const ID_STOCK_ITEM_LABELS: Record<IdStockItemType, string> = {
-  ID_CARD_BOX: "ID Card Box",
-  SLING_BUNDLE: "Sling Bundle",
+  ID_CARD: "PLAIN WHITE PVC CARD",
+  ID_CARD_BOX: "PLAIN WHITE PVC CARD",
+  SLING_STUDENT: "Sling for Student",
+  SLING_EMPLOYEE: "Sling for Employee",
+  SLING_BUNDLE: "Sling for Student",
+  XID_COLOR: "XID PRINTER (COLOR) Y,M,C,K",
+  XID_RETRANSFER_FILM: "XID PRINTER RETRANSFER FILM",
 };
+
+export const ID_RECEIPT_UNITS = ["BOX", "PIECE"] as const;
+export type IdReceiptUnit = (typeof ID_RECEIPT_UNITS)[number];
+
+export const ID_RECEIPT_UNIT_LABELS: Record<IdReceiptUnit, string> = {
+  BOX: "Box",
+  PIECE: "Piece",
+};
+
+export const ID_SLING_KINDS = ["STUDENT", "EMPLOYEE"] as const;
+export type IdSlingKind = (typeof ID_SLING_KINDS)[number];
+
+export const ID_SLING_KIND_LABELS: Record<IdSlingKind, string> = {
+  STUDENT: "Student",
+  EMPLOYEE: "Employee",
+};
+
+export function isIdCardItem(itemType: IdStockItemType) {
+  return itemType === "ID_CARD" || itemType === "ID_CARD_BOX";
+}
+
+export function isSlingItem(itemType: IdStockItemType) {
+  return (
+    itemType === "SLING_STUDENT" ||
+    itemType === "SLING_EMPLOYEE" ||
+    itemType === "SLING_BUNDLE"
+  );
+}
+
+export function isPrinterSupplyItem(itemType: IdStockItemType) {
+  return itemType === "XID_COLOR" || itemType === "XID_RETRANSFER_FILM";
+}
+
+export function slingKindForItem(itemType: IdStockItemType): IdSlingKind | null {
+  if (itemType === "SLING_EMPLOYEE") return "EMPLOYEE";
+  if (isSlingItem(itemType)) return "STUDENT";
+  return null;
+}
+
+export function normalizeDescriptionCode(value: string) {
+  return value.trim().replace(/^#+/, "");
+}
+
+export function formatDescriptionCode(value: string | null | undefined) {
+  const code = value?.trim().replace(/^#+/, "") ?? "";
+  return code ? `#${code}` : "";
+}
+
+export function formatStockItemTitle(
+  itemType: IdStockItemType,
+  descriptionCode?: string | null
+) {
+  const mark = formatDescriptionCode(descriptionCode);
+  const label = ID_STOCK_ITEM_LABELS[itemType];
+  return mark ? `${label} ${mark}` : label;
+}
 
 export const ID_RELEASE_STATUSES = ["NEW_ID", "REPRINT"] as const;
 export type IdReleaseStatus = (typeof ID_RELEASE_STATUSES)[number];
@@ -167,20 +245,36 @@ type PackRow = {
   packsReceived: number;
   unitsPerPack: number;
   unitsAdded: number;
+  unit?: IdReceiptUnit;
 };
 
 export function buildCardPackNote(rows: PackRow[], cardsPerBox: number) {
-  const packs = rows.reduce((sum, row) => sum + row.packsReceived, 0);
-  const units = rows.reduce((sum, row) => sum + row.unitsAdded, 0);
-  if (packs === 0) {
-    return `Each box contains ${formatCount(cardsPerBox)} ID cards.`;
+  const boxes = rows.filter((row) => row.unit !== "PIECE");
+  const pieces = rows.filter((row) => row.unit === "PIECE");
+  const boxPacks = boxes.reduce((sum, row) => sum + row.packsReceived, 0);
+  const boxUnits = boxes.reduce((sum, row) => sum + row.unitsAdded, 0);
+  const pieceUnits = pieces.reduce((sum, row) => sum + row.unitsAdded, 0);
+
+  if (boxPacks === 0 && pieceUnits === 0) {
+    return `PLAIN WHITE PVC CARD. Each box contains ${formatCount(cardsPerBox)} cards. A piece adds 1 card.`;
   }
-  const rates = new Set(rows.map((row) => row.unitsPerPack));
-  if (rates.size === 1) {
-    const rate = rows[0]?.unitsPerPack ?? cardsPerBox;
-    return `${formatCount(packs)} boxes × ${formatCount(rate)} cards = ${formatCount(units)} cards received`;
+
+  const parts: string[] = [];
+  if (boxPacks > 0) {
+    const rates = new Set(boxes.map((row) => row.unitsPerPack));
+    if (rates.size === 1) {
+      const rate = boxes[0]?.unitsPerPack ?? cardsPerBox;
+      parts.push(
+        `${formatCount(boxPacks)} boxes × ${formatCount(rate)} cards = ${formatCount(boxUnits)} cards`
+      );
+    } else {
+      parts.push(`${formatCount(boxUnits)} cards from boxes`);
+    }
   }
-  return `${formatCount(units)} cards received from ${formatCount(packs)} boxes`;
+  if (pieceUnits > 0) {
+    parts.push(`${formatCount(pieceUnits)} individual pieces`);
+  }
+  return parts.join(" · ");
 }
 
 export function buildSlingPackNote(rows: PackRow[], slingsPerBundle: number) {
@@ -213,6 +307,14 @@ export type IdStockView = {
   slingsUsed: number;
   slingsRemaining: number;
   slingPackNote: string;
+  studentSlingsReceived: number;
+  studentSlingsUsed: number;
+  studentSlingsRemaining: number;
+  employeeSlingsReceived: number;
+  employeeSlingsUsed: number;
+  employeeSlingsRemaining: number;
+  colorRibbonPieces: number;
+  retransferFilmPieces: number;
   lowCards: boolean;
   lowSlings: boolean;
 };
@@ -247,6 +349,7 @@ export type IdReleaseRow = {
   printedBy: string;
   idCardsUsed: number;
   slingsUsed: number;
+  slingKind: IdSlingKind | null;
 };
 
 export type IdHistoryKind = "RECEIPT" | "RELEASE" | "BAD_PRINT";

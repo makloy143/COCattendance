@@ -136,7 +136,7 @@ export function IdInventoryOverview({ stock }: { stock: IdStockView }) {
               <IdCard className="size-4" />
             </span>
             <div>
-              <p className="font-medium">ID Card Boxes</p>
+              <p className="font-medium">PLAIN WHITE PVC CARD</p>
               <p className="text-xs text-slate-500">{stock.cardPackNote}</p>
             </div>
           </div>
@@ -167,6 +167,43 @@ export function IdInventoryOverview({ stock }: { stock: IdStockView }) {
             <EquationFigure value={stock.slingsUsed} label="Used" tone="blue" />
             <span className="pb-4 text-xl text-slate-400">=</span>
             <EquationFigure value={stock.slingsRemaining} label="Remaining" tone="green" />
+          </div>
+          <div className="mt-4 grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
+            <p>
+              Student remaining{" "}
+              <strong className="tabular-nums">{formatCount(stock.studentSlingsRemaining)}</strong>
+              <span className="text-slate-500">
+                {" "}
+                ({formatCount(stock.studentSlingsReceived)} received −{" "}
+                {formatCount(stock.studentSlingsUsed)} used)
+              </span>
+            </p>
+            <p>
+              Employee remaining{" "}
+              <strong className="tabular-nums">{formatCount(stock.employeeSlingsRemaining)}</strong>
+              <span className="text-slate-500">
+                {" "}
+                ({formatCount(stock.employeeSlingsReceived)} received −{" "}
+                {formatCount(stock.employeeSlingsUsed)} used)
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-xl border bg-[#fbfefc] p-4">
+          <p className="font-medium">Printer supplies</p>
+          <p className="mt-1 text-xs text-slate-500">
+            Pieces on hand. These do not change ID card or sling remaining.
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <p className="text-sm text-slate-700">
+              XID PRINTER (COLOR) Y,M,C,K{" "}
+              <strong className="tabular-nums">{formatCount(stock.colorRibbonPieces)}</strong>
+            </p>
+            <p className="text-sm text-slate-700">
+              XID PRINTER RETRANSFER FILM{" "}
+              <strong className="tabular-nums">{formatCount(stock.retransferFilmPieces)}</strong>
+            </p>
           </div>
         </div>
       </div>

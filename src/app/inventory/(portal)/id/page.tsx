@@ -56,6 +56,7 @@ export default async function IdMaintenanceDashboardPage({
     printedBy: record.printedBy,
     idCardsUsed: record.idCardsUsed,
     slingsUsed: record.slingsUsed,
+    slingKind: record.slingKind,
   }));
 
   return (

@@ -30,6 +30,7 @@ export default async function IdReleasePage({
     printedBy: record.printedBy,
     idCardsUsed: record.idCardsUsed,
     slingsUsed: record.slingsUsed,
+    slingKind: record.slingKind,
   }));
 
   return (

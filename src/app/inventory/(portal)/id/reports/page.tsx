@@ -21,6 +21,7 @@ import {
   ID_RELEASE_STATUS_LABELS,
   formatCount,
   formatIdDate,
+  formatStockItemTitle,
   parseIdPeriod,
   wastesCardStock,
 } from "@/lib/id-maintenance";
@@ -179,7 +180,7 @@ export default async function IdReportsPage({
                 <TableRow key={receipt.id}>
                   <TableCell>{formatIdDate(receipt.dateReceived)}</TableCell>
                   <TableCell>
-                    {receipt.itemType === "ID_CARD_BOX" ? "ID card box" : "Sling bundle"}
+                    {formatStockItemTitle(receipt.itemType, receipt.descriptionCode)}
                   </TableCell>
                   <TableCell className="tabular-nums">{receipt.packsReceived}</TableCell>
                   <TableCell className="tabular-nums">{formatCount(receipt.unitsAdded)}</TableCell>
@@ -221,7 +222,14 @@ export default async function IdReportsPage({
                   <TableCell>{release.reason}</TableCell>
                   <TableCell>{release.printedBy}</TableCell>
                   <TableCell className="tabular-nums">{release.idCardsUsed}</TableCell>
-                  <TableCell className="tabular-nums">{release.slingsUsed}</TableCell>
+                  <TableCell className="tabular-nums">
+                    {release.slingsUsed}
+                    {release.slingsUsed > 0
+                      ? release.slingKind === "EMPLOYEE"
+                        ? " employee"
+                        : " student"
+                      : ""}
+                  </TableCell>
                 </TableRow>
               ))
             )}

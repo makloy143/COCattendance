@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { requireInventorySession } from "@/lib/inventory-auth";
 import { getIdStockView, listIdReceipts } from "@/lib/id-maintenance-data";
-import { formatCount, formatIdDate } from "@/lib/id-maintenance";
+import { formatCount, formatIdDate, formatStockItemTitle, ID_RECEIPT_UNIT_LABELS } from "@/lib/id-maintenance";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +18,7 @@ export default async function IdInventoryPage() {
   await requireInventorySession();
   const [stock, receipts] = await Promise.all([
     getIdStockView(),
-    listIdReceipts("ID_CARD_BOX"),
+    listIdReceipts(["ID_CARD", "ID_CARD_BOX"]),
   ]);
 
   return (
@@ -37,12 +37,12 @@ export default async function IdInventoryPage() {
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
         <section className="overflow-hidden rounded-xl border bg-white shadow-sm">
           <div className="border-b px-4 py-3">
-            <h2 className="text-base font-semibold">Boxes received</h2>
+            <h2 className="text-base font-semibold">Cards received</h2>
           </div>
           <Table>
             <TableHeader>
               <TableRow>
-                {["Date", "Boxes", "Cards / box", "Cards added", "Received from", "Recorded by", ""].map(
+                {["Date", "Item", "Unit", "Quantity", "Cards added", "Received from", "Recorded by", ""].map(
                   (heading) => (
                     <TableHead key={heading || "actions"}>{heading}</TableHead>
                   )
@@ -52,16 +52,19 @@ export default async function IdInventoryPage() {
             <TableBody>
               {receipts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-8 text-center text-sm text-slate-500">
-                    No ID card boxes received yet.
+                  <TableCell colSpan={8} className="py-8 text-center text-sm text-slate-500">
+                    No PLAIN WHITE PVC CARD stock received yet.
                   </TableCell>
                 </TableRow>
               ) : (
                 receipts.map((receipt) => (
                   <TableRow key={receipt.id}>
                     <TableCell>{formatIdDate(receipt.dateReceived)}</TableCell>
+                    <TableCell>
+                      {formatStockItemTitle(receipt.itemType, receipt.descriptionCode)}
+                    </TableCell>
+                    <TableCell>{ID_RECEIPT_UNIT_LABELS[receipt.unit]}</TableCell>
                     <TableCell className="tabular-nums">{receipt.packsReceived}</TableCell>
-                    <TableCell className="tabular-nums">{receipt.unitsPerPack}</TableCell>
                     <TableCell className="tabular-nums">{formatCount(receipt.unitsAdded)}</TableCell>
                     <TableCell>{receipt.receivedFrom}</TableCell>
                     <TableCell>{receipt.recordedBy ?? "—"}</TableCell>
@@ -80,7 +83,7 @@ export default async function IdInventoryPage() {
         <IdReceiveStockForm
           cardsPerBox={stock.cardsPerBox}
           slingsPerBundle={stock.slingsPerBundle}
-          lockedType="ID_CARD_BOX"
+          allowedTypes={["ID_CARD"]}
         />
       </div>
     </div>

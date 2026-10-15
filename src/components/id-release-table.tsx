@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatCount, type IdReleaseRow } from "@/lib/id-maintenance";
+import { formatCount, ID_SLING_KIND_LABELS, type IdReleaseRow } from "@/lib/id-maintenance";
 
 export function IdReleaseTable({
   rows,
@@ -89,7 +89,12 @@ export function IdReleaseTable({
                 <TableCell>{row.reason}</TableCell>
                 <TableCell>{row.printedBy}</TableCell>
                 <TableCell className="tabular-nums">{row.idCardsUsed}</TableCell>
-                <TableCell className="tabular-nums">{row.slingsUsed}</TableCell>
+                <TableCell className="tabular-nums">
+                  {row.slingsUsed}
+                  {row.slingsUsed > 0 && row.slingKind
+                    ? ` ${ID_SLING_KIND_LABELS[row.slingKind].toLowerCase()}`
+                    : ""}
+                </TableCell>
                 {showActions ? (
                   <TableCell>
                     <IdRemoveButton

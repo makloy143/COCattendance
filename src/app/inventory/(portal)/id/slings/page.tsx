@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { requireInventorySession } from "@/lib/inventory-auth";
 import { getIdStockView, listIdReceipts } from "@/lib/id-maintenance-data";
-import { formatCount, formatIdDate } from "@/lib/id-maintenance";
+import { formatCount, formatIdDate, formatStockItemTitle } from "@/lib/id-maintenance";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +18,7 @@ export default async function SlingInventoryPage() {
   await requireInventorySession();
   const [stock, receipts] = await Promise.all([
     getIdStockView(),
-    listIdReceipts("SLING_BUNDLE"),
+    listIdReceipts(["SLING_STUDENT", "SLING_EMPLOYEE", "SLING_BUNDLE"]),
   ]);
 
   return (
@@ -27,9 +27,10 @@ export default async function SlingInventoryPage() {
         <h2 className="text-base font-semibold">Sling inventory</h2>
         <p className="mt-1 text-sm text-slate-600">{stock.slingPackNote}</p>
         <p className="mt-3 text-sm text-slate-700">
-          Remaining{" "}
-          <strong className="tabular-nums">{formatCount(stock.slingsRemaining)}</strong> ={" "}
-          {formatCount(stock.slingsReceived)} received − {formatCount(stock.slingsUsed)} used
+          Student remaining{" "}
+          <strong className="tabular-nums">{formatCount(stock.studentSlingsRemaining)}</strong> ·
+          Employee remaining{" "}
+          <strong className="tabular-nums">{formatCount(stock.employeeSlingsRemaining)}</strong>
         </p>
       </section>
 
@@ -41,7 +42,7 @@ export default async function SlingInventoryPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                {["Date", "Bundles", "Slings / bundle", "Slings added", "Received from", "Recorded by", ""].map(
+                {["Date", "Item", "Bundles", "Slings / bundle", "Slings added", "Received from", "Recorded by", ""].map(
                   (heading) => (
                     <TableHead key={heading || "actions"}>{heading}</TableHead>
                   )
@@ -51,7 +52,7 @@ export default async function SlingInventoryPage() {
             <TableBody>
               {receipts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-8 text-center text-sm text-slate-500">
+                  <TableCell colSpan={8} className="py-8 text-center text-sm text-slate-500">
                     No sling bundles received yet.
                   </TableCell>
                 </TableRow>
@@ -59,6 +60,9 @@ export default async function SlingInventoryPage() {
                 receipts.map((receipt) => (
                   <TableRow key={receipt.id}>
                     <TableCell>{formatIdDate(receipt.dateReceived)}</TableCell>
+                    <TableCell>
+                      {formatStockItemTitle(receipt.itemType, receipt.descriptionCode)}
+                    </TableCell>
                     <TableCell className="tabular-nums">{receipt.packsReceived}</TableCell>
                     <TableCell className="tabular-nums">{receipt.unitsPerPack}</TableCell>
                     <TableCell className="tabular-nums">{formatCount(receipt.unitsAdded)}</TableCell>
@@ -79,7 +83,7 @@ export default async function SlingInventoryPage() {
         <IdReceiveStockForm
           cardsPerBox={stock.cardsPerBox}
           slingsPerBundle={stock.slingsPerBundle}
-          lockedType="SLING_BUNDLE"
+          allowedTypes={["SLING_STUDENT", "SLING_EMPLOYEE"]}
         />
       </div>
     </div>
