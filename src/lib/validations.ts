@@ -3,10 +3,10 @@ import { normalizeScheduleSlots } from "@/lib/schedule";
 import { ITEM_TYPES, ITEM_CATEGORIES, INK_COLORS, ID_ERROR_STATUSES, ASSET_STATUSES } from "@/lib/inventory";
 import {
   ID_BAD_PRINT_STATUSES,
-  ID_RECEIPT_ITEM_TYPES,
   ID_RECEIPT_UNITS,
   ID_RELEASE_STATUSES,
   ID_SLING_KINDS,
+  ID_STOCK_CATEGORIES,
 } from "@/lib/id-maintenance";
 import {
   MAINTENANCE_PRIORITIES,
@@ -510,7 +510,7 @@ const idDateSchema = z
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Use a valid date");
 
 export const idStockReceiptSchema = z.object({
-  itemType: z.enum(ID_RECEIPT_ITEM_TYPES),
+  itemOptionId: z.string().trim().min(1, "Item type is required"),
   unit: z.enum(ID_RECEIPT_UNITS).optional(),
   descriptionCode: z
     .string()
@@ -583,4 +583,20 @@ export const idMaintenanceSettingsSchema = z.object({
   slingsPerBundle: z.coerce.number().int().min(1).max(1000),
   lowIdCardThreshold: z.coerce.number().int().min(0).max(100000),
   lowSlingThreshold: z.coerce.number().int().min(0).max(100000),
+});
+
+export const idItemTypeSchema = z.object({
+  name: z.string().trim().min(1, "Item type name is required").max(120, "Item type name is too long"),
+  category: z.enum(ID_STOCK_CATEGORIES),
+});
+
+export const idItemTypeUpdateSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Item type name is required")
+    .max(120, "Item type name is too long")
+    .optional(),
+  category: z.enum(ID_STOCK_CATEGORIES).optional(),
+  active: z.boolean().optional(),
 });

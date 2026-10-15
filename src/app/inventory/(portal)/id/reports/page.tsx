@@ -21,8 +21,8 @@ import {
   ID_RELEASE_STATUS_LABELS,
   formatCount,
   formatIdDate,
-  formatStockItemTitle,
   parseIdPeriod,
+  receiptItemTitle,
   wastesCardStock,
 } from "@/lib/id-maintenance";
 
@@ -180,7 +180,7 @@ export default async function IdReportsPage({
                 <TableRow key={receipt.id}>
                   <TableCell>{formatIdDate(receipt.dateReceived)}</TableCell>
                   <TableCell>
-                    {formatStockItemTitle(receipt.itemType, receipt.descriptionCode)}
+                    {receiptItemTitle(receipt)}
                   </TableCell>
                   <TableCell className="tabular-nums">{receipt.packsReceived}</TableCell>
                   <TableCell className="tabular-nums">{formatCount(receipt.unitsAdded)}</TableCell>

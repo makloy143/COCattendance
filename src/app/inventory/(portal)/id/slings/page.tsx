@@ -9,16 +9,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { requireInventorySession } from "@/lib/inventory-auth";
-import { getIdStockView, listIdReceipts } from "@/lib/id-maintenance-data";
-import { formatCount, formatIdDate, formatStockItemTitle } from "@/lib/id-maintenance";
+import { getIdStockView, listIdItemOptions, listIdReceipts } from "@/lib/id-maintenance-data";
+import { formatCount, formatIdDate, receiptItemTitle } from "@/lib/id-maintenance";
 
 export const dynamic = "force-dynamic";
 
 export default async function SlingInventoryPage() {
   await requireInventorySession();
-  const [stock, receipts] = await Promise.all([
+  const [stock, receipts, itemTypes] = await Promise.all([
     getIdStockView(),
     listIdReceipts(["SLING_STUDENT", "SLING_EMPLOYEE", "SLING_BUNDLE"]),
+    listIdItemOptions({
+      activeOnly: true,
+      categories: ["SLING_STUDENT", "SLING_EMPLOYEE"],
+    }),
   ]);
 
   return (
@@ -61,7 +65,7 @@ export default async function SlingInventoryPage() {
                   <TableRow key={receipt.id}>
                     <TableCell>{formatIdDate(receipt.dateReceived)}</TableCell>
                     <TableCell>
-                      {formatStockItemTitle(receipt.itemType, receipt.descriptionCode)}
+                      {receiptItemTitle(receipt)}
                     </TableCell>
                     <TableCell className="tabular-nums">{receipt.packsReceived}</TableCell>
                     <TableCell className="tabular-nums">{receipt.unitsPerPack}</TableCell>
@@ -83,7 +87,11 @@ export default async function SlingInventoryPage() {
         <IdReceiveStockForm
           cardsPerBox={stock.cardsPerBox}
           slingsPerBundle={stock.slingsPerBundle}
-          allowedTypes={["SLING_STUDENT", "SLING_EMPLOYEE"]}
+          options={itemTypes.map((option) => ({
+            id: option.id,
+            name: option.name,
+            category: option.category,
+          }))}
         />
       </div>
     </div>

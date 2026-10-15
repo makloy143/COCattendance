@@ -9,16 +9,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { requireInventorySession } from "@/lib/inventory-auth";
-import { getIdStockView, listIdReceipts } from "@/lib/id-maintenance-data";
-import { formatCount, formatIdDate, formatStockItemTitle, ID_RECEIPT_UNIT_LABELS } from "@/lib/id-maintenance";
+import { getIdStockView, listIdItemOptions, listIdReceipts } from "@/lib/id-maintenance-data";
+import { formatCount, formatIdDate, receiptItemTitle, ID_RECEIPT_UNIT_LABELS } from "@/lib/id-maintenance";
 
 export const dynamic = "force-dynamic";
 
 export default async function IdInventoryPage() {
   await requireInventorySession();
-  const [stock, receipts] = await Promise.all([
+  const [stock, receipts, itemTypes] = await Promise.all([
     getIdStockView(),
     listIdReceipts(["ID_CARD", "ID_CARD_BOX"]),
+    listIdItemOptions({ activeOnly: true, categories: ["ID_CARD"] }),
   ]);
 
   return (
@@ -61,7 +62,7 @@ export default async function IdInventoryPage() {
                   <TableRow key={receipt.id}>
                     <TableCell>{formatIdDate(receipt.dateReceived)}</TableCell>
                     <TableCell>
-                      {formatStockItemTitle(receipt.itemType, receipt.descriptionCode)}
+                      {receiptItemTitle(receipt)}
                     </TableCell>
                     <TableCell>{ID_RECEIPT_UNIT_LABELS[receipt.unit]}</TableCell>
                     <TableCell className="tabular-nums">{receipt.packsReceived}</TableCell>
@@ -83,7 +84,11 @@ export default async function IdInventoryPage() {
         <IdReceiveStockForm
           cardsPerBox={stock.cardsPerBox}
           slingsPerBundle={stock.slingsPerBundle}
-          allowedTypes={["ID_CARD"]}
+          options={itemTypes.map((option) => ({
+            id: option.id,
+            name: option.name,
+            category: option.category,
+          }))}
         />
       </div>
     </div>

@@ -7,6 +7,7 @@ import {
   getIdPeriodActivity,
   getIdStockView,
   listIdBadPrints,
+  listIdItemOptions,
   listIdReleases,
 } from "@/lib/id-maintenance-data";
 import {
@@ -27,11 +28,12 @@ export default async function IdMaintenanceDashboardPage({
   await requireInventorySession();
   const params = await searchParams;
   const period = parseIdPeriod(params.period);
-  const [stock, activity, badPrints, releases] = await Promise.all([
+  const [stock, activity, badPrints, releases, itemTypes] = await Promise.all([
     getIdStockView(),
     getIdPeriodActivity(period),
     listIdBadPrints(period),
     listIdReleases(period),
+    listIdItemOptions({ activeOnly: true }),
   ]);
 
   const badPrintRows: IdBadPrintRow[] = badPrints.map((record) => ({
@@ -71,6 +73,11 @@ export default async function IdMaintenanceDashboardPage({
         <IdReceiveStockForm
           cardsPerBox={stock.cardsPerBox}
           slingsPerBundle={stock.slingsPerBundle}
+          options={itemTypes.map((option) => ({
+            id: option.id,
+            name: option.name,
+            category: option.category,
+          }))}
         />
       </div>
       <IdBadPrintTable rows={badPrintRows} />

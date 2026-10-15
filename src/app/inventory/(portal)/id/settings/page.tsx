@@ -1,12 +1,16 @@
+import { IdItemTypeSettings } from "@/components/id-item-type-settings";
 import { IdSettingsForm } from "@/components/id-settings-form";
 import { requireInventorySession } from "@/lib/inventory-auth";
-import { getIdMaintenanceSettings } from "@/lib/id-maintenance-data";
+import { getIdMaintenanceSettings, listIdItemOptions } from "@/lib/id-maintenance-data";
 
 export const dynamic = "force-dynamic";
 
 export default async function IdSettingsPage() {
   await requireInventorySession();
-  const settings = await getIdMaintenanceSettings();
+  const [settings, itemTypes] = await Promise.all([
+    getIdMaintenanceSettings(),
+    listIdItemOptions(),
+  ]);
 
   return (
     <div className="space-y-4">
@@ -20,6 +24,15 @@ export default async function IdSettingsPage() {
         slingsPerBundle={settings.slingsPerBundle}
         lowIdCardThreshold={settings.lowIdCardThreshold}
         lowSlingThreshold={settings.lowSlingThreshold}
+      />
+      <IdItemTypeSettings
+        options={itemTypes.map((option) => ({
+          id: option.id,
+          name: option.name,
+          category: option.category,
+          active: option.active,
+          receiptCount: option._count.receipts,
+        }))}
       />
     </div>
   );

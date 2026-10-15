@@ -5,24 +5,22 @@ import {
   buildCardPackNote,
   buildSlingPackNote,
   calculateIdStock,
+  categoryForItemType,
   formatDescriptionCode,
   formatIdDate,
-  formatStockItemTitle,
   getIdPeriodRange,
-  isIdCardItem,
-  isPrinterSupplyItem,
-  isSlingItem,
+  itemTypeForCategory,
   normalizeDescriptionCode,
-  slingKindForItem,
+  receiptItemTitle,
   wastesCardStock,
   type IdBadPrintStatus,
   type IdHistoryEvent,
   type IdPeriod,
   type IdPeriodActivity,
-  type IdReceiptItemType,
   type IdReceiptUnit,
   type IdReleaseStatus,
   type IdSlingKind,
+  type IdStockCategory,
   type IdStockItemType,
   type IdStockView,
 } from "@/lib/id-maintenance";
@@ -42,7 +40,7 @@ function periodFilter(period: IdPeriod) {
 }
 
 export async function getIdStockView(): Promise<IdStockView> {
-  const [settings, receipts, releaseGroups, wasteAgg] = await Promise.all([
+  const [settings, receipts, itemOptions, releaseGroups, wasteAgg] = await Promise.all([
     getIdMaintenanceSettings(),
     prisma.idStockReceipt.findMany({
       select: {
@@ -51,7 +49,11 @@ export async function getIdStockView(): Promise<IdStockView> {
         packsReceived: true,
         unitsPerPack: true,
         unitsAdded: true,
+        itemOption: { select: { id: true, name: true, category: true } },
       },
+    }),
+    prisma.idStockItemOption.findMany({
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     }),
     prisma.idReleaseEntry.groupBy({
       by: ["slingKind"],
@@ -63,13 +65,18 @@ export async function getIdStockView(): Promise<IdStockView> {
     }),
   ]);
 
-  const cardReceipts = receipts.filter((row) => isIdCardItem(row.itemType));
-  const slingReceipts = receipts.filter((row) => isSlingItem(row.itemType));
+  const categoryOf = (row: (typeof receipts)[number]) =>
+    row.itemOption?.category ?? categoryForItemType(row.itemType);
+  const cardReceipts = receipts.filter((row) => categoryOf(row) === "ID_CARD");
+  const slingReceipts = receipts.filter((row) => {
+    const category = categoryOf(row);
+    return category === "SLING_STUDENT" || category === "SLING_EMPLOYEE";
+  });
   const studentSlingReceipts = slingReceipts.filter(
-    (row) => slingKindForItem(row.itemType) === "STUDENT"
+    (row) => categoryOf(row) === "SLING_STUDENT"
   );
   const employeeSlingReceipts = slingReceipts.filter(
-    (row) => slingKindForItem(row.itemType) === "EMPLOYEE"
+    (row) => categoryOf(row) === "SLING_EMPLOYEE"
   );
   const cardsReceived = cardReceipts.reduce((sum, row) => sum + row.unitsAdded, 0);
   const slingsReceived = slingReceipts.reduce((sum, row) => sum + row.unitsAdded, 0);
@@ -103,12 +110,28 @@ export async function getIdStockView(): Promise<IdStockView> {
     slingsReceived,
     slingsUsed,
   });
-  const colorRibbonPieces = receipts
-    .filter((row) => row.itemType === "XID_COLOR")
-    .reduce((sum, row) => sum + row.unitsAdded, 0);
-  const retransferFilmPieces = receipts
-    .filter((row) => row.itemType === "XID_RETRANSFER_FILM")
-    .reduce((sum, row) => sum + row.unitsAdded, 0);
+  const cardItemName =
+    itemOptions.find((option) => option.category === "ID_CARD" && option.active)?.name ??
+    "PLAIN WHITE PVC CARD";
+  const supplyPiecesByKey = new Map<string, { id: string; name: string; pieces: number }>();
+  for (const option of itemOptions) {
+    if (option.category !== "SUPPLY") continue;
+    supplyPiecesByKey.set(option.id, { id: option.id, name: option.name, pieces: 0 });
+  }
+  for (const receipt of receipts) {
+    if (categoryOf(receipt) !== "SUPPLY") continue;
+    const key = receipt.itemOption?.id ?? receipt.itemType;
+    const current = supplyPiecesByKey.get(key) ?? {
+      id: key,
+      name: receipt.itemOption?.name ?? "Piece",
+      pieces: 0,
+    };
+    current.pieces += receipt.unitsAdded;
+    supplyPiecesByKey.set(key, current);
+  }
+  const supplyPieces = [...supplyPiecesByKey.values()].filter(
+    (row) => row.pieces > 0 || itemOptions.some((option) => option.id === row.id && option.active)
+  );
 
   return {
     cardsPerBox: settings.cardsPerBox,
@@ -120,7 +143,7 @@ export async function getIdStockView(): Promise<IdStockView> {
     cardsReleased,
     cardsWasted,
     cardsRemaining,
-    cardPackNote: buildCardPackNote(cardReceipts, settings.cardsPerBox),
+    cardPackNote: buildCardPackNote(cardReceipts, settings.cardsPerBox, cardItemName),
     slingPacks: slingReceipts.reduce((sum, row) => sum + row.packsReceived, 0),
     slingsReceived,
     slingsUsed,
@@ -132,8 +155,8 @@ export async function getIdStockView(): Promise<IdStockView> {
     employeeSlingsReceived,
     employeeSlingsUsed,
     employeeSlingsRemaining: employeeSlingsReceived - employeeSlingsUsed,
-    colorRibbonPieces,
-    retransferFilmPieces,
+    cardItemName,
+    supplyPieces,
     lowCards: cardReceipts.length > 0 && cardsRemaining <= settings.lowIdCardThreshold,
     lowSlings:
       slingReceipts.length > 0 && slingsRemaining <= settings.lowSlingThreshold,
@@ -190,6 +213,7 @@ export async function listIdReceipts(itemType?: IdStockItemType | IdStockItemTyp
     where: itemType
       ? { itemType: Array.isArray(itemType) ? { in: itemType } : itemType }
       : undefined,
+    include: { itemOption: true },
     orderBy: [{ dateReceived: "desc" }, { createdAt: "desc" }],
   });
 }
@@ -221,26 +245,26 @@ function assertSlingsAvailable(remaining: number, requested: number, label: stri
 }
 
 function receiptUnits(input: {
-  itemType: IdReceiptItemType;
+  category: IdStockCategory;
   unit?: IdReceiptUnit;
   cardsPerBox: number;
   slingsPerBundle: number;
 }) {
-  if (isIdCardItem(input.itemType)) {
+  if (input.category === "ID_CARD") {
     const unit = input.unit === "PIECE" ? "PIECE" : "BOX";
     return {
       unit,
       unitsPerPack: unit === "PIECE" ? 1 : input.cardsPerBox,
     } as const;
   }
-  if (isPrinterSupplyItem(input.itemType)) {
+  if (input.category === "SUPPLY") {
     return { unit: "PIECE" as const, unitsPerPack: 1 };
   }
   return { unit: "BOX" as const, unitsPerPack: input.slingsPerBundle };
 }
 
 export async function createIdStockReceipt(input: {
-  itemType: IdReceiptItemType;
+  itemOptionId: string;
   unit?: IdReceiptUnit;
   descriptionCode: string;
   packsReceived: number;
@@ -249,9 +273,16 @@ export async function createIdStockReceipt(input: {
   notes?: string | null;
   recordedBy?: string | null;
 }) {
+  const option = await prisma.idStockItemOption.findUnique({
+    where: { id: input.itemOptionId },
+  });
+  if (!option || !option.active) {
+    throw new IdStockError("Choose an item type. Add one in Settings if it is missing.");
+  }
+
   const settings = await getIdMaintenanceSettings();
   const { unit, unitsPerPack } = receiptUnits({
-    itemType: input.itemType,
+    category: option.category,
     unit: input.unit,
     cardsPerBox: settings.cardsPerBox,
     slingsPerBundle: settings.slingsPerBundle,
@@ -259,7 +290,8 @@ export async function createIdStockReceipt(input: {
 
   return prisma.idStockReceipt.create({
     data: {
-      itemType: input.itemType,
+      itemType: itemTypeForCategory(option.category),
+      itemOptionId: option.id,
       unit,
       descriptionCode: normalizeDescriptionCode(input.descriptionCode),
       packsReceived: input.packsReceived,
@@ -274,21 +306,25 @@ export async function createIdStockReceipt(input: {
 }
 
 export async function deleteIdStockReceipt(id: string) {
-  const receipt = await prisma.idStockReceipt.findUnique({ where: { id } });
+  const receipt = await prisma.idStockReceipt.findUnique({
+    where: { id },
+    include: { itemOption: true },
+  });
   if (!receipt) {
     throw new IdStockError("Stock receipt was not found.");
   }
 
   const stock = await getIdStockView();
-  if (isIdCardItem(receipt.itemType)) {
+  const category = receipt.itemOption?.category ?? categoryForItemType(receipt.itemType);
+  if (category === "ID_CARD") {
     if (stock.cardsRemaining - receipt.unitsAdded < 0) {
       throw new IdStockError(
         "These cards have already been released or wasted, so this receipt cannot be removed."
       );
     }
-  } else if (isSlingItem(receipt.itemType)) {
+  } else if (category === "SLING_STUDENT" || category === "SLING_EMPLOYEE") {
     const remaining =
-      slingKindForItem(receipt.itemType) === "EMPLOYEE"
+      category === "SLING_EMPLOYEE"
         ? stock.employeeSlingsRemaining
         : stock.studentSlingsRemaining;
     if (remaining - receipt.unitsAdded < 0) {
@@ -433,11 +469,118 @@ export async function updateIdMaintenanceSettings(input: {
   });
 }
 
+function normalizeItemTypeName(name: string) {
+  return name.trim().replace(/\s+/g, " ");
+}
+
+async function assertUniqueItemTypeName(name: string, exceptId?: string) {
+  const options = await prisma.idStockItemOption.findMany({
+    select: { id: true, name: true, active: true },
+  });
+  const clash = options.find(
+    (option) =>
+      option.id !== exceptId &&
+      option.name.trim().toLowerCase() === name.trim().toLowerCase()
+  );
+  if (clash) {
+    throw new IdStockError(
+      clash.active
+        ? "That item type already exists."
+        : "That item type was removed. Restore it from the list instead of adding it again."
+    );
+  }
+}
+
+export async function listIdItemOptions(filter?: {
+  activeOnly?: boolean;
+  categories?: IdStockCategory[];
+}) {
+  return prisma.idStockItemOption.findMany({
+    where: {
+      ...(filter?.activeOnly ? { active: true } : {}),
+      ...(filter?.categories?.length ? { category: { in: filter.categories } } : {}),
+    },
+    include: { _count: { select: { receipts: true } } },
+    orderBy: [{ active: "desc" }, { sortOrder: "asc" }, { name: "asc" }],
+  });
+}
+
+export async function createIdItemOption(input: { name: string; category: IdStockCategory }) {
+  const name = normalizeItemTypeName(input.name);
+  if (!name) {
+    throw new IdStockError("Item type name is required.");
+  }
+  await assertUniqueItemTypeName(name);
+  const last = await prisma.idStockItemOption.aggregate({ _max: { sortOrder: true } });
+  return prisma.idStockItemOption.create({
+    data: {
+      name,
+      category: input.category,
+      sortOrder: (last._max.sortOrder ?? 0) + 1,
+    },
+  });
+}
+
+export async function updateIdItemOption(
+  id: string,
+  input: { name?: string; category?: IdStockCategory; active?: boolean }
+) {
+  const option = await prisma.idStockItemOption.findUnique({
+    where: { id },
+    include: { _count: { select: { receipts: true } } },
+  });
+  if (!option) {
+    throw new IdStockError("Item type was not found.");
+  }
+
+  const name = input.name === undefined ? option.name : normalizeItemTypeName(input.name);
+  if (!name) {
+    throw new IdStockError("Item type name is required.");
+  }
+  if (name.toLowerCase() !== option.name.trim().toLowerCase()) {
+    await assertUniqueItemTypeName(name, option.id);
+  }
+  if (input.category && input.category !== option.category && option._count.receipts > 0) {
+    throw new IdStockError(
+      "This item type already has receipts, so its stock rule cannot change. Rename it instead."
+    );
+  }
+
+  return prisma.idStockItemOption.update({
+    where: { id },
+    data: {
+      name,
+      ...(input.category ? { category: input.category } : {}),
+      ...(input.active === undefined ? {} : { active: input.active }),
+    },
+  });
+}
+
+export async function removeIdItemOption(id: string) {
+  const option = await prisma.idStockItemOption.findUnique({
+    where: { id },
+    include: { _count: { select: { receipts: true } } },
+  });
+  if (!option) {
+    throw new IdStockError("Item type was not found.");
+  }
+  if (option._count.receipts > 0) {
+    await prisma.idStockItemOption.update({
+      where: { id },
+      data: { active: false },
+    });
+    return { deactivated: true as const };
+  }
+  await prisma.idStockItemOption.delete({ where: { id } });
+  return { deactivated: false as const };
+}
+
 export async function listIdHistory(period: IdPeriod): Promise<IdHistoryEvent[]> {
   const range = periodFilter(period);
   const [receipts, releases, badPrints] = await Promise.all([
     prisma.idStockReceipt.findMany({
       where: range ? { dateReceived: range } : undefined,
+      include: { itemOption: true },
       orderBy: [{ dateReceived: "desc" }, { createdAt: "desc" }],
       take: 400,
     }),
@@ -458,14 +601,21 @@ export async function listIdHistory(period: IdPeriod): Promise<IdHistoryEvent[]>
       id: `receipt-${receipt.id}`,
       dateLabel: formatIdDate(receipt.dateReceived),
       kind: "RECEIPT" as const,
-      title: `${formatStockItemTitle(receipt.itemType, receipt.descriptionCode)} received`,
+      title: `${receiptItemTitle(receipt)} received`,
       detail: `${receipt.packsReceived} × ${receipt.unitsPerPack} from ${receipt.receivedFrom}${
         formatDescriptionCode(receipt.descriptionCode)
           ? ` · ${formatDescriptionCode(receipt.descriptionCode)}`
           : ""
       }`,
-      cards: isIdCardItem(receipt.itemType) ? receipt.unitsAdded : 0,
-      slings: isSlingItem(receipt.itemType) ? receipt.unitsAdded : 0,
+      cards:
+        (receipt.itemOption?.category ?? categoryForItemType(receipt.itemType)) === "ID_CARD"
+          ? receipt.unitsAdded
+          : 0,
+      slings:
+        (receipt.itemOption?.category ?? categoryForItemType(receipt.itemType)) === "SLING_STUDENT" ||
+        (receipt.itemOption?.category ?? categoryForItemType(receipt.itemType)) === "SLING_EMPLOYEE"
+          ? receipt.unitsAdded
+          : 0,
       sort: receipt.dateReceived.getTime(),
     })),
     ...releases.map((release) => ({

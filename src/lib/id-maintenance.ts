@@ -8,6 +8,7 @@ export const ID_STOCK_ITEM_TYPES = [
   "SLING_BUNDLE",
   "XID_COLOR",
   "XID_RETRANSFER_FILM",
+  "SUPPLY",
 ] as const;
 export type IdStockItemType = (typeof ID_STOCK_ITEM_TYPES)[number];
 
@@ -28,6 +29,28 @@ export const ID_STOCK_ITEM_LABELS: Record<IdStockItemType, string> = {
   SLING_BUNDLE: "Sling for Student",
   XID_COLOR: "XID PRINTER (COLOR) Y,M,C,K",
   XID_RETRANSFER_FILM: "XID PRINTER RETRANSFER FILM",
+  SUPPLY: "Piece",
+};
+
+export const ID_STOCK_CATEGORIES = [
+  "ID_CARD",
+  "SLING_STUDENT",
+  "SLING_EMPLOYEE",
+  "SUPPLY",
+] as const;
+export type IdStockCategory = (typeof ID_STOCK_CATEGORIES)[number];
+
+export const ID_STOCK_CATEGORY_LABELS: Record<IdStockCategory, string> = {
+  ID_CARD: "ID card (box or piece)",
+  SLING_STUDENT: "Sling for student",
+  SLING_EMPLOYEE: "Sling for employee",
+  SUPPLY: "Piece only",
+};
+
+export type IdItemTypeOption = {
+  id: string;
+  name: string;
+  category: IdStockCategory;
 };
 
 export const ID_RECEIPT_UNITS = ["BOX", "PIECE"] as const;
@@ -59,7 +82,25 @@ export function isSlingItem(itemType: IdStockItemType) {
 }
 
 export function isPrinterSupplyItem(itemType: IdStockItemType) {
-  return itemType === "XID_COLOR" || itemType === "XID_RETRANSFER_FILM";
+  return (
+    itemType === "XID_COLOR" ||
+    itemType === "XID_RETRANSFER_FILM" ||
+    itemType === "SUPPLY"
+  );
+}
+
+export function categoryForItemType(itemType: IdStockItemType): IdStockCategory {
+  if (isIdCardItem(itemType)) return "ID_CARD";
+  if (itemType === "SLING_EMPLOYEE") return "SLING_EMPLOYEE";
+  if (isSlingItem(itemType)) return "SLING_STUDENT";
+  return "SUPPLY";
+}
+
+export function itemTypeForCategory(category: IdStockCategory): IdStockItemType {
+  if (category === "ID_CARD") return "ID_CARD";
+  if (category === "SLING_STUDENT") return "SLING_STUDENT";
+  if (category === "SLING_EMPLOYEE") return "SLING_EMPLOYEE";
+  return "SUPPLY";
 }
 
 export function slingKindForItem(itemType: IdStockItemType): IdSlingKind | null {
@@ -77,13 +118,21 @@ export function formatDescriptionCode(value: string | null | undefined) {
   return code ? `#${code}` : "";
 }
 
-export function formatStockItemTitle(
-  itemType: IdStockItemType,
-  descriptionCode?: string | null
-) {
+export function formatStockItemTitle(name: string, descriptionCode?: string | null) {
+  const label = name.trim();
   const mark = formatDescriptionCode(descriptionCode);
-  const label = ID_STOCK_ITEM_LABELS[itemType];
   return mark ? `${label} ${mark}` : label;
+}
+
+export function receiptItemTitle(receipt: {
+  itemType: IdStockItemType;
+  descriptionCode?: string | null;
+  itemOption?: { name: string } | null;
+}) {
+  return formatStockItemTitle(
+    receipt.itemOption?.name || ID_STOCK_ITEM_LABELS[receipt.itemType],
+    receipt.descriptionCode
+  );
 }
 
 export const ID_RELEASE_STATUSES = ["NEW_ID", "REPRINT"] as const;
@@ -248,7 +297,11 @@ type PackRow = {
   unit?: IdReceiptUnit;
 };
 
-export function buildCardPackNote(rows: PackRow[], cardsPerBox: number) {
+export function buildCardPackNote(
+  rows: PackRow[],
+  cardsPerBox: number,
+  cardName = "PLAIN WHITE PVC CARD"
+) {
   const boxes = rows.filter((row) => row.unit !== "PIECE");
   const pieces = rows.filter((row) => row.unit === "PIECE");
   const boxPacks = boxes.reduce((sum, row) => sum + row.packsReceived, 0);
@@ -256,7 +309,7 @@ export function buildCardPackNote(rows: PackRow[], cardsPerBox: number) {
   const pieceUnits = pieces.reduce((sum, row) => sum + row.unitsAdded, 0);
 
   if (boxPacks === 0 && pieceUnits === 0) {
-    return `PLAIN WHITE PVC CARD. Each box contains ${formatCount(cardsPerBox)} cards. A piece adds 1 card.`;
+    return `${cardName}. Each box contains ${formatCount(cardsPerBox)} cards. A piece adds 1 card.`;
   }
 
   const parts: string[] = [];
@@ -313,8 +366,8 @@ export type IdStockView = {
   employeeSlingsReceived: number;
   employeeSlingsUsed: number;
   employeeSlingsRemaining: number;
-  colorRibbonPieces: number;
-  retransferFilmPieces: number;
+  cardItemName: string;
+  supplyPieces: { id: string; name: string; pieces: number }[];
   lowCards: boolean;
   lowSlings: boolean;
 };

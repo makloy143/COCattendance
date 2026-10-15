@@ -16,31 +16,26 @@ import {
 } from "@/components/ui/select";
 import { formatManilaDateInput } from "@/lib/date-utils";
 import {
-  ID_RECEIPT_ITEM_TYPES,
   ID_RECEIPT_UNIT_LABELS,
   ID_RECEIPT_UNITS,
-  ID_STOCK_ITEM_LABELS,
   formatCount,
   formatStockItemTitle,
-  isIdCardItem,
-  isPrinterSupplyItem,
-  isSlingItem,
-  type IdReceiptItemType,
+  type IdItemTypeOption,
   type IdReceiptUnit,
 } from "@/lib/id-maintenance";
 
 export function IdReceiveStockForm({
   cardsPerBox,
   slingsPerBundle,
-  allowedTypes = [...ID_RECEIPT_ITEM_TYPES],
+  options,
 }: {
   cardsPerBox: number;
   slingsPerBundle: number;
-  allowedTypes?: IdReceiptItemType[];
+  options: IdItemTypeOption[];
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [itemType, setItemType] = useState<IdReceiptItemType>(allowedTypes[0] ?? "ID_CARD");
+  const [itemOptionId, setItemOptionId] = useState(options[0]?.id ?? "");
   const [unit, setUnit] = useState<IdReceiptUnit>("BOX");
   const [descriptionCode, setDescriptionCode] = useState("");
   const [packsReceived, setPacksReceived] = useState("");
@@ -49,52 +44,55 @@ export function IdReceiveStockForm({
     formatManilaDateInput(new Date())
   );
 
-  const cardUnit = isIdCardItem(itemType) ? unit : isPrinterSupplyItem(itemType) ? "PIECE" : "BOX";
-  const unitsPerPack = isIdCardItem(itemType)
-    ? cardUnit === "PIECE"
-      ? 1
-      : cardsPerBox
-    : isPrinterSupplyItem(itemType)
-      ? 1
-      : slingsPerBundle;
+  const selected = options.find((option) => option.id === itemOptionId) ?? options[0];
+  const category = selected?.category ?? "ID_CARD";
+  const cardUnit = category === "ID_CARD" ? unit : category === "SUPPLY" ? "PIECE" : "BOX";
+  const unitsPerPack =
+    category === "ID_CARD"
+      ? cardUnit === "PIECE"
+        ? 1
+        : cardsPerBox
+      : category === "SUPPLY"
+        ? 1
+        : slingsPerBundle;
   const packs = Number(packsReceived);
   const unitsAdded =
     Number.isFinite(packs) && packs > 0 ? Math.floor(packs) * unitsPerPack : 0;
-  const preview = formatStockItemTitle(itemType, descriptionCode);
-  const quantityLabel = isIdCardItem(itemType)
-    ? cardUnit === "PIECE"
-      ? "Pieces received"
-      : "Boxes received"
-    : isSlingItem(itemType)
-      ? "Bundles received"
-      : "Pieces received";
-  const addedLabel = isIdCardItem(itemType)
-    ? "Cards added"
-    : isSlingItem(itemType)
-      ? "Slings added"
-      : "Pieces added";
+  const preview = selected ? formatStockItemTitle(selected.name, descriptionCode) : "";
+  const quantityLabel =
+    category === "ID_CARD"
+      ? cardUnit === "PIECE"
+        ? "Pieces received"
+        : "Boxes received"
+      : category === "SUPPLY"
+        ? "Pieces received"
+        : "Bundles received";
+  const addedLabel =
+    category === "ID_CARD" ? "Cards added" : category === "SUPPLY" ? "Pieces added" : "Slings added";
 
   const hint = useMemo(() => {
-    if (isIdCardItem(itemType)) {
+    if (!selected) return "Add an item type in Settings before receiving stock.";
+    if (category === "ID_CARD") {
       return cardUnit === "PIECE"
-        ? "A piece adds 1 PLAIN WHITE PVC CARD."
-        : `Each box adds ${formatCount(cardsPerBox)} PLAIN WHITE PVC CARDS.`;
+        ? `A piece adds 1 ${selected.name}.`
+        : `Each box adds ${formatCount(cardsPerBox)} ${selected.name}.`;
     }
-    if (isSlingItem(itemType)) {
-      return `Each bundle adds ${formatCount(slingsPerBundle)} slings. Student and employee slings are tracked separately.`;
+    if (category === "SUPPLY") {
+      return "Each piece is counted as 1. This does not change ID card or sling stock.";
     }
-    return "Each piece is counted as 1. This does not change ID card or sling stock.";
-  }, [itemType, cardUnit, cardsPerBox, slingsPerBundle]);
+    return `Each bundle adds ${formatCount(slingsPerBundle)} slings. Student and employee slings are tracked separately.`;
+  }, [selected, category, cardUnit, cardsPerBox, slingsPerBundle]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+    if (!selected) return;
     setLoading(true);
     try {
       const response = await fetch("/api/inventory/id/receipts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          itemType,
+          itemOptionId: selected.id,
           unit: cardUnit,
           descriptionCode,
           packsReceived,
@@ -127,24 +125,30 @@ export function IdReceiveStockForm({
       <form onSubmit={handleSubmit} className="space-y-3 p-4">
         <div className="space-y-1.5">
           <Label htmlFor="itemType">Item Type</Label>
-          {allowedTypes.length === 1 ? (
-            <Input id="itemType" value={ID_STOCK_ITEM_LABELS[itemType]} readOnly />
+          {options.length === 0 ? (
+            <Input id="itemType" value="Add an item type in Settings" readOnly />
+          ) : options.length === 1 ? (
+            <Input id="itemType" value={options[0]?.name ?? ""} readOnly />
           ) : (
             <Select
-              value={itemType}
+              value={selected?.id ?? ""}
               onValueChange={(value) => {
-                if (value && (allowedTypes as string[]).includes(value)) {
-                  setItemType(value as IdReceiptItemType);
+                if (value && options.some((option) => option.id === value)) {
+                  setItemOptionId(value);
                 }
               }}
             >
               <SelectTrigger id="itemType" className="w-full">
-                <SelectValue />
+                <SelectValue>
+                  {(value) =>
+                    options.find((option) => option.id === value)?.name ?? "Item type"
+                  }
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {allowedTypes.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {ID_STOCK_ITEM_LABELS[type]}
+                {options.map((option) => (
+                  <SelectItem key={option.id} value={option.id}>
+                    {option.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -152,7 +156,7 @@ export function IdReceiveStockForm({
           )}
         </div>
 
-        {isIdCardItem(itemType) ? (
+        {category === "ID_CARD" && selected ? (
           <div className="space-y-1.5">
             <Label htmlFor="receiptUnit">Box or piece</Label>
             <Select
@@ -181,8 +185,9 @@ export function IdReceiveStockForm({
             id="descriptionCode"
             value={descriptionCode}
             onChange={(event) => setDescriptionCode(event.target.value)}
-            placeholder={isPrinterSupplyItem(itemType) ? "3/22" : "29"}
+            placeholder={category === "SUPPLY" ? "3/22" : "29"}
             required
+            disabled={!selected}
           />
           <p className="text-[11px] text-slate-500">{preview || "Example: PLAIN WHITE PVC CARD #29"}</p>
         </div>
@@ -197,6 +202,7 @@ export function IdReceiveStockForm({
               onChange={(event) => setPacksReceived(event.target.value)}
               placeholder="15"
               required
+              disabled={!selected}
             />
           </div>
           <div className="space-y-1.5">
@@ -240,7 +246,7 @@ export function IdReceiveStockForm({
         <Button
           type="submit"
           className="h-10 w-full bg-[#0e6b43] text-white hover:bg-[#0c5b39]"
-          disabled={loading}
+          disabled={loading || !selected}
         >
           <PackagePlus className="size-4" />
           {loading ? "Recording..." : "Record Stock Receipt"}

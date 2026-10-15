@@ -136,7 +136,7 @@ export function IdInventoryOverview({ stock }: { stock: IdStockView }) {
               <IdCard className="size-4" />
             </span>
             <div>
-              <p className="font-medium">PLAIN WHITE PVC CARD</p>
+              <p className="font-medium">{stock.cardItemName}</p>
               <p className="text-xs text-slate-500">{stock.cardPackNote}</p>
             </div>
           </div>
@@ -196,14 +196,16 @@ export function IdInventoryOverview({ stock }: { stock: IdStockView }) {
             Pieces on hand. These do not change ID card or sling remaining.
           </p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <p className="text-sm text-slate-700">
-              XID PRINTER (COLOR) Y,M,C,K{" "}
-              <strong className="tabular-nums">{formatCount(stock.colorRibbonPieces)}</strong>
-            </p>
-            <p className="text-sm text-slate-700">
-              XID PRINTER RETRANSFER FILM{" "}
-              <strong className="tabular-nums">{formatCount(stock.retransferFilmPieces)}</strong>
-            </p>
+            {stock.supplyPieces.length === 0 ? (
+              <p className="text-sm text-slate-500">No piece-only item types yet.</p>
+            ) : (
+              stock.supplyPieces.map((supply) => (
+                <p key={supply.id} className="text-sm text-slate-700">
+                  {supply.name}{" "}
+                  <strong className="tabular-nums">{formatCount(supply.pieces)}</strong>
+                </p>
+              ))
+            )}
           </div>
         </div>
       </div>

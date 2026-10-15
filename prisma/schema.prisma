@@ -324,6 +324,14 @@ enum IdStockItemType {
   SLING_EMPLOYEE
   XID_COLOR
   XID_RETRANSFER_FILM
+  SUPPLY
+}
+
+enum IdStockCategory {
+  ID_CARD
+  SLING_STUDENT
+  SLING_EMPLOYEE
+  SUPPLY
 }
 
 enum IdReceiptUnit {
@@ -356,10 +364,25 @@ model IdMaintenanceSettings {
   updatedAt          DateTime @updatedAt
 }
 
+model IdStockItemOption {
+  id        String          @id @default(cuid())
+  name      String
+  category  IdStockCategory
+  sortOrder Int             @default(0)
+  active    Boolean         @default(true)
+  receipts  IdStockReceipt[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@index([active, sortOrder])
+}
+
 model IdStockReceipt {
-  id            String          @id @default(cuid())
+  id              String            @id @default(cuid())
   itemType        IdStockItemType
-  unit            IdReceiptUnit   @default(BOX)
+  itemOptionId    String?
+  itemOption      IdStockItemOption? @relation(fields: [itemOptionId], references: [id], onDelete: Restrict)
+  unit            IdReceiptUnit     @default(BOX)
   descriptionCode String?
   packsReceived   Int
   unitsPerPack    Int
@@ -371,6 +394,7 @@ model IdStockReceipt {
   createdAt     DateTime        @default(now())
 
   @@index([itemType])
+  @@index([itemOptionId])
   @@index([dateReceived])
 }
 
