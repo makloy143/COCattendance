@@ -125,8 +125,9 @@ export function IdInventoryOverview({ stock }: { stock: IdStockView }) {
       <div className="border-b px-4 py-3 sm:px-5">
         <h2 className="text-base font-semibold">Inventory Overview</h2>
         <p className="text-xs text-slate-500">
-          Current balance. Remaining cards subtract releases and wasted cards.
-          Remaining slings subtract slings used.
+          Current balance. Remaining cards subtract releases and wasted cards, then add
+          cards surrendered on withdrawal. Remaining slings subtract slings used and
+          add student slings turned in.
         </p>
       </div>
       <div className="space-y-3 p-4 sm:p-5">
@@ -146,6 +147,8 @@ export function IdInventoryOverview({ stock }: { stock: IdStockView }) {
             <EquationFigure value={stock.cardsReleased} label="Released" tone="blue" />
             <span className="pb-4 text-xl text-slate-400">−</span>
             <EquationFigure value={stock.cardsWasted} label="Bad-print" tone="red" />
+            <span className="pb-4 text-xl text-slate-400">+</span>
+            <EquationFigure value={stock.cardsSurrendered} label="Returned" tone="green" />
             <span className="pb-4 text-xl text-slate-400">=</span>
             <EquationFigure value={stock.cardsRemaining} label="Remaining" tone="green" />
           </div>
@@ -165,6 +168,8 @@ export function IdInventoryOverview({ stock }: { stock: IdStockView }) {
             <EquationFigure value={stock.slingsReceived} label="Received" tone="green" />
             <span className="pb-4 text-xl text-slate-400">−</span>
             <EquationFigure value={stock.slingsUsed} label="Used" tone="blue" />
+            <span className="pb-4 text-xl text-slate-400">+</span>
+            <EquationFigure value={stock.studentSlingsSurrendered} label="Returned" tone="green" />
             <span className="pb-4 text-xl text-slate-400">=</span>
             <EquationFigure value={stock.slingsRemaining} label="Remaining" tone="green" />
           </div>
@@ -175,7 +180,8 @@ export function IdInventoryOverview({ stock }: { stock: IdStockView }) {
               <span className="text-slate-500">
                 {" "}
                 ({formatCount(stock.studentSlingsReceived)} received −{" "}
-                {formatCount(stock.studentSlingsUsed)} used)
+                {formatCount(stock.studentSlingsUsed)} used +{" "}
+                {formatCount(stock.studentSlingsSurrendered)} returned)
               </span>
             </p>
             <p>

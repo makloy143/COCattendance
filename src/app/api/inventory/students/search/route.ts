@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
         firstName: true,
         lastName: true,
         course: true,
+        yearLevel: true,
       },
       take: 10,
       orderBy: [{ lastName: "asc" }, { firstName: "asc" }],

@@ -11,6 +11,7 @@ type StudentResult = {
   firstName: string;
   lastName: string;
   course: string | null;
+  yearLevel: string | null;
 };
 
 export function IdStudentLookup({

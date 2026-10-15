@@ -4,7 +4,6 @@ import {
   IdStockError,
   buildCardPackNote,
   buildSlingPackNote,
-  calculateIdStock,
   categoryForItemType,
   formatDescriptionCode,
   formatIdDate,
@@ -40,7 +39,7 @@ function periodFilter(period: IdPeriod) {
 }
 
 export async function getIdStockView(): Promise<IdStockView> {
-  const [settings, receipts, itemOptions, releaseGroups, wasteAgg] = await Promise.all([
+  const [settings, receipts, itemOptions, releaseGroups, wasteAgg, surrenderAgg] = await Promise.all([
     getIdMaintenanceSettings(),
     prisma.idStockReceipt.findMany({
       select: {
@@ -62,6 +61,9 @@ export async function getIdStockView(): Promise<IdStockView> {
     prisma.idBadPrintEntry.aggregate({
       where: { status: { not: "CANCELLED" } },
       _sum: { quantity: true },
+    }),
+    prisma.idSurrenderEntry.aggregate({
+      _sum: { idCardsReturned: true, slingsReturned: true },
     }),
   ]);
 
@@ -103,13 +105,14 @@ export async function getIdStockView(): Promise<IdStockView> {
     .filter((row) => row.slingKind === "EMPLOYEE")
     .reduce((sum, row) => sum + (row._sum.slingsUsed ?? 0), 0);
   const cardsWasted = wasteAgg._sum.quantity ?? 0;
-  const { cardsRemaining, slingsRemaining } = calculateIdStock({
-    cardsReceived,
-    cardsReleased,
-    cardsWasted,
-    slingsReceived,
-    slingsUsed,
-  });
+  const cardsSurrendered = surrenderAgg._sum.idCardsReturned ?? 0;
+  const studentSlingsSurrendered = surrenderAgg._sum.slingsReturned ?? 0;
+  const studentSlingsRemaining =
+    studentSlingsReceived - studentSlingsUsed + studentSlingsSurrendered;
+  const employeeSlingsRemaining = employeeSlingsReceived - employeeSlingsUsed;
+  const cardsRemaining =
+    cardsReceived - cardsReleased - cardsWasted + cardsSurrendered;
+  const slingsRemaining = studentSlingsRemaining + employeeSlingsRemaining;
   const cardItemName =
     itemOptions.find((option) => option.category === "ID_CARD" && option.active)?.name ??
     "PLAIN WHITE PVC CARD";
@@ -142,6 +145,7 @@ export async function getIdStockView(): Promise<IdStockView> {
     cardsReceived,
     cardsReleased,
     cardsWasted,
+    cardsSurrendered,
     cardsRemaining,
     cardPackNote: buildCardPackNote(cardReceipts, settings.cardsPerBox, cardItemName),
     slingPacks: slingReceipts.reduce((sum, row) => sum + row.packsReceived, 0),
@@ -151,10 +155,11 @@ export async function getIdStockView(): Promise<IdStockView> {
     slingPackNote: buildSlingPackNote(slingReceipts, settings.slingsPerBundle),
     studentSlingsReceived,
     studentSlingsUsed,
-    studentSlingsRemaining: studentSlingsReceived - studentSlingsUsed,
+    studentSlingsSurrendered,
+    studentSlingsRemaining,
     employeeSlingsReceived,
     employeeSlingsUsed,
-    employeeSlingsRemaining: employeeSlingsReceived - employeeSlingsUsed,
+    employeeSlingsRemaining,
     cardItemName,
     supplyPieces,
     lowCards: cardReceipts.length > 0 && cardsRemaining <= settings.lowIdCardThreshold,
@@ -204,6 +209,15 @@ export async function listIdBadPrints(period: IdPeriod) {
   return prisma.idBadPrintEntry.findMany({
     where: range ? { datePrinted: range } : undefined,
     orderBy: [{ datePrinted: "desc" }, { createdAt: "desc" }],
+    take: 300,
+  });
+}
+
+export async function listIdSurrenders(period: IdPeriod) {
+  const range = periodFilter(period);
+  return prisma.idSurrenderEntry.findMany({
+    where: range ? { surrenderDate: range } : undefined,
+    orderBy: [{ surrenderDate: "desc" }, { createdAt: "desc" }],
     take: 300,
   });
 }
@@ -456,6 +470,59 @@ export async function deleteIdBadPrint(id: string) {
   await prisma.idBadPrintEntry.delete({ where: { id } });
 }
 
+export async function createIdSurrender(input: {
+  personName: string;
+  course: string;
+  yearLevel?: string | null;
+  idNumber: string;
+  surrenderDate: string;
+  idCardsReturned: number;
+  slingsReturned: number;
+  receivedBy: string;
+  notes?: string | null;
+  studentId?: string | null;
+}) {
+  if (input.idCardsReturned < 1 && input.slingsReturned < 1) {
+    throw new IdStockError("Record the ID card, the sling, or both.");
+  }
+
+  return prisma.idSurrenderEntry.create({
+    data: {
+      personName: input.personName.trim(),
+      course: input.course.trim(),
+      yearLevel: input.yearLevel?.trim() || null,
+      idNumber: input.idNumber.trim(),
+      surrenderDate: getManilaDayStart(input.surrenderDate),
+      idCardsReturned: input.idCardsReturned,
+      slingsReturned: input.slingsReturned,
+      receivedBy: input.receivedBy.trim(),
+      notes: input.notes?.trim() || null,
+      studentId: await resolveStudentId(input.studentId),
+    },
+  });
+}
+
+export async function deleteIdSurrender(id: string) {
+  const record = await prisma.idSurrenderEntry.findUnique({ where: { id } });
+  if (!record) {
+    throw new IdStockError("Withdrawal record was not found.");
+  }
+
+  const stock = await getIdStockView();
+  if (stock.cardsRemaining - record.idCardsReturned < 0) {
+    throw new IdStockError(
+      "Those returned cards have already been used again, so this withdrawal cannot be removed."
+    );
+  }
+  if (stock.studentSlingsRemaining - record.slingsReturned < 0) {
+    throw new IdStockError(
+      "Those returned slings have already been used again, so this withdrawal cannot be removed."
+    );
+  }
+
+  await prisma.idSurrenderEntry.delete({ where: { id } });
+}
+
 export async function updateIdMaintenanceSettings(input: {
   cardsPerBox: number;
   slingsPerBundle: number;
@@ -577,7 +644,7 @@ export async function removeIdItemOption(id: string) {
 
 export async function listIdHistory(period: IdPeriod): Promise<IdHistoryEvent[]> {
   const range = periodFilter(period);
-  const [receipts, releases, badPrints] = await Promise.all([
+  const [receipts, releases, badPrints, surrenders] = await Promise.all([
     prisma.idStockReceipt.findMany({
       where: range ? { dateReceived: range } : undefined,
       include: { itemOption: true },
@@ -592,6 +659,11 @@ export async function listIdHistory(period: IdPeriod): Promise<IdHistoryEvent[]>
     prisma.idBadPrintEntry.findMany({
       where: range ? { datePrinted: range } : undefined,
       orderBy: [{ datePrinted: "desc" }, { createdAt: "desc" }],
+      take: 400,
+    }),
+    prisma.idSurrenderEntry.findMany({
+      where: range ? { surrenderDate: range } : undefined,
+      orderBy: [{ surrenderDate: "desc" }, { createdAt: "desc" }],
       take: 400,
     }),
   ]);
@@ -643,6 +715,16 @@ export async function listIdHistory(period: IdPeriod): Promise<IdHistoryEvent[]>
       cards: wastesCardStock(record.status) ? -record.quantity : 0,
       slings: 0,
       sort: record.datePrinted.getTime(),
+    })),
+    ...surrenders.map((record) => ({
+      id: `surrender-${record.id}`,
+      dateLabel: formatIdDate(record.surrenderDate),
+      kind: "SURRENDER" as const,
+      title: record.personName,
+      detail: `${record.course}${record.yearLevel ? ` · ${record.yearLevel}` : ""} · ${record.idNumber} · withdrew, received by ${record.receivedBy}`,
+      cards: record.idCardsReturned,
+      slings: record.slingsReturned,
+      sort: record.surrenderDate.getTime(),
     })),
   ];
 

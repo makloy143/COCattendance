@@ -277,12 +277,19 @@ export function calculateIdStock(input: {
   cardsReceived: number;
   cardsReleased: number;
   cardsWasted: number;
+  cardsSurrendered?: number;
   slingsReceived: number;
   slingsUsed: number;
+  slingsSurrendered?: number;
 }) {
   return {
-    cardsRemaining: input.cardsReceived - input.cardsReleased - input.cardsWasted,
-    slingsRemaining: input.slingsReceived - input.slingsUsed,
+    cardsRemaining:
+      input.cardsReceived -
+      input.cardsReleased -
+      input.cardsWasted +
+      (input.cardsSurrendered ?? 0),
+    slingsRemaining:
+      input.slingsReceived - input.slingsUsed + (input.slingsSurrendered ?? 0),
   };
 }
 
@@ -353,6 +360,7 @@ export type IdStockView = {
   cardsReceived: number;
   cardsReleased: number;
   cardsWasted: number;
+  cardsSurrendered: number;
   cardsRemaining: number;
   cardPackNote: string;
   slingPacks: number;
@@ -362,6 +370,7 @@ export type IdStockView = {
   slingPackNote: string;
   studentSlingsReceived: number;
   studentSlingsUsed: number;
+  studentSlingsSurrendered: number;
   studentSlingsRemaining: number;
   employeeSlingsReceived: number;
   employeeSlingsUsed: number;
@@ -405,7 +414,19 @@ export type IdReleaseRow = {
   slingKind: IdSlingKind | null;
 };
 
-export type IdHistoryKind = "RECEIPT" | "RELEASE" | "BAD_PRINT";
+export type IdSurrenderRow = {
+  id: string;
+  personName: string;
+  course: string;
+  yearLevel: string | null;
+  idNumber: string;
+  dateLabel: string;
+  idCardsReturned: number;
+  slingsReturned: number;
+  receivedBy: string;
+};
+
+export type IdHistoryKind = "RECEIPT" | "RELEASE" | "BAD_PRINT" | "SURRENDER";
 
 export type IdHistoryEvent = {
   id: string;

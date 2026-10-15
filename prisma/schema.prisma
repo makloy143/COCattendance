@@ -85,6 +85,7 @@ model Student {
   idErrors          IdErrorRecord[]
   idReleaseEntries  IdReleaseEntry[]
   idBadPrintEntries IdBadPrintEntry[]
+  idSurrenders      IdSurrenderEntry[]
   photo             StudentPhoto?
 
   @@unique([department, studentId])
@@ -417,6 +418,25 @@ model IdReleaseEntry {
 
   @@index([transactionDate])
   @@index([status])
+  @@index([studentId])
+}
+
+model IdSurrenderEntry {
+  id              String    @id @default(cuid())
+  personName      String
+  course          String
+  yearLevel       String?
+  idNumber        String
+  surrenderDate   DateTime
+  idCardsReturned Int       @default(1)
+  slingsReturned  Int       @default(1)
+  receivedBy      String
+  notes           String?
+  studentId       String?
+  student         Student?  @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  createdAt       DateTime  @default(now())
+
+  @@index([surrenderDate])
   @@index([studentId])
 }
 

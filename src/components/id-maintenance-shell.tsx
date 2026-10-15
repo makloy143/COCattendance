@@ -14,6 +14,7 @@ import {
   Menu,
   Printer,
   Settings,
+  Undo2,
   UserRound,
   X,
 } from "lucide-react";
@@ -26,6 +27,7 @@ const navItems = [
   { href: "/inventory/id", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/inventory/id/inventory", label: "ID Inventory", icon: IdCard },
   { href: "/inventory/id/release", label: "ID Release", icon: Printer },
+  { href: "/inventory/id/withdrawal", label: "Withdrawal", icon: Undo2 },
   { href: "/inventory/id/bad-printing", label: "Bad Printing", icon: AlertTriangle },
   { href: "/inventory/id/slings", label: "Sling Inventory", icon: Link2 },
   { href: "/inventory/id/history", label: "Stock & Usage History", icon: History },

@@ -23,12 +23,14 @@ const KIND_FILTERS: Array<{ id: "all" | IdHistoryKind; label: string }> = [
   { id: "RECEIPT", label: "Stock receipts" },
   { id: "RELEASE", label: "ID releases" },
   { id: "BAD_PRINT", label: "Bad printing" },
+  { id: "SURRENDER", label: "Withdrawals" },
 ];
 
 const KIND_LABELS: Record<IdHistoryKind, string> = {
   RECEIPT: "Stock receipt",
   RELEASE: "ID release",
   BAD_PRINT: "Bad printing",
+  SURRENDER: "Withdrawal",
 };
 
 function formatMovement(value: number) {
@@ -46,7 +48,10 @@ export default async function IdHistoryPage({
   const params = await searchParams;
   const period = parseIdPeriod(params.period);
   const kind =
-    params.kind === "RECEIPT" || params.kind === "RELEASE" || params.kind === "BAD_PRINT"
+    params.kind === "RECEIPT" ||
+    params.kind === "RELEASE" ||
+    params.kind === "BAD_PRINT" ||
+    params.kind === "SURRENDER"
       ? params.kind
       : "all";
   const events = await listIdHistory(period);

@@ -574,6 +574,37 @@ export const idBadPrintSchema = z.object({
   studentId: z.string().optional().or(z.literal("")),
 });
 
+export const idSurrenderSchema = z
+  .object({
+    personName: z.string().trim().min(1, "Name is required").max(200),
+    course: z.string().trim().min(1, "Course is required").max(100),
+    yearLevel: z.string().trim().max(50).optional().or(z.literal("")),
+    idNumber: z.string().trim().min(1, "ID number is required").max(50),
+    surrenderDate: idDateSchema,
+    idCardsReturned: z.coerce
+      .number()
+      .int()
+      .min(0, "ID cards returned cannot be negative")
+      .max(5, "ID cards returned cannot be more than 5 on one record"),
+    slingsReturned: z.coerce
+      .number()
+      .int()
+      .min(0, "Slings returned cannot be negative")
+      .max(5, "Slings returned cannot be more than 5 on one record"),
+    receivedBy: z.string().trim().min(1, "Received by is required").max(200),
+    notes: z.string().max(500).optional().or(z.literal("")),
+    studentId: z.string().optional().or(z.literal("")),
+  })
+  .superRefine((data, ctx) => {
+    if (data.idCardsReturned < 1 && data.slingsReturned < 1) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Record the ID card, the sling, or both",
+        path: ["idCardsReturned"],
+      });
+    }
+  });
+
 export const idBadPrintStatusSchema = z.object({
   status: z.enum(ID_BAD_PRINT_STATUSES),
 });

@@ -1,4 +1,5 @@
 import { IdBadPrintTable } from "@/components/id-bad-print-table";
+import { IdSurrenderTable } from "@/components/id-surrender-table";
 import { IdReceiveStockForm } from "@/components/id-receive-stock-form";
 import { IdReleaseTable } from "@/components/id-release-table";
 import { IdInventoryOverview, IdKpiGrid } from "@/components/id-stock-summary";
@@ -9,6 +10,7 @@ import {
   listIdBadPrints,
   listIdItemOptions,
   listIdReleases,
+  listIdSurrenders,
 } from "@/lib/id-maintenance-data";
 import {
   ID_PERIOD_LABELS,
@@ -16,6 +18,7 @@ import {
   parseIdPeriod,
   type IdBadPrintRow,
   type IdReleaseRow,
+  type IdSurrenderRow,
 } from "@/lib/id-maintenance";
 
 export const dynamic = "force-dynamic";
@@ -28,12 +31,13 @@ export default async function IdMaintenanceDashboardPage({
   await requireInventorySession();
   const params = await searchParams;
   const period = parseIdPeriod(params.period);
-  const [stock, activity, badPrints, releases, itemTypes] = await Promise.all([
+  const [stock, activity, badPrints, releases, itemTypes, surrenders] = await Promise.all([
     getIdStockView(),
     getIdPeriodActivity(period),
     listIdBadPrints(period),
     listIdReleases(period),
     listIdItemOptions({ activeOnly: true }),
+    listIdSurrenders(period),
   ]);
 
   const badPrintRows: IdBadPrintRow[] = badPrints.map((record) => ({
@@ -59,6 +63,18 @@ export default async function IdMaintenanceDashboardPage({
     idCardsUsed: record.idCardsUsed,
     slingsUsed: record.slingsUsed,
     slingKind: record.slingKind,
+  }));
+
+  const surrenderRows: IdSurrenderRow[] = surrenders.map((record) => ({
+    id: record.id,
+    personName: record.personName,
+    course: record.course,
+    yearLevel: record.yearLevel,
+    idNumber: record.idNumber,
+    dateLabel: formatIdDate(record.surrenderDate),
+    idCardsReturned: record.idCardsReturned,
+    slingsReturned: record.slingsReturned,
+    receivedBy: record.receivedBy,
   }));
 
   return (
@@ -87,6 +103,7 @@ export default async function IdMaintenanceDashboardPage({
         slingsUsed={activity.slingsUsed}
         truncated={activity.releaseCount > releaseRows.length}
       />
+      <IdSurrenderTable rows={surrenderRows} />
     </div>
   );
 }
