@@ -37,14 +37,32 @@ export function IdKpiGrid({
       alert: stock.lowCards ? "Low Stock" : null,
     },
     {
-      title: "Sling in Stock",
-      value: formatCount(stock.slingsRemaining),
+      title: "Student sling in stock",
+      value: formatCount(stock.studentSlingsRemaining),
       unit: "pcs",
       note: "Current balance",
       icon: Link2,
       className: "border-[#d7efe0] bg-[#f3faf4]",
       iconClass: "bg-[#14875a] text-white",
-      alert: stock.lowSlings ? "Low Stock" : null,
+      alert:
+        (stock.studentSlingsReceived > 0 || stock.studentSlingsUsed > 0) &&
+        stock.studentSlingsRemaining <= stock.lowSlingThreshold
+          ? "Low Stock"
+          : null,
+    },
+    {
+      title: "Employee sling in stock",
+      value: formatCount(stock.employeeSlingsRemaining),
+      unit: "pcs",
+      note: "Current balance",
+      icon: Link2,
+      className: "border-[#d7efe0] bg-[#f3faf4]",
+      iconClass: "bg-[#0f766e] text-white",
+      alert:
+        (stock.employeeSlingsReceived > 0 || stock.employeeSlingsUsed > 0) &&
+        stock.employeeSlingsRemaining <= stock.lowSlingThreshold
+          ? "Low Stock"
+          : null,
     },
     {
       title: "IDs Released",
@@ -69,7 +87,7 @@ export function IdKpiGrid({
   ];
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {cards.map((card) => (
         <article
           key={card.title}
@@ -249,32 +267,32 @@ export function IdInventoryOverview({ stock }: { stock: IdStockView }) {
               <p className="text-xs text-slate-500">{stock.slingPackNote}</p>
             </div>
           </div>
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <EquationFigure value={stock.slingsReceived} label="Received" tone="green" />
-            <span className="pb-4 text-xl text-slate-400">−</span>
-            <EquationFigure value={stock.slingsUsed} label="Used" tone="blue" />
-            <span className="pb-4 text-xl text-slate-400">=</span>
-            <EquationFigure value={stock.slingsRemaining} label="Remaining" tone="green" />
-          </div>
-          <div className="mt-4 grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
-            <p>
-              Student remaining{" "}
-              <strong className="tabular-nums">{formatCount(stock.studentSlingsRemaining)}</strong>
-              <span className="text-slate-500">
-                {" "}
-                ({formatCount(stock.studentSlingsReceived)} received −{" "}
-                {formatCount(stock.studentSlingsUsed)} used)
-              </span>
-            </p>
-            <p>
-              Employee remaining{" "}
-              <strong className="tabular-nums">{formatCount(stock.employeeSlingsRemaining)}</strong>
-              <span className="text-slate-500">
-                {" "}
-                ({formatCount(stock.employeeSlingsReceived)} received −{" "}
-                {formatCount(stock.employeeSlingsUsed)} used)
-              </span>
-            </p>
+          <div className="space-y-4">
+            {[
+              {
+                name: "Sling for student",
+                received: stock.studentSlingsReceived,
+                used: stock.studentSlingsUsed,
+                remaining: stock.studentSlingsRemaining,
+              },
+              {
+                name: "Sling for employee",
+                received: stock.employeeSlingsReceived,
+                used: stock.employeeSlingsUsed,
+                remaining: stock.employeeSlingsRemaining,
+              },
+            ].map((pool) => (
+              <div key={pool.name} className="border-t pt-4 first:border-t-0 first:pt-0">
+                <p className="mb-3 text-sm font-medium text-slate-800">{pool.name}</p>
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <EquationFigure value={pool.received} label="Received" tone="green" />
+                  <span className="pb-4 text-xl text-slate-400">−</span>
+                  <EquationFigure value={pool.used} label="Used" tone="blue" />
+                  <span className="pb-4 text-xl text-slate-400">=</span>
+                  <EquationFigure value={pool.remaining} label="Remaining" tone="green" />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
