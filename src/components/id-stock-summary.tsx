@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, IdCard, Link2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, IdCard, Link2, Printer } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -207,6 +207,8 @@ export function IdCardBoxTable({
 }
 
 export function IdInventoryOverview({ stock }: { stock: IdStockView }) {
+  const supplyBoxesReceived = stock.supplyBoxes.reduce((sum, supply) => sum + supply.boxes, 0);
+
   return (
     <section className="rounded-xl border bg-white shadow-sm">
       <div className="border-b px-4 py-3 sm:px-5">
@@ -279,18 +281,36 @@ export function IdInventoryOverview({ stock }: { stock: IdStockView }) {
         </div>
 
         <div className="rounded-xl border bg-[#fbfefc] p-4">
-          <p className="font-medium">Printer supplies</p>
-          <p className="mt-1 text-xs text-slate-500">
-            Boxes on hand. These do not change ID card or sling remaining.
-          </p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <div className="mb-4 flex items-start gap-3">
+            <span className="flex size-9 items-center justify-center rounded-lg bg-[#1d6f8a] text-white">
+              <Printer className="size-4" />
+            </span>
+            <div>
+              <p className="font-medium">Printer supplies</p>
+              <p className="text-xs text-slate-500">
+                Boxes on hand. These do not change ID card or sling remaining.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <EquationFigure value={supplyBoxesReceived} label="Received" tone="green" />
+            <span className="pb-4 text-xl text-slate-400">−</span>
+            <EquationFigure value={0} label="Used" tone="blue" />
+            <span className="pb-4 text-xl text-slate-400">=</span>
+            <EquationFigure value={supplyBoxesReceived} label="Remaining" tone="green" />
+          </div>
+          <div className="mt-4 grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
             {stock.supplyBoxes.length === 0 ? (
               <p className="text-sm text-slate-500">No printer supply boxes yet.</p>
             ) : (
               stock.supplyBoxes.map((supply) => (
-                <p key={supply.id} className="text-sm text-slate-700">
-                  {supply.name}{" "}
+                <p key={supply.id}>
+                  {supply.name} remaining{" "}
                   <strong className="tabular-nums">{formatCount(supply.boxes)}</strong>
+                  <span className="text-slate-500">
+                    {" "}
+                    ({formatCount(supply.boxes)} received − 0 used)
+                  </span>
                 </p>
               ))
             )}
