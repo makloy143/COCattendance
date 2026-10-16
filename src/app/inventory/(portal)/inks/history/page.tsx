@@ -11,7 +11,7 @@ export default async function InkHistoryPage() {
   return (
     <div className="space-y-4">
       <InkRecordTable title="Receiving records" rows={view.receipts} personHeading="Received by" />
-      <InkRecordTable title="Release records" rows={view.releases} personHeading="Released to" />
+      <InkRecordTable title="Release records" rows={view.releases} personHeading="Released to" releaseRemovable />
     </div>
   );
 }

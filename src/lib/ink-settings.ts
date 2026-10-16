@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { IdStockError } from "@/lib/id-maintenance";
+import { deleteInkReceiptsByName } from "@/lib/ink-stock";
 import type { InkColor } from "@/lib/inventory";
 
 function normalizeModelName(name: string) {
@@ -164,14 +165,7 @@ export async function removeInkModel(id: string) {
   if (!option) {
     throw new IdStockError("Ink model was not found.");
   }
-  const receipts = await receiptCountFor(option.name);
-  if (receipts > 0) {
-    await prisma.inkModelOption.update({
-      where: { id },
-      data: { active: false },
-    });
-    return { deactivated: true as const };
-  }
+  await deleteInkReceiptsByName(option.name);
   await prisma.inkModelOption.delete({ where: { id } });
   return { deactivated: false as const };
 }

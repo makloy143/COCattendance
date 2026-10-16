@@ -136,7 +136,7 @@ export function InkDashboard({
                       modelName={model.name}
                       label="Clear"
                       variant="ghost"
-                      confirmMessage={`Clear ${model.balance} available bottle${model.balance === 1 ? "" : "s"} of ${model.name}? Released bottles stay in history.`}
+                      confirmMessage={`Clear ${model.balance} available bottle${model.balance === 1 ? "" : "s"} of ${model.name}? This also removes that model's release quantity.`}
                     />
                   ) : null}
                 </div>
@@ -155,7 +155,7 @@ export function InkDashboard({
       </div>
 
       <InkRecordTable title="Receiving records" rows={view.receipts} personHeading="Received by" />
-      <InkRecordTable title="Release records" rows={view.releases} personHeading="Released to" />
+      <InkRecordTable title="Release records" rows={view.releases} personHeading="Released to" releaseRemovable />
     </div>
   );
 }
@@ -189,14 +189,16 @@ export function InkRecordTable({
   rows,
   personHeading,
   removable = false,
+  releaseRemovable = false,
 }: {
   title: string;
   rows: InkRecordRow[];
   personHeading: string;
   removable?: boolean;
+  releaseRemovable?: boolean;
 }) {
-  const columns = removable
-    ? ["Date", "Ink model", "Qty", "Available", personHeading, "Department", ""]
+  const columns = removable || releaseRemovable
+    ? ["Date", "Ink model", "Qty", ...(removable ? ["Available"] : []), personHeading, "Department", ""]
     : ["Date", "Ink model", "Qty", personHeading, "Department"];
 
   return (
@@ -232,14 +234,21 @@ export function InkRecordTable({
                 ) : null}
                 <TableCell>{row.person}</TableCell>
                 <TableCell>{row.department}</TableCell>
-                {removable ? (
+                {removable || releaseRemovable ? (
                   <TableCell>
-                    {(row.available ?? 0) > 0 ? (
+                    {removable && (row.available ?? 0) > 0 ? (
                       <InkClearStockButton
                         endpoint={`/api/inventory/inks/stock/${row.id}`}
                         label="Remove"
                         variant="ghost"
-                        confirmMessage={`Remove ${row.available} available bottle${row.available === 1 ? "" : "s"} of ${row.model}? Released bottles stay in history.`}
+                        confirmMessage={`Remove ${row.available} available bottle${row.available === 1 ? "" : "s"} of ${row.model}? This also removes its release quantity.`}
+                      />
+                    ) : releaseRemovable ? (
+                      <InkClearStockButton
+                        endpoint={`/api/inventory/inks/releases/${row.id}`}
+                        label="Remove"
+                        variant="ghost"
+                        confirmMessage={`Remove this release of ${row.quantity} ${row.model}?`}
                       />
                     ) : (
                       <span className="text-xs text-slate-400">None left</span>

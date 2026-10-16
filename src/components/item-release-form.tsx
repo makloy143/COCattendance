@@ -79,9 +79,20 @@ export function ItemReleaseForm({
           itemType: "CONSUMABLE",
         });
         if (category) params.set("category", category);
-        const response = await fetch(`/api/inventory/received?${params.toString()}`);
+        const response = await fetch(`/api/inventory/received?${params.toString()}`, {
+          cache: "no-store",
+        });
         const data = await response.json();
-        setAvailableItems(Array.isArray(data) ? data : []);
+        const list = Array.isArray(data)
+          ? data.filter((item: AvailableItem) => item.availableQuantity > 0)
+          : [];
+        setAvailableItems(list);
+        setValues((current) => {
+          if (!current.receivedItemId || list.some((item: AvailableItem) => item.id === current.receivedItemId)) {
+            return current;
+          }
+          return { ...current, receivedItemId: "", quantityBorrowed: 1 };
+        });
         if (!response.ok) {
           toast.error(data.error ?? "Failed to load items");
         }

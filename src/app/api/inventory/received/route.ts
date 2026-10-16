@@ -87,16 +87,20 @@ export async function GET(request: NextRequest) {
       | ItemType
       | undefined;
 
-    const items = await fetchReceivedItems({ search, category, itemType });
-    const serialized = items.map(serializeReceivedItem);
-
-    if (availableOnly) {
-      return NextResponse.json(
-        serialized.filter((item) => item.availableQuantity > 0)
-      );
+    if (category === "INK") {
+      const { deleteInactiveInkReceipts } = await import("@/lib/ink-stock");
+      await deleteInactiveInkReceipts();
     }
 
-    return NextResponse.json(serialized);
+    const items = await fetchReceivedItems({ search, category, itemType });
+    const serialized = items.map(serializeReceivedItem);
+    const body = availableOnly
+      ? serialized.filter((item) => item.availableQuantity > 0)
+      : serialized;
+
+    return NextResponse.json(body, {
+      headers: { "Cache-Control": "no-store" },
+    });
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

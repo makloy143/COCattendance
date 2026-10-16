@@ -135,8 +135,8 @@ export function InkModelSettings({ options }: { options: InkModelSettingsRow[] }
         <h2 className="text-base font-semibold">Ink models</h2>
         <p className="mt-1 text-sm text-slate-600">
           These names appear when you receive ink. Each model keeps its own
-          bottle balance. Removing a model that already has receipts hides it
-          from the receive form and leaves the past bottles on the dashboard.
+          bottle balance. Removing a model also removes its bottles and any
+          release quantity, so it no longer appears on Ink Release.
         </p>
       </div>
 

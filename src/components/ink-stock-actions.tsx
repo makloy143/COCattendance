@@ -30,13 +30,21 @@ export function InkClearStockButton({
         headers: { "Content-Type": "application/json" },
         body: endpoint ? undefined : JSON.stringify(modelName ? { modelName } : {}),
       });
-      const data = (await response.json().catch(() => ({}))) as { cleared?: number; error?: string };
+      const data = (await response.json().catch(() => ({}))) as {
+        cleared?: number;
+        removed?: boolean;
+        error?: string;
+      };
       if (!response.ok) {
         toast.error(data.error ?? "Could not clear available ink");
         return;
       }
-      const count = data.cleared ?? 0;
-      toast.success(count === 1 ? "Cleared 1 available bottle" : `Cleared ${count} available bottles`);
+      if (data.removed) {
+        toast.success("Release removed");
+      } else {
+        const count = data.cleared ?? 0;
+        toast.success(count === 1 ? "Cleared 1 available bottle" : `Cleared ${count} available bottles`);
+      }
       router.refresh();
     } catch {
       toast.error("Could not clear available ink");

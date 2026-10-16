@@ -17,13 +17,13 @@ export default async function InkInventoryPage() {
           <div>
             <h2 className="text-base font-semibold">Ink inventory</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Remaining bottles are the current balance. Clear or remove only the bottles still available. Released bottles stay in history.
+              Remaining bottles are the current balance. Clear or remove deletes the available bottles and their release quantity.
             </p>
           </div>
           {view.remaining > 0 ? (
             <InkClearStockButton
               label="Clear available stock"
-              confirmMessage={`Clear all ${view.remaining} available ink bottles? Released bottles stay in history.`}
+              confirmMessage={`Clear all ${view.remaining} available ink bottles? This also removes their release quantity.`}
             />
           ) : null}
         </div>
