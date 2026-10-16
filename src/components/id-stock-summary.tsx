@@ -207,8 +207,6 @@ export function IdCardBoxTable({
 }
 
 export function IdInventoryOverview({ stock }: { stock: IdStockView }) {
-  const supplyBoxesReceived = stock.supplyBoxes.reduce((sum, supply) => sum + supply.boxes, 0);
-
   return (
     <section className="rounded-xl border bg-white shadow-sm">
       <div className="border-b px-4 py-3 sm:px-5">
@@ -292,26 +290,21 @@ export function IdInventoryOverview({ stock }: { stock: IdStockView }) {
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <EquationFigure value={supplyBoxesReceived} label="Received" tone="green" />
-            <span className="pb-4 text-xl text-slate-400">−</span>
-            <EquationFigure value={0} label="Used" tone="blue" />
-            <span className="pb-4 text-xl text-slate-400">=</span>
-            <EquationFigure value={supplyBoxesReceived} label="Remaining" tone="green" />
-          </div>
-          <div className="mt-4 grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
+          <div className="space-y-4">
             {stock.supplyBoxes.length === 0 ? (
               <p className="text-sm text-slate-500">No printer supply boxes yet.</p>
             ) : (
               stock.supplyBoxes.map((supply) => (
-                <p key={supply.id}>
-                  {supply.name} remaining{" "}
-                  <strong className="tabular-nums">{formatCount(supply.boxes)}</strong>
-                  <span className="text-slate-500">
-                    {" "}
-                    ({formatCount(supply.boxes)} received − 0 used)
-                  </span>
-                </p>
+                <div key={supply.id} className="border-t pt-4 first:border-t-0 first:pt-0">
+                  <p className="mb-3 text-sm font-medium text-slate-800">{supply.name}</p>
+                  <div className="flex flex-wrap items-end justify-between gap-3">
+                    <EquationFigure value={supply.boxes} label="Received" tone="green" />
+                    <span className="pb-4 text-xl text-slate-400">−</span>
+                    <EquationFigure value={0} label="Used" tone="blue" />
+                    <span className="pb-4 text-xl text-slate-400">=</span>
+                    <EquationFigure value={supply.boxes} label="Remaining" tone="green" />
+                  </div>
+                </div>
               ))
             )}
           </div>
