@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2, Droplets, PackagePlus } from "lucide-react";
 import { InkReceiveForm } from "@/components/ink-receive-form";
+import { InkClearStockButton } from "@/components/ink-stock-actions";
 import {
   Table,
   TableBody,
@@ -119,10 +120,20 @@ export function InkDashboard({
           <div className="space-y-3 p-4 sm:p-5">
             {view.models.map((model) => (
               <div key={model.key} className="rounded-xl border bg-[#fbfefc] p-4">
-                <div className="mb-4 flex items-center gap-3">
-                  <InkBadge name={model.name} inkColor={model.inkColor} />
-                  {model.received > 0 && model.balance <= view.lowStockAtMost ? (
-                    <span className="text-[11px] font-semibold text-amber-800">Low stock</span>
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <InkBadge name={model.name} inkColor={model.inkColor} />
+                    {model.received > 0 && model.balance <= view.lowStockAtMost ? (
+                      <span className="text-[11px] font-semibold text-amber-800">Low stock</span>
+                    ) : null}
+                  </div>
+                  {model.balance > 0 ? (
+                    <InkClearStockButton
+                      modelName={model.name}
+                      label="Clear"
+                      variant="ghost"
+                      confirmMessage={`Clear ${model.balance} available bottle${model.balance === 1 ? "" : "s"} of ${model.name}? Released bottles stay in history.`}
+                    />
                   ) : null}
                 </div>
                 <div className="flex flex-wrap items-end justify-between gap-3">
@@ -173,11 +184,17 @@ export function InkRecordTable({
   title,
   rows,
   personHeading,
+  removable = false,
 }: {
   title: string;
   rows: InkRecordRow[];
   personHeading: string;
+  removable?: boolean;
 }) {
+  const columns = removable
+    ? ["Date", "Ink model", "Qty", "Available", personHeading, "Department", ""]
+    : ["Date", "Ink model", "Qty", personHeading, "Department"];
+
   return (
     <section className="overflow-hidden rounded-xl border bg-white shadow-sm">
       <div className="border-b px-4 py-3">
@@ -186,15 +203,15 @@ export function InkRecordTable({
       <Table>
         <TableHeader>
           <TableRow>
-            {["Date", "Ink model", "Qty", personHeading, "Department"].map((heading) => (
-              <TableHead key={heading}>{heading}</TableHead>
+            {columns.map((heading) => (
+              <TableHead key={heading || "actions"}>{heading}</TableHead>
             ))}
           </TableRow>
         </TableHeader>
         <TableBody>
           {rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="py-8 text-center text-sm text-slate-500">
+              <TableCell colSpan={columns.length} className="py-8 text-center text-sm text-slate-500">
                 Nothing in this period.
               </TableCell>
             </TableRow>
@@ -206,8 +223,25 @@ export function InkRecordTable({
                   <InkBadge name={row.model} inkColor={row.inkColor} />
                 </TableCell>
                 <TableCell className="tabular-nums">{formatCount(row.quantity)}</TableCell>
+                {removable ? (
+                  <TableCell className="tabular-nums">{formatCount(row.available ?? 0)}</TableCell>
+                ) : null}
                 <TableCell>{row.person}</TableCell>
                 <TableCell>{row.department}</TableCell>
+                {removable ? (
+                  <TableCell>
+                    {(row.available ?? 0) > 0 ? (
+                      <InkClearStockButton
+                        endpoint={`/api/inventory/inks/stock/${row.id}`}
+                        label="Remove"
+                        variant="ghost"
+                        confirmMessage={`Remove ${row.available} available bottle${row.available === 1 ? "" : "s"} of ${row.model}? Released bottles stay in history.`}
+                      />
+                    ) : (
+                      <span className="text-xs text-slate-400">None left</span>
+                    )}
+                  </TableCell>
+                ) : null}
               </TableRow>
             ))
           )}

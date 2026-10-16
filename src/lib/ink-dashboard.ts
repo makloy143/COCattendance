@@ -43,6 +43,7 @@ export type InkRecordRow = {
   model: string;
   inkColor: InkColor | null;
   quantity: number;
+  available?: number;
   dateLabel: string;
   person: string;
   department: string;
@@ -141,11 +142,21 @@ export function buildInkDashboard(input: {
   const received = periodReceipts.reduce((sum, row) => sum + row.quantity, 0);
   const released = periodReleases.reduce((sum, row) => sum + row.quantity, 0);
 
-  const toRow = (row: { id: string; itemName?: string; inkColor: InkColor | null; quantity: number; at: Date; person: string; department: string }): InkRecordRow => ({
+  const toRow = (row: {
+    id: string;
+    itemName?: string;
+    inkColor: InkColor | null;
+    quantity: number;
+    available?: number;
+    at: Date;
+    person: string;
+    department: string;
+  }): InkRecordRow => ({
     id: row.id,
     model: row.itemName ?? "Ink",
     inkColor: row.inkColor,
     quantity: row.quantity,
+    available: row.available,
     dateLabel: formatInkDate(row.at),
     person: row.person,
     department: row.department,
@@ -169,6 +180,7 @@ export function buildInkDashboard(input: {
           itemName: row.itemName,
           inkColor: row.inkColor,
           quantity: row.quantity,
+          available: row.balance,
           at: row.dateReceived,
           person: row.person,
           department: row.department,
