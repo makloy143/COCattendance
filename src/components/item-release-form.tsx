@@ -51,7 +51,19 @@ const emptyValues: BorrowRecordFormValues = {
   notes: "",
 };
 
-export function ItemReleaseForm() {
+export function ItemReleaseForm({
+  category,
+  afterReleaseHref = "/inventory/releases",
+  logsHref = "/inventory/releases",
+  cancelHref = "/inventory/received",
+  receiveHref = "/inventory/received/new",
+}: {
+  category?: ItemCategory;
+  afterReleaseHref?: string;
+  logsHref?: string;
+  cancelHref?: string;
+  receiveHref?: string;
+} = {}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [itemsLoading, setItemsLoading] = useState(true);
@@ -62,9 +74,12 @@ export function ItemReleaseForm() {
     async function loadItems() {
       setItemsLoading(true);
       try {
-        const response = await fetch(
-          "/api/inventory/received?availableOnly=true&itemType=CONSUMABLE"
-        );
+        const params = new URLSearchParams({
+          availableOnly: "true",
+          itemType: "CONSUMABLE",
+        });
+        if (category) params.set("category", category);
+        const response = await fetch(`/api/inventory/received?${params.toString()}`);
         const data = await response.json();
         setAvailableItems(Array.isArray(data) ? data : []);
         if (!response.ok) {
@@ -79,7 +94,7 @@ export function ItemReleaseForm() {
     }
 
     loadItems();
-  }, []);
+  }, [category]);
 
   const selectedItem = availableItems.find(
     (item) => item.id === values.receivedItemId
@@ -167,7 +182,7 @@ export function ItemReleaseForm() {
       }
 
       toast.success("Item released and logged");
-      router.push("/inventory/releases");
+      router.push(afterReleaseHref);
       router.refresh();
     } catch {
       toast.error("Failed to release item");
@@ -192,7 +207,7 @@ export function ItemReleaseForm() {
                 <p className="text-sm text-muted-foreground">
                   No items in stock. Log a received item first.
                 </p>
-                <ButtonLink href="/inventory/received/new" variant="outline" size="sm">
+                <ButtonLink href={receiveHref} variant="outline" size="sm">
                   Log received item
                 </ButtonLink>
               </div>
@@ -301,14 +316,14 @@ export function ItemReleaseForm() {
         <Button
           type="button"
           variant="outline"
-          onClick={() => router.push("/inventory/releases")}
+          onClick={() => router.push(logsHref)}
         >
           View release logs
         </Button>
         <Button
           type="button"
           variant="outline"
-          onClick={() => router.push("/inventory/received")}
+          onClick={() => router.push(cancelHref)}
         >
           Cancel
         </Button>

@@ -3,7 +3,7 @@ import { getIdPeriodRange, parseIdPeriod, type IdPeriod } from "@/lib/id-mainten
 import { getAvailableQuantity, getReleasedQuantity, type InkColor } from "@/lib/inventory";
 import { buildInkDashboard } from "@/lib/ink-dashboard";
 
-export async function getInkDashboard(periodValue?: string | null) {
+export async function getInkDashboard(periodValue?: string | null, recordLimit = 8) {
   const period: IdPeriod = parseIdPeriod(periodValue);
   const range = getIdPeriodRange(period);
   const items = await prisma.receivedItem.findMany({
@@ -25,6 +25,7 @@ export async function getInkDashboard(periodValue?: string | null) {
 
   return buildInkDashboard({
     range,
+    recordLimit,
     receipts: items.map((item) => ({
       id: item.id,
       itemName: item.itemName,

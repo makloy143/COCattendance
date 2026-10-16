@@ -248,7 +248,6 @@ export function isIdMaintenancePath(pathname: string) {
 }
 
 export function isInkMaintenancePath(pathname: string) {
-  if (pathname === "/inventory/inks/receive") return false;
   return pathname === "/inventory/inks" || pathname.startsWith("/inventory/inks/");
 }
 

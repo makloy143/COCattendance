@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Droplets, LayoutDashboard, LogOut, Menu, Printer, UserRound, X } from "lucide-react";
+import { Droplets, History, LayoutDashboard, LogOut, Menu, Printer, UserRound, X } from "lucide-react";
 import { IdPeriodSelect } from "@/components/id-period-select";
 import { InventoryDashboardSwitcher } from "@/components/inventory-dashboard-switcher";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,9 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/inventory/inks", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { href: "/inventory/inks/inventory", label: "Ink Inventory", icon: Droplets },
   { href: "/inventory/inks/release", label: "Ink Release", icon: Printer },
+  { href: "/inventory/inks/history", label: "Stock & Usage History", icon: History },
 ];
 
 function isActive(pathname: string, href: string, exact?: boolean) {

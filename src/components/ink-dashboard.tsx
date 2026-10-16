@@ -139,8 +139,8 @@ export function InkDashboard({
         <InkReceiveForm />
       </div>
 
-      <RecordTable title="Receiving records" rows={view.receipts} personHeading="Received by" />
-      <RecordTable title="Release records" rows={view.releases} personHeading="Released to" />
+      <InkRecordTable title="Receiving records" rows={view.receipts} personHeading="Received by" />
+      <InkRecordTable title="Release records" rows={view.releases} personHeading="Released to" />
     </div>
   );
 }
@@ -169,7 +169,7 @@ function Figure({
   );
 }
 
-function RecordTable({
+export function InkRecordTable({
   title,
   rows,
   personHeading,

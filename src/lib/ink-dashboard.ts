@@ -102,6 +102,7 @@ export function buildInkDashboard(input: {
   receipts: InkReceiptSource[];
   releases: InkMovement[];
   range: { start: Date; end: Date } | null;
+  recordLimit?: number;
 }): InkDashboardView {
   const matches = (date: Date) =>
     !input.range || inRange(date, input.range.start, input.range.end);
@@ -137,6 +138,7 @@ export function buildInkDashboard(input: {
 
   const periodReceipts = input.receipts.filter((row) => matches(row.dateReceived));
   const periodReleases = input.releases.filter((row) => matches(row.at));
+  const recordLimit = input.recordLimit ?? 8;
   const received = periodReceipts.reduce((sum, row) => sum + row.quantity, 0);
   const released = periodReleases.reduce((sum, row) => sum + row.quantity, 0);
 
@@ -159,7 +161,7 @@ export function buildInkDashboard(input: {
     lowStock,
     receipts: [...periodReceipts]
       .sort((a, b) => b.dateReceived.getTime() - a.dateReceived.getTime())
-      .slice(0, 8)
+      .slice(0, recordLimit)
       .map((row) =>
         toRow({
           id: row.id,
@@ -173,7 +175,7 @@ export function buildInkDashboard(input: {
       ),
     releases: [...periodReleases]
       .sort((a, b) => b.at.getTime() - a.at.getTime())
-      .slice(0, 8)
+      .slice(0, recordLimit)
       .map((row) => toRow(row)),
   };
 }
