@@ -375,8 +375,124 @@ export function buildSlingPackNote(rows: PackRow[], slingsPerBundle: number) {
   return parts.join(" · ");
 }
 
+export type IdCardBoxRow = {
+  id: string;
+  name: string;
+  pieces: number;
+  used: number;
+  remaining: number;
+  startedAt: string | null;
+  endedAt: string | null;
+};
+
+type CardBoxSource = {
+  id: string;
+  name: string;
+  unit: IdReceiptUnit;
+  unitsPerPack: number;
+  unitsAdded: number;
+  receivedAt: Date;
+  createdAt: Date;
+};
+
+type CardUseSource = {
+  at: Date;
+  quantity: number;
+  createdAt: Date;
+};
+
+export function buildCardBoxRows(
+  receipts: CardBoxSource[],
+  uses: CardUseSource[]
+): IdCardBoxRow[] {
+  const ordered = [...receipts].sort(
+    (a, b) => a.receivedAt.getTime() - b.receivedAt.getTime() || a.createdAt.getTime() - b.createdAt.getTime()
+  );
+  const slots: Array<{
+    id: string;
+    name: string;
+    pieces: number;
+    show: boolean;
+    used: number;
+    startedAt: Date | null;
+    endedAt: Date | null;
+  }> = [];
+
+  for (const receipt of ordered) {
+    if (receipt.unit === "PIECE" || receipt.unitsAdded <= 0) {
+      if (receipt.unitsAdded > 0) {
+        slots.push({
+          id: receipt.id,
+          name: receipt.name,
+          pieces: receipt.unitsAdded,
+          show: false,
+          used: 0,
+          startedAt: null,
+          endedAt: null,
+        });
+      }
+      continue;
+    }
+
+    const boxSize = receipt.unitsPerPack > 0 ? receipt.unitsPerPack : receipt.unitsAdded;
+    const boxCount = Math.max(1, Math.ceil(receipt.unitsAdded / boxSize));
+    let remaining = receipt.unitsAdded;
+    for (let index = 0; index < boxCount && remaining > 0; index += 1) {
+      const pieces = Math.min(boxSize, remaining);
+      remaining -= pieces;
+      slots.push({
+        id: boxCount === 1 ? receipt.id : `${receipt.id}:${index + 1}`,
+        name: boxCount === 1 ? receipt.name : `${receipt.name} · box ${index + 1}`,
+        pieces,
+        show: true,
+        used: 0,
+        startedAt: null,
+        endedAt: null,
+      });
+    }
+  }
+
+  const orderedUses = [...uses]
+    .filter((use) => use.quantity > 0)
+    .sort((a, b) => a.at.getTime() - b.at.getTime() || a.createdAt.getTime() - b.createdAt.getTime());
+
+  let slotIndex = 0;
+  for (const use of orderedUses) {
+    let left = use.quantity;
+    while (left > 0 && slotIndex < slots.length) {
+      const slot = slots[slotIndex];
+      const room = slot.pieces - slot.used;
+      if (room <= 0) {
+        slotIndex += 1;
+        continue;
+      }
+      const take = Math.min(room, left);
+      if (slot.used === 0) slot.startedAt = use.at;
+      slot.used += take;
+      left -= take;
+      if (slot.used >= slot.pieces) {
+        slot.endedAt = use.at;
+        slotIndex += 1;
+      }
+    }
+  }
+
+  return slots
+    .filter((slot) => slot.show)
+    .map((slot) => ({
+      id: slot.id,
+      name: slot.name,
+      pieces: slot.pieces,
+      used: slot.used,
+      remaining: slot.pieces - slot.used,
+      startedAt: slot.startedAt ? slot.startedAt.toISOString() : null,
+      endedAt: slot.endedAt ? slot.endedAt.toISOString() : null,
+    }));
+}
+
 export type IdStockView = {
   cardsPerBox: number;
+  cardBoxes: IdCardBoxRow[];
   slingsPerBundle: number;
   lowIdCardThreshold: number;
   lowSlingThreshold: number;

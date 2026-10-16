@@ -1,5 +1,19 @@
 import { AlertTriangle, CheckCircle2, IdCard, Link2 } from "lucide-react";
-import { formatCount, type IdPeriodActivity, type IdStockView } from "@/lib/id-maintenance";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  formatCount,
+  formatIdDate,
+  type IdCardBoxRow,
+  type IdPeriodActivity,
+  type IdStockView,
+} from "@/lib/id-maintenance";
 import { cn } from "@/lib/utils";
 
 export function IdKpiGrid({
@@ -119,6 +133,79 @@ function EquationFigure({
   );
 }
 
+export function IdCardBoxTable({
+  boxes,
+  embedded = false,
+}: {
+  boxes: IdCardBoxRow[];
+  embedded?: boolean;
+}) {
+  const openBox = boxes.find((box) => box.startedAt && !box.endedAt);
+  const endedBox = [...boxes].reverse().find((box) => box.endedAt);
+
+  const body = (
+    <>
+      <div className={embedded ? "mt-4 border-t pt-4" : "border-b px-4 py-3"}>
+        <h2 className={embedded ? "text-sm font-medium" : "text-base font-semibold"}>Card boxes</h2>
+        <p className="mt-1 text-xs text-slate-500">
+          A box starts on the first day a card from it is used. It ends on the day the last card in that box is out.
+        </p>
+        {openBox ? (
+          <p className="mt-2 text-sm text-slate-700">
+            {openBox.name} started {formatIdDate(openBox.startedAt ?? "")}.{" "}
+            {formatCount(openBox.used)} of {formatCount(openBox.pieces)} used.
+          </p>
+        ) : null}
+        {endedBox?.endedAt ? (
+          <p className="mt-1 text-sm text-slate-700">
+            {endedBox.name} ended {formatIdDate(endedBox.endedAt)}. {formatCount(endedBox.pieces)} pcs out.
+          </p>
+        ) : null}
+      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {["Box", "Pcs", "Started", "Used", "Ended"].map((heading) => (
+              <TableHead key={heading}>{heading}</TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {boxes.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={5} className="py-6 text-center text-sm text-slate-500">
+                No card boxes received yet.
+              </TableCell>
+            </TableRow>
+          ) : (
+            boxes.map((box) => (
+              <TableRow key={box.id}>
+                <TableCell>{box.name}</TableCell>
+                <TableCell className="tabular-nums">{formatCount(box.pieces)}</TableCell>
+                <TableCell>{box.startedAt ? formatIdDate(box.startedAt) : "—"}</TableCell>
+                <TableCell className="tabular-nums">
+                  {formatCount(box.used)} / {formatCount(box.pieces)}
+                </TableCell>
+                <TableCell>
+                  {box.endedAt
+                    ? `${formatIdDate(box.endedAt)} · ${formatCount(box.pieces)} pcs out`
+                    : box.startedAt
+                      ? "In use"
+                      : "Not started"}
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </>
+  );
+
+  if (embedded) return body;
+
+  return <section className="overflow-hidden rounded-xl border bg-white shadow-sm">{body}</section>;
+}
+
 export function IdInventoryOverview({ stock }: { stock: IdStockView }) {
   return (
     <section className="rounded-xl border bg-white shadow-sm">
@@ -149,6 +236,7 @@ export function IdInventoryOverview({ stock }: { stock: IdStockView }) {
             <span className="pb-4 text-xl text-slate-400">=</span>
             <EquationFigure value={stock.cardsRemaining} label="Remaining" tone="green" />
           </div>
+          <IdCardBoxTable boxes={stock.cardBoxes} embedded />
         </div>
 
         <div className="rounded-xl border bg-[#fbfefc] p-4">

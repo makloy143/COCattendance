@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { getManilaDayStart } from "@/lib/date-utils";
 import {
   IdStockError,
+  buildCardBoxRows,
   buildCardPackNote,
   buildSlingPackNote,
   categoryForItemType,
@@ -39,17 +40,23 @@ function periodFilter(period: IdPeriod) {
 }
 
 export async function getIdStockView(): Promise<IdStockView> {
-  const [settings, receipts, itemOptions, releaseGroups, wasteAgg] = await Promise.all([
+  const [settings, receipts, itemOptions, releaseGroups, wasteAgg, cardReleases, cardWastes] =
+    await Promise.all([
     getIdMaintenanceSettings(),
     prisma.idStockReceipt.findMany({
       select: {
+        id: true,
         itemType: true,
         unit: true,
+        descriptionCode: true,
         packsReceived: true,
         unitsPerPack: true,
         unitsAdded: true,
+        dateReceived: true,
+        createdAt: true,
         itemOption: { select: { id: true, name: true, category: true } },
       },
+      orderBy: [{ dateReceived: "asc" }, { createdAt: "asc" }],
     }),
     prisma.idStockItemOption.findMany({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -61,6 +68,14 @@ export async function getIdStockView(): Promise<IdStockView> {
     prisma.idBadPrintEntry.aggregate({
       where: { status: { not: "CANCELLED" } },
       _sum: { quantity: true },
+    }),
+    prisma.idReleaseEntry.findMany({
+      where: { idCardsUsed: { gt: 0 } },
+      select: { transactionDate: true, idCardsUsed: true, createdAt: true },
+    }),
+    prisma.idBadPrintEntry.findMany({
+      where: { status: { not: "CANCELLED" }, quantity: { gt: 0 } },
+      select: { datePrinted: true, quantity: true, createdAt: true },
     }),
   ]);
 
@@ -152,6 +167,29 @@ export async function getIdStockView(): Promise<IdStockView> {
     employeeSlingsUsed,
     employeeSlingsRemaining,
     cardItemName,
+    cardBoxes: buildCardBoxRows(
+      cardReceipts.map((receipt) => ({
+        id: receipt.id,
+        name: receiptItemTitle(receipt),
+        unit: receipt.unit,
+        unitsPerPack: receipt.unitsPerPack,
+        unitsAdded: receipt.unitsAdded,
+        receivedAt: receipt.dateReceived,
+        createdAt: receipt.createdAt,
+      })),
+      [
+        ...cardReleases.map((release) => ({
+          at: release.transactionDate,
+          quantity: release.idCardsUsed,
+          createdAt: release.createdAt,
+        })),
+        ...cardWastes.map((waste) => ({
+          at: waste.datePrinted,
+          quantity: waste.quantity,
+          createdAt: waste.createdAt,
+        })),
+      ]
+    ),
     supplyBoxes,
     lowCards: cardReceipts.length > 0 && cardsRemaining <= settings.lowIdCardThreshold,
     lowSlings:

@@ -358,7 +358,7 @@ enum IdBadPrintStatus {
 
 model IdMaintenanceSettings {
   id                 String   @id @default("default")
-  cardsPerBox        Int      @default(100)
+  cardsPerBox        Int      @default(250)
   slingsPerBundle    Int      @default(100)
   lowIdCardThreshold Int      @default(300)
   lowSlingThreshold  Int      @default(100)

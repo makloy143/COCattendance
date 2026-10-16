@@ -1,4 +1,5 @@
 import { IdReceiveStockForm } from "@/components/id-receive-stock-form";
+import { IdCardBoxTable } from "@/components/id-stock-summary";
 import { IdRemoveButton } from "@/components/id-record-actions";
 import {
   Table,
@@ -34,6 +35,8 @@ export default async function IdInventoryPage() {
           released − {formatCount(stock.cardsWasted)} bad-print
         </p>
       </section>
+
+      <IdCardBoxTable boxes={stock.cardBoxes} />
 
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
         <section className="overflow-hidden rounded-xl border bg-white shadow-sm">
