@@ -10,7 +10,13 @@ import {
 } from "@/components/ui/table";
 import { requireInventorySession } from "@/lib/inventory-auth";
 import { getIdStockView, listIdItemOptions, listIdReceipts } from "@/lib/id-maintenance-data";
-import { formatCount, formatIdDate, receiptItemTitle } from "@/lib/id-maintenance";
+import {
+  categoryForItemType,
+  formatCount,
+  formatIdDate,
+  receiptItemTitle,
+  receiptUnitLabel,
+} from "@/lib/id-maintenance";
 
 export const dynamic = "force-dynamic";
 
@@ -41,12 +47,12 @@ export default async function SlingInventoryPage() {
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
         <section className="overflow-hidden rounded-xl border bg-white shadow-sm">
           <div className="border-b px-4 py-3">
-            <h2 className="text-base font-semibold">Bundles received</h2>
+            <h2 className="text-base font-semibold">Slings received</h2>
           </div>
           <Table>
             <TableHeader>
               <TableRow>
-                {["Date", "Item", "Bundles", "Slings / bundle", "Slings added", "Received from", "Recorded by", ""].map(
+                {["Date", "Item", "Unit", "Quantity", "Slings added", "Received from", "Recorded by", ""].map(
                   (heading) => (
                     <TableHead key={heading || "actions"}>{heading}</TableHead>
                   )
@@ -57,7 +63,7 @@ export default async function SlingInventoryPage() {
               {receipts.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="py-8 text-center text-sm text-slate-500">
-                    No sling bundles received yet.
+                    No slings received yet.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -67,8 +73,13 @@ export default async function SlingInventoryPage() {
                     <TableCell>
                       {receiptItemTitle(receipt)}
                     </TableCell>
+                    <TableCell>
+                      {receiptUnitLabel(
+                        receipt.itemOption?.category ?? categoryForItemType(receipt.itemType),
+                        receipt.unit
+                      )}
+                    </TableCell>
                     <TableCell className="tabular-nums">{receipt.packsReceived}</TableCell>
-                    <TableCell className="tabular-nums">{receipt.unitsPerPack}</TableCell>
                     <TableCell className="tabular-nums">{formatCount(receipt.unitsAdded)}</TableCell>
                     <TableCell>{receipt.receivedFrom}</TableCell>
                     <TableCell>{receipt.recordedBy ?? "—"}</TableCell>

@@ -46,36 +46,48 @@ export function IdReceiveStockForm({
 
   const selected = options.find((option) => option.id === itemOptionId) ?? options[0];
   const category = selected?.category ?? "ID_CARD";
-  const cardUnit = category === "ID_CARD" ? unit : "BOX";
+  const choosesUnit =
+    category === "ID_CARD" || category === "SLING_STUDENT" || category === "SLING_EMPLOYEE";
+  const receiptUnit = choosesUnit ? unit : "BOX";
   const unitsPerPack =
-    category === "ID_CARD" ? (cardUnit === "PIECE" ? 1 : cardsPerBox) : category === "SUPPLY" ? 1 : slingsPerBundle;
+    category === "SUPPLY"
+      ? 1
+      : receiptUnit === "PIECE"
+        ? 1
+        : category === "ID_CARD"
+          ? cardsPerBox
+          : slingsPerBundle;
   const packs = Number(packsReceived);
   const unitsAdded =
     Number.isFinite(packs) && packs > 0 ? Math.floor(packs) * unitsPerPack : 0;
   const preview = selected ? formatStockItemTitle(selected.name, descriptionCode) : "";
+  const unitLabel = (value: IdReceiptUnit) =>
+    category === "ID_CARD" ? ID_RECEIPT_UNIT_LABELS[value] : value === "PIECE" ? "Piece" : "Bundle";
   const quantityLabel =
-    category === "ID_CARD"
-      ? cardUnit === "PIECE"
+    category === "SUPPLY"
+      ? "Boxes received"
+      : receiptUnit === "PIECE"
         ? "Pieces received"
-        : "Boxes received"
-      : category === "SUPPLY"
-        ? "Boxes received"
-        : "Bundles received";
+        : category === "ID_CARD"
+          ? "Boxes received"
+          : "Bundles received";
   const addedLabel =
     category === "ID_CARD" ? "Cards added" : category === "SUPPLY" ? "Boxes added" : "Slings added";
 
   const hint = useMemo(() => {
     if (!selected) return "Add an item type in Settings before receiving stock.";
     if (category === "ID_CARD") {
-      return cardUnit === "PIECE"
+      return receiptUnit === "PIECE"
         ? `A piece adds 1 ${selected.name}.`
         : `Each box adds ${formatCount(cardsPerBox)} ${selected.name}.`;
     }
     if (category === "SUPPLY") {
       return "Each box is counted as 1. This does not change ID card or sling stock.";
     }
-    return `Each bundle adds ${formatCount(slingsPerBundle)} slings. Student and employee slings are tracked separately.`;
-  }, [selected, category, cardUnit, cardsPerBox, slingsPerBundle]);
+    return receiptUnit === "PIECE"
+      ? `A piece adds 1 ${selected.name}. Student and employee slings are tracked separately.`
+      : `Each bundle adds ${formatCount(slingsPerBundle)} slings. Student and employee slings are tracked separately.`;
+  }, [selected, category, receiptUnit, cardsPerBox, slingsPerBundle]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -87,7 +99,7 @@ export function IdReceiveStockForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           itemOptionId: selected.id,
-          unit: cardUnit,
+          unit: receiptUnit,
           descriptionCode,
           packsReceived,
           receivedFrom,
@@ -150,9 +162,11 @@ export function IdReceiveStockForm({
           )}
         </div>
 
-        {category === "ID_CARD" && selected ? (
+        {choosesUnit && selected ? (
           <div className="space-y-1.5">
-            <Label htmlFor="receiptUnit">Box or piece</Label>
+            <Label htmlFor="receiptUnit">
+              {category === "ID_CARD" ? "Box or piece" : "Bundle or piece"}
+            </Label>
             <Select
               value={unit}
               onValueChange={(value) => {
@@ -160,12 +174,12 @@ export function IdReceiveStockForm({
               }}
             >
               <SelectTrigger id="receiptUnit" className="w-full">
-                <SelectValue />
+                <SelectValue>{(value) => unitLabel(value === "PIECE" ? "PIECE" : "BOX")}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {ID_RECEIPT_UNITS.map((value) => (
                   <SelectItem key={value} value={value}>
-                    {ID_RECEIPT_UNIT_LABELS[value]}
+                    {unitLabel(value)}
                   </SelectItem>
                 ))}
               </SelectContent>

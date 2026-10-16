@@ -255,17 +255,16 @@ function receiptUnits(input: {
   cardsPerBox: number;
   slingsPerBundle: number;
 }) {
-  if (input.category === "ID_CARD") {
-    const unit = input.unit === "PIECE" ? "PIECE" : "BOX";
-    return {
-      unit,
-      unitsPerPack: unit === "PIECE" ? 1 : input.cardsPerBox,
-    } as const;
-  }
   if (input.category === "SUPPLY") {
     return { unit: "BOX" as const, unitsPerPack: 1 };
   }
-  return { unit: "BOX" as const, unitsPerPack: input.slingsPerBundle };
+  const unit = input.unit === "PIECE" ? "PIECE" : "BOX";
+  const packSize =
+    input.category === "ID_CARD" ? input.cardsPerBox : input.slingsPerBundle;
+  return {
+    unit,
+    unitsPerPack: unit === "PIECE" ? 1 : packSize,
+  } as const;
 }
 
 export async function createIdStockReceipt(input: {

@@ -42,8 +42,8 @@ export type IdStockCategory = (typeof ID_STOCK_CATEGORIES)[number];
 
 export const ID_STOCK_CATEGORY_LABELS: Record<IdStockCategory, string> = {
   ID_CARD: "ID card (box or piece)",
-  SLING_STUDENT: "Sling for student",
-  SLING_EMPLOYEE: "Sling for employee",
+  SLING_STUDENT: "Sling for student (bundle or piece)",
+  SLING_EMPLOYEE: "Sling for employee (bundle or piece)",
   SUPPLY: "Box",
 };
 
@@ -60,6 +60,13 @@ export const ID_RECEIPT_UNIT_LABELS: Record<IdReceiptUnit, string> = {
   BOX: "Box",
   PIECE: "Piece",
 };
+
+export function receiptUnitLabel(category: IdStockCategory, unit: IdReceiptUnit) {
+  if (category === "SLING_STUDENT" || category === "SLING_EMPLOYEE") {
+    return unit === "PIECE" ? "Piece" : "Bundle";
+  }
+  return unit === "PIECE" ? "Piece" : "Box";
+}
 
 export const ID_SLING_KINDS = ["STUDENT", "EMPLOYEE"] as const;
 export type IdSlingKind = (typeof ID_SLING_KINDS)[number];
@@ -340,17 +347,32 @@ export function buildCardPackNote(
 }
 
 export function buildSlingPackNote(rows: PackRow[], slingsPerBundle: number) {
-  const packs = rows.reduce((sum, row) => sum + row.packsReceived, 0);
-  const units = rows.reduce((sum, row) => sum + row.unitsAdded, 0);
-  if (packs === 0) {
-    return `Each bundle contains ${formatCount(slingsPerBundle)} slings. Each sling is counted individually.`;
+  const bundles = rows.filter((row) => row.unit !== "PIECE");
+  const pieces = rows.filter((row) => row.unit === "PIECE");
+  const bundlePacks = bundles.reduce((sum, row) => sum + row.packsReceived, 0);
+  const bundleUnits = bundles.reduce((sum, row) => sum + row.unitsAdded, 0);
+  const pieceUnits = pieces.reduce((sum, row) => sum + row.unitsAdded, 0);
+
+  if (bundlePacks === 0 && pieceUnits === 0) {
+    return `Each bundle contains ${formatCount(slingsPerBundle)} slings. A piece adds 1 sling.`;
   }
-  const rates = new Set(rows.map((row) => row.unitsPerPack));
-  if (rates.size === 1) {
-    const rate = rows[0]?.unitsPerPack ?? slingsPerBundle;
-    return `${formatCount(packs)} bundles × ${formatCount(rate)} slings = ${formatCount(units)} slings received`;
+
+  const parts: string[] = [];
+  if (bundlePacks > 0) {
+    const rates = new Set(bundles.map((row) => row.unitsPerPack));
+    if (rates.size === 1) {
+      const rate = bundles[0]?.unitsPerPack ?? slingsPerBundle;
+      parts.push(
+        `${formatCount(bundlePacks)} bundles × ${formatCount(rate)} slings = ${formatCount(bundleUnits)} slings`
+      );
+    } else {
+      parts.push(`${formatCount(bundleUnits)} slings from bundles`);
+    }
   }
-  return `${formatCount(units)} slings received from ${formatCount(packs)} bundles`;
+  if (pieceUnits > 0) {
+    parts.push(`${formatCount(pieceUnits)} individual pieces`);
+  }
+  return parts.join(" · ");
 }
 
 export type IdStockView = {
