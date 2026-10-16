@@ -214,8 +214,8 @@ export const INVENTORY_DASHBOARDS = [
     id: "ink",
     label: "Ink",
     href: "/inventory/inks",
-    available: false,
-    description: "Ink dashboard can be added later",
+    available: true,
+    description: "Ink bottles received, released, and remaining by model",
   },
 ] as const;
 
@@ -233,9 +233,12 @@ export function parseIdPeriod(value: string | undefined | null): IdPeriod {
   return "month";
 }
 
-export function inventoryDashboardIdFromPath(pathname: string): "general" | "id" {
+export function inventoryDashboardIdFromPath(pathname: string): InventoryDashboardId {
   if (pathname === "/inventory/id" || pathname.startsWith("/inventory/id/")) {
     return "id";
+  }
+  if (pathname === "/inventory/inks" || pathname.startsWith("/inventory/inks/")) {
+    return "ink";
   }
   return "general";
 }

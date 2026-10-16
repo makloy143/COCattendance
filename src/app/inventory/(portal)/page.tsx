@@ -167,7 +167,7 @@ export default async function InventoryDashboardPage() {
         </h1>
         <p className="text-sm text-muted-foreground">
           Choose a dashboard. ID card and sling stock lives in ID Maintenance.
-          Ink can be added as its own dashboard later.
+          Ink bottles live in the Ink dashboard.
         </p>
       </div>
 
