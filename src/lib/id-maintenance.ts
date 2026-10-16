@@ -247,6 +247,11 @@ export function isIdMaintenancePath(pathname: string) {
   return inventoryDashboardIdFromPath(pathname) === "id";
 }
 
+export function isInkMaintenancePath(pathname: string) {
+  if (pathname === "/inventory/inks/receive") return false;
+  return pathname === "/inventory/inks" || pathname.startsWith("/inventory/inks/");
+}
+
 export function getIdPeriodRange(
   period: IdPeriod,
   now = new Date()

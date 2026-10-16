@@ -1,9 +1,11 @@
 import { prisma } from "@/lib/db";
+import { getIdPeriodRange, parseIdPeriod, type IdPeriod } from "@/lib/id-maintenance";
 import { getAvailableQuantity, getReleasedQuantity, type InkColor } from "@/lib/inventory";
-import { buildInkDashboard, parseInkRange } from "@/lib/ink-dashboard";
+import { buildInkDashboard } from "@/lib/ink-dashboard";
 
-export async function getInkDashboard(fromValue?: string | null, toValue?: string | null) {
-  const range = parseInkRange(fromValue, toValue);
+export async function getInkDashboard(periodValue?: string | null) {
+  const period: IdPeriod = parseIdPeriod(periodValue);
+  const range = getIdPeriodRange(period);
   const items = await prisma.receivedItem.findMany({
     where: { category: "INK" },
     include: {
@@ -22,8 +24,7 @@ export async function getInkDashboard(fromValue?: string | null, toValue?: strin
   });
 
   return buildInkDashboard({
-    from: range.from,
-    to: range.to,
+    range,
     receipts: items.map((item) => ({
       id: item.id,
       itemName: item.itemName,
