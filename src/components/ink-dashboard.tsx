@@ -37,6 +37,7 @@ export function InkDashboard({
   view: InkDashboardView;
   periodLabel: string;
 }) {
+  const modelsInStock = view.models.filter((model) => model.balance > 0);
   const cards = [
     {
       title: "Bottles in stock",
@@ -118,7 +119,10 @@ export function InkDashboard({
             </p>
           </div>
           <div className="space-y-3 p-4 sm:p-5">
-            {view.models.map((model) => (
+            {modelsInStock.length === 0 ? (
+              <p className="text-sm text-slate-500">No ink bottles are in stock.</p>
+            ) : null}
+            {modelsInStock.map((model) => (
               <div key={model.key} className="rounded-xl border bg-[#fbfefc] p-4">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
