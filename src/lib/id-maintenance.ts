@@ -29,7 +29,7 @@ export const ID_STOCK_ITEM_LABELS: Record<IdStockItemType, string> = {
   SLING_BUNDLE: "Sling for Student",
   XID_COLOR: "XID PRINTER (COLOR) Y,M,C,K",
   XID_RETRANSFER_FILM: "XID PRINTER RETRANSFER FILM",
-  SUPPLY: "Piece",
+  SUPPLY: "Box",
 };
 
 export const ID_STOCK_CATEGORIES = [
@@ -44,7 +44,7 @@ export const ID_STOCK_CATEGORY_LABELS: Record<IdStockCategory, string> = {
   ID_CARD: "ID card (box or piece)",
   SLING_STUDENT: "Sling for student",
   SLING_EMPLOYEE: "Sling for employee",
-  SUPPLY: "Piece only",
+  SUPPLY: "Box",
 };
 
 export type IdItemTypeOption = {
@@ -376,7 +376,7 @@ export type IdStockView = {
   employeeSlingsUsed: number;
   employeeSlingsRemaining: number;
   cardItemName: string;
-  supplyPieces: { id: string; name: string; pieces: number }[];
+  supplyBoxes: { id: string; name: string; boxes: number }[];
   lowCards: boolean;
   lowSlings: boolean;
 };

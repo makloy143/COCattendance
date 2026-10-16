@@ -46,15 +46,9 @@ export function IdReceiveStockForm({
 
   const selected = options.find((option) => option.id === itemOptionId) ?? options[0];
   const category = selected?.category ?? "ID_CARD";
-  const cardUnit = category === "ID_CARD" ? unit : category === "SUPPLY" ? "PIECE" : "BOX";
+  const cardUnit = category === "ID_CARD" ? unit : "BOX";
   const unitsPerPack =
-    category === "ID_CARD"
-      ? cardUnit === "PIECE"
-        ? 1
-        : cardsPerBox
-      : category === "SUPPLY"
-        ? 1
-        : slingsPerBundle;
+    category === "ID_CARD" ? (cardUnit === "PIECE" ? 1 : cardsPerBox) : category === "SUPPLY" ? 1 : slingsPerBundle;
   const packs = Number(packsReceived);
   const unitsAdded =
     Number.isFinite(packs) && packs > 0 ? Math.floor(packs) * unitsPerPack : 0;
@@ -65,10 +59,10 @@ export function IdReceiveStockForm({
         ? "Pieces received"
         : "Boxes received"
       : category === "SUPPLY"
-        ? "Pieces received"
+        ? "Boxes received"
         : "Bundles received";
   const addedLabel =
-    category === "ID_CARD" ? "Cards added" : category === "SUPPLY" ? "Pieces added" : "Slings added";
+    category === "ID_CARD" ? "Cards added" : category === "SUPPLY" ? "Boxes added" : "Slings added";
 
   const hint = useMemo(() => {
     if (!selected) return "Add an item type in Settings before receiving stock.";
@@ -78,7 +72,7 @@ export function IdReceiveStockForm({
         : `Each box adds ${formatCount(cardsPerBox)} ${selected.name}.`;
     }
     if (category === "SUPPLY") {
-      return "Each piece is counted as 1. This does not change ID card or sling stock.";
+      return "Each box is counted as 1. This does not change ID card or sling stock.";
     }
     return `Each bundle adds ${formatCount(slingsPerBundle)} slings. Student and employee slings are tracked separately.`;
   }, [selected, category, cardUnit, cardsPerBox, slingsPerBundle]);

@@ -155,8 +155,8 @@ export function IdItemTypeSettings({ options }: { options: IdItemTypeRow[] }) {
         <p className="mt-1 text-sm text-slate-600">
           These names appear in Item type when you receive stock. ID card names
           share the card balance and can be a box or a piece. Student and
-          employee slings stay separate. Piece only items do not change card or
-          sling stock.
+          employee slings stay separate. Box items, such as XID printer color and
+          retransfer film, do not change card or sling stock.
         </p>
       </div>
 

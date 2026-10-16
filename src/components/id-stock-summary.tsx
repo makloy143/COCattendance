@@ -193,16 +193,16 @@ export function IdInventoryOverview({ stock }: { stock: IdStockView }) {
         <div className="rounded-xl border bg-[#fbfefc] p-4">
           <p className="font-medium">Printer supplies</p>
           <p className="mt-1 text-xs text-slate-500">
-            Pieces on hand. These do not change ID card or sling remaining.
+            Boxes on hand. These do not change ID card or sling remaining.
           </p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            {stock.supplyPieces.length === 0 ? (
-              <p className="text-sm text-slate-500">No piece-only item types yet.</p>
+            {stock.supplyBoxes.length === 0 ? (
+              <p className="text-sm text-slate-500">No printer supply boxes yet.</p>
             ) : (
-              stock.supplyPieces.map((supply) => (
+              stock.supplyBoxes.map((supply) => (
                 <p key={supply.id} className="text-sm text-slate-700">
                   {supply.name}{" "}
-                  <strong className="tabular-nums">{formatCount(supply.pieces)}</strong>
+                  <strong className="tabular-nums">{formatCount(supply.boxes)}</strong>
                 </p>
               ))
             )}

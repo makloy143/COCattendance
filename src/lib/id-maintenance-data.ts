@@ -109,24 +109,24 @@ export async function getIdStockView(): Promise<IdStockView> {
   const cardItemName =
     itemOptions.find((option) => option.category === "ID_CARD" && option.active)?.name ??
     "PLAIN WHITE PVC CARD";
-  const supplyPiecesByKey = new Map<string, { id: string; name: string; pieces: number }>();
+  const supplyBoxesByKey = new Map<string, { id: string; name: string; boxes: number }>();
   for (const option of itemOptions) {
     if (option.category !== "SUPPLY") continue;
-    supplyPiecesByKey.set(option.id, { id: option.id, name: option.name, pieces: 0 });
+    supplyBoxesByKey.set(option.id, { id: option.id, name: option.name, boxes: 0 });
   }
   for (const receipt of receipts) {
     if (categoryOf(receipt) !== "SUPPLY") continue;
     const key = receipt.itemOption?.id ?? receipt.itemType;
-    const current = supplyPiecesByKey.get(key) ?? {
+    const current = supplyBoxesByKey.get(key) ?? {
       id: key,
-      name: receipt.itemOption?.name ?? "Piece",
-      pieces: 0,
+      name: receipt.itemOption?.name ?? "Box",
+      boxes: 0,
     };
-    current.pieces += receipt.unitsAdded;
-    supplyPiecesByKey.set(key, current);
+    current.boxes += receipt.unitsAdded;
+    supplyBoxesByKey.set(key, current);
   }
-  const supplyPieces = [...supplyPiecesByKey.values()].filter(
-    (row) => row.pieces > 0 || itemOptions.some((option) => option.id === row.id && option.active)
+  const supplyBoxes = [...supplyBoxesByKey.values()].filter(
+    (row) => row.boxes > 0 || itemOptions.some((option) => option.id === row.id && option.active)
   );
 
   return {
@@ -152,7 +152,7 @@ export async function getIdStockView(): Promise<IdStockView> {
     employeeSlingsUsed,
     employeeSlingsRemaining,
     cardItemName,
-    supplyPieces,
+    supplyBoxes,
     lowCards: cardReceipts.length > 0 && cardsRemaining <= settings.lowIdCardThreshold,
     lowSlings:
       slingReceipts.length > 0 && slingsRemaining <= settings.lowSlingThreshold,
@@ -263,7 +263,7 @@ function receiptUnits(input: {
     } as const;
   }
   if (input.category === "SUPPLY") {
-    return { unit: "PIECE" as const, unitsPerPack: 1 };
+    return { unit: "BOX" as const, unitsPerPack: 1 };
   }
   return { unit: "BOX" as const, unitsPerPack: input.slingsPerBundle };
 }
