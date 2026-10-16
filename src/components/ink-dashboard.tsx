@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { INK_LOW_STOCK_AT_MOST, type InkDashboardView, type InkRecordRow } from "@/lib/ink-dashboard";
+import { type InkDashboardView, type InkRecordRow } from "@/lib/ink-dashboard";
 import { INK_COLOR_BADGE_CLASSES, type InkColor } from "@/lib/inventory";
 import { cn } from "@/lib/utils";
 
@@ -71,7 +71,7 @@ export function InkDashboard({
       title: "Low stock",
       value: formatCount(view.lowStockCount),
       unit: "models",
-      note: `≤ ${INK_LOW_STOCK_AT_MOST} bottles`,
+      note: `≤ ${view.lowStockAtMost} bottles`,
       icon: AlertTriangle,
       className: "border-[#f6d4d4] bg-[#fdeeee]",
       iconClass: "bg-[#e15b64] text-white",
@@ -121,7 +121,7 @@ export function InkDashboard({
               <div key={model.key} className="rounded-xl border bg-[#fbfefc] p-4">
                 <div className="mb-4 flex items-center gap-3">
                   <InkBadge name={model.name} inkColor={model.inkColor} />
-                  {model.received > 0 && model.balance <= INK_LOW_STOCK_AT_MOST ? (
+                  {model.received > 0 && model.balance <= view.lowStockAtMost ? (
                     <span className="text-[11px] font-semibold text-amber-800">Low stock</span>
                   ) : null}
                 </div>
@@ -136,7 +136,7 @@ export function InkDashboard({
             ))}
           </div>
         </section>
-        <InkReceiveForm />
+        <InkReceiveForm models={view.catalog} />
       </div>
 
       <InkRecordTable title="Receiving records" rows={view.receipts} personHeading="Received by" />

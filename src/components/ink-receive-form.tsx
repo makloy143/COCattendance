@@ -8,21 +8,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatManilaDateInput } from "@/lib/date-utils";
-import { DEPARTMENTS, INK_MODEL_PRESETS, type InkColor } from "@/lib/inventory";
+import { DEPARTMENTS, type InkColor } from "@/lib/inventory";
 
-const INK_MODELS = Object.entries(INK_MODEL_PRESETS).flatMap(([color, names]) =>
-  color === "OTHER" ? [] : names.map((name) => ({ name, inkColor: color as InkColor }))
-);
-
-export function InkReceiveForm() {
+export function InkReceiveForm({
+  models,
+}: {
+  models: { name: string; inkColor: InkColor }[];
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [itemName, setItemName] = useState(INK_MODELS[0]?.name ?? "");
+  const [itemName, setItemName] = useState(models[0]?.name ?? "");
   const [quantity, setQuantity] = useState("");
   const [senderName, setSenderName] = useState("");
   const [department, setDepartment] = useState<string>(DEPARTMENTS[0]);
   const [dateReceived, setDateReceived] = useState(() => formatManilaDateInput(new Date()));
-  const selected = INK_MODELS.find((model) => model.name === itemName) ?? INK_MODELS[0];
+  const selected = models.find((model) => model.name === itemName) ?? models[0];
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -76,11 +76,12 @@ export function InkReceiveForm() {
             onChange={(event) => setItemName(event.target.value)}
             className="h-10 w-full rounded-md border bg-white px-3 text-sm"
           >
-            {INK_MODELS.map((model) => (
+            {models.map((model) => (
               <option key={model.name} value={model.name}>
                 {model.name}
               </option>
             ))}
+            {models.length === 0 ? <option value="">Add a model in Settings</option> : null}
           </select>
         </div>
         <div className="space-y-1.5">
@@ -133,7 +134,7 @@ export function InkReceiveForm() {
         <Button
           type="submit"
           className="h-10 w-full bg-[#0e6b43] text-white hover:bg-[#0c5b39]"
-          disabled={loading}
+          disabled={loading || !selected}
         >
           <PackagePlus className="size-4" />
           {loading ? "Recording..." : "Record ink receipt"}

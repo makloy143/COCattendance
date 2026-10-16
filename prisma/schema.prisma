@@ -261,6 +261,24 @@ model InventoryCatalogItem {
   @@index([itemName])
 }
 
+model InkOfficeSettings {
+  id             String   @id @default("default")
+  lowStockAtMost Int      @default(2)
+  updatedAt      DateTime @updatedAt
+}
+
+model InkModelOption {
+  id        String   @id @default(cuid())
+  name      String
+  inkColor  InkColor
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, sortOrder])
+}
+
 model ReceivedItem {
   id                   String         @id @default(cuid())
   itemName             String

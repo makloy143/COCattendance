@@ -1,16 +1,11 @@
-import { INK_MODEL_PRESETS, type InkColor } from "@/lib/inventory";
+import type { InkColor } from "@/lib/inventory";
 
 export const INK_LOW_STOCK_AT_MOST = 2;
 
-const COLOR_RANK: Record<InkColor, number> = {
-  BLACK: 0,
-  MAGENTA: 1,
-  CYAN: 2,
-  YELLOW: 3,
-  OTHER: 4,
+export type InkCatalogModel = {
+  name: string;
+  inkColor: InkColor;
 };
-
-const MODEL_RANK = ["664", "003", "HP GT52", "HP GTS2"];
 
 export type InkMovement = {
   id: string;
@@ -58,30 +53,16 @@ export type InkDashboardView = {
   released: number;
   remaining: number;
   lowStockCount: number;
+  lowStockAtMost: number;
+  catalog: InkCatalogModel[];
   models: InkModelStock[];
   lowStock: { name: string; balance: number; inkColor: InkColor | null }[];
   receipts: InkRecordRow[];
   releases: InkRecordRow[];
 };
 
-function presetModels(): InkModelStock[] {
-  return Object.entries(INK_MODEL_PRESETS).flatMap(([color, names]) => {
-    if (color === "OTHER") return [];
-    return names.map((name) => ({
-      key: name,
-      name,
-      inkColor: color as InkColor,
-      received: 0,
-      released: 0,
-      balance: 0,
-    }));
-  });
-}
-
-function modelSort(name: string, inkColor: InkColor | null) {
-  const upper = name.toUpperCase();
-  const modelRank = MODEL_RANK.findIndex((token) => upper.includes(token));
-  return (modelRank === -1 ? 50 : modelRank) * 10 + (inkColor ? COLOR_RANK[inkColor] : 9);
+function modelKey(name: string) {
+  return name.trim().replace(/\s+/g, " ").toLowerCase() || "ink";
 }
 
 export function formatInkDate(date: Date) {
@@ -102,37 +83,55 @@ export function buildInkDashboard(input: {
   receipts: InkReceiptSource[];
   releases: InkMovement[];
   range: { start: Date; end: Date } | null;
+  models: InkCatalogModel[];
+  lowStockAtMost?: number;
   recordLimit?: number;
 }): InkDashboardView {
   const matches = (date: Date) =>
     !input.range || inRange(date, input.range.start, input.range.end);
+  const lowStockAtMost = input.lowStockAtMost ?? INK_LOW_STOCK_AT_MOST;
 
   const byName = new Map<string, InkModelStock>();
-  for (const preset of presetModels()) byName.set(preset.key, { ...preset });
+  const ordered: InkModelStock[] = [];
+  for (const preset of input.models) {
+    const row: InkModelStock = {
+      key: preset.name,
+      name: preset.name,
+      inkColor: preset.inkColor,
+      received: 0,
+      released: 0,
+      balance: 0,
+    };
+    byName.set(modelKey(preset.name), row);
+    ordered.push(row);
+  }
 
+  const extras: InkModelStock[] = [];
   for (const receipt of input.receipts) {
-    const key = receipt.itemName.trim() || "Ink";
+    const key = modelKey(receipt.itemName);
     const current = byName.get(key) ?? {
-      key,
-      name: key,
+      key: receipt.itemName.trim() || "Ink",
+      name: receipt.itemName.trim() || "Ink",
       inkColor: receipt.inkColor,
       received: 0,
       released: 0,
       balance: 0,
     };
+    if (!byName.has(key)) {
+      byName.set(key, current);
+      extras.push(current);
+    }
     current.received += receipt.quantity;
     current.released += receipt.released;
     current.balance += receipt.balance;
     if (!current.inkColor && receipt.inkColor) current.inkColor = receipt.inkColor;
-    byName.set(key, current);
   }
 
-  const models = [...byName.values()].sort(
-    (a, b) => modelSort(a.name, a.inkColor) - modelSort(b.name, b.inkColor) || a.name.localeCompare(b.name)
-  );
+  extras.sort((a, b) => a.name.localeCompare(b.name));
+  const models = [...ordered, ...extras];
   const remaining = models.reduce((sum, model) => sum + model.balance, 0);
   const lowStock = models
-    .filter((model) => model.received > 0 && model.balance <= INK_LOW_STOCK_AT_MOST)
+    .filter((model) => model.received > 0 && model.balance <= lowStockAtMost)
     .map((model) => ({ name: model.name, balance: model.balance, inkColor: model.inkColor }))
     .sort((a, b) => a.balance - b.balance || a.name.localeCompare(b.name));
 
@@ -157,6 +156,8 @@ export function buildInkDashboard(input: {
     released,
     remaining,
     lowStockCount: lowStock.length,
+    lowStockAtMost,
+    catalog: input.models,
     models,
     lowStock,
     receipts: [...periodReceipts]

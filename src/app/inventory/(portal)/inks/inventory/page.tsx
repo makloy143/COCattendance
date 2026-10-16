@@ -22,7 +22,7 @@ export default async function InkInventoryPage() {
       </section>
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
         <InkRecordTable title="Bottles received" rows={view.receipts} personHeading="Received by" />
-        <InkReceiveForm />
+        <InkReceiveForm models={view.catalog} />
       </div>
     </div>
   );

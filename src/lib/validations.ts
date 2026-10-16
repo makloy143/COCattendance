@@ -632,3 +632,23 @@ export const idItemTypeUpdateSchema = z.object({
   category: z.enum(ID_STOCK_CATEGORIES).optional(),
   active: z.boolean().optional(),
 });
+
+export const inkOfficeSettingsSchema = z.object({
+  lowStockAtMost: z.coerce.number().int().min(0).max(100000),
+});
+
+export const inkModelSchema = z.object({
+  name: z.string().trim().min(1, "Ink model name is required").max(80, "Ink model name is too long"),
+  inkColor: z.enum(INK_COLORS),
+});
+
+export const inkModelUpdateSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Ink model name is required")
+    .max(80, "Ink model name is too long")
+    .optional(),
+  inkColor: z.enum(INK_COLORS).optional(),
+  active: z.boolean().optional(),
+});
