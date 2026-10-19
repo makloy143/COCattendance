@@ -179,7 +179,7 @@ export function IdCardBoxTable({
             {openBox.startedAt
               ? `Started ${formatIdDate(openBox.startedAt)}. `
               : "Not started yet. "}
-            {formatCount(openBox.remaining)} left. The end date is recorded when the last of these cards is used.
+            {formatCount(openBox.used)} of {formatCount(openBox.pieces)} used. The end date is recorded when the last of these cards is used.
           </p>
         ) : null}
         {endedBox?.endedAt ? (
