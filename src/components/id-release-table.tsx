@@ -49,6 +49,7 @@ export function IdReleaseTable({
               "Status",
               "Reason / Transaction",
               "Printed By",
+              "PVC card",
               "ID Card Used",
               "Sling Used",
             ].map((heading) => (
@@ -60,7 +61,7 @@ export function IdReleaseTable({
               </TableHead>
             ))}
             {showActions ? (
-              <TableHead className="text-xs font-semibold tracking-wide text-slate-800 uppercase">
+              <TableHead className="sticky right-0 z-10 bg-[#f8efc3] text-xs font-semibold tracking-wide text-slate-800 uppercase">
                 Actions
               </TableHead>
             ) : null}
@@ -70,7 +71,7 @@ export function IdReleaseTable({
           {rows.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={showActions ? 10 : 9}
+                colSpan={showActions ? 11 : 10}
                 className="py-8 text-center text-sm text-slate-500"
               >
                 No ID releases for this period.
@@ -88,6 +89,7 @@ export function IdReleaseTable({
                 </TableCell>
                 <TableCell>{row.reason}</TableCell>
                 <TableCell>{row.printedBy}</TableCell>
+                <TableCell>{row.pvcCardName ?? "—"}</TableCell>
                 <TableCell className="tabular-nums">{row.idCardsUsed}</TableCell>
                 <TableCell className="tabular-nums">
                   {row.slingsUsed}
@@ -96,7 +98,7 @@ export function IdReleaseTable({
                     : ""}
                 </TableCell>
                 {showActions ? (
-                  <TableCell>
+                  <TableCell className="sticky right-0 z-10 bg-white">
                     <IdRemoveButton
                       endpoint={`/api/inventory/id/releases/${row.id}`}
                       confirmMessage="Remove this release and return the cards and slings it used to stock?"

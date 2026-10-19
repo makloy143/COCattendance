@@ -21,11 +21,13 @@ import {
   ID_RELEASE_STATUS_LABELS,
   ID_SLING_KIND_LABELS,
   ID_SLING_KINDS,
+  pvcCardOptionLabel,
+  type IdCardBoxRow,
   type IdReleaseStatus,
   type IdSlingKind,
 } from "@/lib/id-maintenance";
 
-export function IdReleaseForm() {
+export function IdReleaseForm({ boxes }: { boxes: IdCardBoxRow[] }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [personName, setPersonName] = useState("");
@@ -39,8 +41,15 @@ export function IdReleaseForm() {
   const [reason, setReason] = useState("NEW ENROLLMENT");
   const [printedBy, setPrintedBy] = useState("");
   const [idCardsUsed, setIdCardsUsed] = useState("1");
+  const [pvcCardId, setPvcCardId] = useState("");
   const [slingsUsed, setSlingsUsed] = useState("1");
   const [slingKind, setSlingKind] = useState<IdSlingKind>("STUDENT");
+  const cardsUsed = Number(idCardsUsed) || 0;
+  const openBox = boxes.find((box) => box.startedAt && box.remaining > 0);
+  const selectedBoxId =
+    pvcCardId && boxes.some((box) => box.id === pvcCardId)
+      ? pvcCardId
+      : openBox?.id ?? boxes[0]?.id ?? "";
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -58,6 +67,7 @@ export function IdReleaseForm() {
           reason,
           printedBy,
           idCardsUsed,
+          pvcCardId: cardsUsed > 0 ? selectedBoxId : "",
           slingsUsed,
           slingKind: Number(slingsUsed) > 0 ? slingKind : "",
           studentId,
@@ -87,7 +97,9 @@ export function IdReleaseForm() {
       <div>
         <h2 className="text-base font-semibold">Record ID release</h2>
         <p className="mt-1 text-sm text-slate-600">
-          Stock drops only by the ID cards used and slings used on this row. A
+          Stock drops only by the ID cards used and slings used on this row. Choose
+          the PVC box those cards came from. Each box is 250 pieces: it starts
+          the day the first card is used and ends when that box is out. A
           reprint status does not waste a card by itself. Record damaged cards
           on Bad Printing.
         </p>
@@ -153,6 +165,29 @@ export function IdReleaseForm() {
         <div className="space-y-1.5">
           <Label htmlFor="idCardsUsed">ID cards used</Label>
           <Input id="idCardsUsed" inputMode="numeric" value={idCardsUsed} onChange={(event) => setIdCardsUsed(event.target.value)} required />
+        </div>
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor="pvcCardId">PVC card used</Label>
+          {boxes.length === 0 ? (
+            <p id="pvcCardId" className="text-sm text-slate-500">
+              Receive a PVC card box before recording cards used.
+            </p>
+          ) : (
+            <select
+              id="pvcCardId"
+              value={selectedBoxId}
+              onChange={(event) => setPvcCardId(event.target.value)}
+              disabled={cardsUsed < 1}
+              required={cardsUsed > 0}
+              className="h-10 w-full rounded-md border bg-white px-3 text-sm disabled:bg-slate-50"
+            >
+              {boxes.map((box) => (
+                <option key={box.id} value={box.id}>
+                  {pvcCardOptionLabel(box)}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="slingsUsed">Slings used</Label>

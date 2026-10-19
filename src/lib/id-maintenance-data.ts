@@ -71,7 +71,7 @@ export async function getIdStockView(): Promise<IdStockView> {
     }),
     prisma.idReleaseEntry.findMany({
       where: { idCardsUsed: { gt: 0 } },
-      select: { transactionDate: true, idCardsUsed: true, createdAt: true },
+      select: { transactionDate: true, idCardsUsed: true, createdAt: true, pvcCardId: true },
     }),
     prisma.idBadPrintEntry.findMany({
       where: { status: { not: "CANCELLED" }, quantity: { gt: 0 } },
@@ -182,6 +182,7 @@ export async function getIdStockView(): Promise<IdStockView> {
           at: release.transactionDate,
           quantity: release.idCardsUsed,
           createdAt: release.createdAt,
+          boxId: release.pvcCardId,
         })),
         ...cardWastes.map((waste) => ({
           at: waste.datePrinted,
@@ -390,11 +391,26 @@ export async function createIdReleaseEntry(input: {
   idCardsUsed: number;
   slingsUsed: number;
   slingKind?: IdSlingKind | "" | null;
+  pvcCardId?: string | null;
   notes?: string | null;
   studentId?: string | null;
 }) {
   const stock = await getIdStockView();
   assertCardsAvailable(stock.cardsRemaining, input.idCardsUsed);
+  const pvcCard =
+    input.idCardsUsed > 0
+      ? stock.cardBoxes.find((box) => box.id === input.pvcCardId && box.remaining > 0)
+      : null;
+  if (input.idCardsUsed > 0) {
+    if (!pvcCard) {
+      throw new IdStockError("Choose the PVC card box used for this print.");
+    }
+    if (input.idCardsUsed > pvcCard.remaining) {
+      throw new IdStockError(
+        `${pvcCard.name} has ${pvcCard.remaining} cards left. That box holds ${pvcCard.pieces} pieces.`
+      );
+    }
+  }
   const slingKind =
     input.slingKind === "STUDENT" || input.slingKind === "EMPLOYEE"
       ? input.slingKind
@@ -423,6 +439,8 @@ export async function createIdReleaseEntry(input: {
       status: input.status,
       reason: input.reason.trim(),
       printedBy: input.printedBy.trim(),
+      pvcCardId: pvcCard?.id ?? null,
+      pvcCardName: pvcCard?.name ?? null,
       idCardsUsed: input.idCardsUsed,
       slingsUsed: input.slingsUsed,
       slingKind: input.slingsUsed > 0 ? slingKind : null,
@@ -713,6 +731,8 @@ export async function listIdHistory(period: IdPeriod): Promise<IdHistoryEvent[]>
       kind: "RELEASE" as const,
       title: release.personName,
       detail: `${release.course} · ${release.idNumber} · ${release.reason} · printed by ${release.printedBy}${
+        release.pvcCardName ? ` · PVC ${release.pvcCardName}` : ""
+      }${
         release.slingsUsed > 0
           ? ` · ${release.slingKind === "EMPLOYEE" ? "employee" : "student"} sling`
           : ""

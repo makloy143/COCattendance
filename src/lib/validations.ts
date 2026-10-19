@@ -540,6 +540,7 @@ export const idReleaseEntrySchema = z.object({
     .int()
     .min(0, "ID cards used cannot be negative")
     .max(100, "ID cards used cannot be more than 100 on one record"),
+  pvcCardId: z.string().trim().max(120).optional().or(z.literal("")),
   slingsUsed: z.coerce
     .number()
     .int()
@@ -549,6 +550,13 @@ export const idReleaseEntrySchema = z.object({
   notes: z.string().max(500).optional().or(z.literal("")),
   studentId: z.string().optional().or(z.literal("")),
 }).superRefine((data, ctx) => {
+  if (data.idCardsUsed > 0 && !data.pvcCardId) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Choose the PVC card box used for this print",
+      path: ["pvcCardId"],
+    });
+  }
   if (data.slingsUsed > 0 && !data.slingKind) {
     ctx.addIssue({
       code: "custom",

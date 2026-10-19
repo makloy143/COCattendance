@@ -199,7 +199,7 @@ export default async function IdReportsPage({
         <Table>
           <TableHeader>
             <TableRow>
-              {["Date", "Name", "Status", "Reason", "Printed by", "Cards", "Slings"].map(
+              {["Date", "Name", "Status", "Reason", "Printed by", "PVC card", "Cards", "Slings"].map(
                 (heading) => (
                   <TableHead key={heading}>{heading}</TableHead>
                 )
@@ -209,7 +209,7 @@ export default async function IdReportsPage({
           <TableBody>
             {releases.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="py-6 text-center text-sm text-slate-500">
+                <TableCell colSpan={8} className="py-6 text-center text-sm text-slate-500">
                   No release transactions in this period.
                 </TableCell>
               </TableRow>
@@ -221,6 +221,7 @@ export default async function IdReportsPage({
                   <TableCell>{ID_RELEASE_STATUS_LABELS[release.status]}</TableCell>
                   <TableCell>{release.reason}</TableCell>
                   <TableCell>{release.printedBy}</TableCell>
+                  <TableCell>{release.pvcCardName ?? "—"}</TableCell>
                   <TableCell className="tabular-nums">{release.idCardsUsed}</TableCell>
                   <TableCell className="tabular-nums">
                     {release.slingsUsed}

@@ -48,7 +48,18 @@ export function IdRemoveButton({
   }
 
   return (
-    <Button type="button" variant="ghost" size="sm" onClick={handleClick} disabled={loading}>
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      className="cursor-pointer"
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        void handleClick();
+      }}
+      disabled={loading}
+    >
       {loading ? "Removing..." : "Remove"}
     </Button>
   );

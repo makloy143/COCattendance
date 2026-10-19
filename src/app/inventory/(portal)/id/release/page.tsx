@@ -1,7 +1,7 @@
 import { IdReleaseForm } from "@/components/id-release-form";
 import { IdReleaseTable } from "@/components/id-release-table";
 import { requireInventorySession } from "@/lib/inventory-auth";
-import { getIdPeriodActivity, listIdReleases } from "@/lib/id-maintenance-data";
+import { getIdPeriodActivity, getIdStockView, listIdReleases } from "@/lib/id-maintenance-data";
 import { formatIdDate, parseIdPeriod, type IdReleaseRow } from "@/lib/id-maintenance";
 
 export const dynamic = "force-dynamic";
@@ -14,9 +14,10 @@ export default async function IdReleasePage({
   await requireInventorySession();
   const params = await searchParams;
   const period = parseIdPeriod(params.period);
-  const [activity, releases] = await Promise.all([
+  const [activity, releases, stock] = await Promise.all([
     getIdPeriodActivity(period),
     listIdReleases(period),
+    getIdStockView(),
   ]);
 
   const rows: IdReleaseRow[] = releases.map((record) => ({
@@ -31,11 +32,12 @@ export default async function IdReleasePage({
     idCardsUsed: record.idCardsUsed,
     slingsUsed: record.slingsUsed,
     slingKind: record.slingKind,
+    pvcCardName: record.pvcCardName,
   }));
 
   return (
     <div className="space-y-4">
-      <IdReleaseForm />
+      <IdReleaseForm boxes={stock.cardBoxes.filter((box) => box.remaining > 0)} />
       <IdReleaseTable
         rows={rows}
         cardsUsed={activity.cardsReleased}

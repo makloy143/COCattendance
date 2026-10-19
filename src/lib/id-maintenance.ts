@@ -406,7 +406,27 @@ type CardUseSource = {
   at: Date;
   quantity: number;
   createdAt: Date;
+  boxId?: string | null;
 };
+
+function takeFromSlot(
+  slot: {
+    pieces: number;
+    used: number;
+    startedAt: Date | null;
+    endedAt: Date | null;
+  },
+  quantity: number,
+  at: Date
+) {
+  const room = slot.pieces - slot.used;
+  const take = Math.min(room, quantity);
+  if (take <= 0) return 0;
+  if (slot.used === 0) slot.startedAt = at;
+  slot.used += take;
+  if (slot.used >= slot.pieces) slot.endedAt = at;
+  return take;
+}
 
 export function buildCardBoxRows(
   receipts: CardBoxSource[],
@@ -466,21 +486,19 @@ export function buildCardBoxRows(
   let slotIndex = 0;
   for (const use of orderedUses) {
     let left = use.quantity;
+    if (use.boxId) {
+      const target = slots.find((slot) => slot.id === use.boxId);
+      if (target) left -= takeFromSlot(target, left, use.at);
+    }
     while (left > 0 && slotIndex < slots.length) {
       const slot = slots[slotIndex];
-      const room = slot.pieces - slot.used;
-      if (room <= 0) {
+      const taken = takeFromSlot(slot, left, use.at);
+      if (taken <= 0) {
         slotIndex += 1;
         continue;
       }
-      const take = Math.min(room, left);
-      if (slot.used === 0) slot.startedAt = use.at;
-      slot.used += take;
-      left -= take;
-      if (slot.used >= slot.pieces) {
-        slot.endedAt = use.at;
-        slotIndex += 1;
-      }
+      left -= taken;
+      if (slot.used >= slot.pieces) slotIndex += 1;
     }
   }
 
@@ -495,6 +513,15 @@ export function buildCardBoxRows(
       startedAt: slot.startedAt ? slot.startedAt.toISOString() : null,
       endedAt: slot.endedAt ? slot.endedAt.toISOString() : null,
     }));
+}
+
+export function pvcCardOptionLabel(box: IdCardBoxRow) {
+  const status = box.endedAt
+    ? `ended ${formatIdDate(box.endedAt)}`
+    : box.startedAt
+      ? `started ${formatIdDate(box.startedAt)}`
+      : "not started";
+  return `${box.name} · ${box.pieces} pcs · ${status} · ${box.remaining} left`;
 }
 
 export type IdStockView = {
@@ -557,6 +584,7 @@ export type IdReleaseRow = {
   idCardsUsed: number;
   slingsUsed: number;
   slingKind: IdSlingKind | null;
+  pvcCardName: string | null;
 };
 
 export type IdSurrenderRow = {
