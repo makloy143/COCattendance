@@ -406,6 +406,8 @@ model IdStockReceipt {
   packsReceived   Int
   unitsPerPack    Int
   unitsAdded      Int
+  openingRemaining Int?
+  balanceRecordedAt DateTime?
   receivedFrom    String          @default("Main COC")
   dateReceived  DateTime
   notes         String?

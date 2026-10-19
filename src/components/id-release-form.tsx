@@ -106,10 +106,10 @@ export function IdReleaseForm({
         <h2 className="text-base font-semibold">Record ID release</h2>
         <p className="mt-1 text-sm text-slate-600">
           Stock drops only by the ID cards used and slings used on this row. Choose
-          the PVC box those cards came from. Each box is 250 pieces: it starts
-          the day the first card is used and ends when that box is out. A
-          reprint status does not waste a card by itself. Record damaged cards
-          on Bad Printing.
+          the PVC card those cards came from. A full box is 250 pieces. A card
+          already in use shows the pieces left and ends when those pieces are
+          used. A reprint status does not waste a card by itself. Record damaged
+          cards on Bad Printing.
         </p>
       </div>
       <IdStudentLookup

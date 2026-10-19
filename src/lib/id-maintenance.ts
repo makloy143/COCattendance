@@ -398,6 +398,8 @@ type CardBoxSource = {
   unit: IdReceiptUnit;
   unitsPerPack: number;
   unitsAdded: number;
+  openingRemaining?: number | null;
+  balanceRecordedAt?: Date | null;
   receivedAt: Date;
   createdAt: Date;
 };
@@ -422,7 +424,7 @@ function takeFromSlot(
   const room = slot.pieces - slot.used;
   const take = Math.min(room, quantity);
   if (take <= 0) return 0;
-  if (slot.used === 0) slot.startedAt = at;
+  if (!slot.startedAt) slot.startedAt = at;
   slot.used += take;
   if (slot.used >= slot.pieces) slot.endedAt = at;
   return take;
@@ -440,19 +442,35 @@ export function buildCardBoxRows(
     name: string;
     pieces: number;
     show: boolean;
+    balanceRecordedAt: Date | null;
     used: number;
     startedAt: Date | null;
     endedAt: Date | null;
   }> = [];
 
   for (const receipt of ordered) {
+    if (receipt.openingRemaining != null && receipt.openingRemaining > 0) {
+      slots.push({
+        id: receipt.id,
+        name: receipt.name,
+        pieces: receipt.openingRemaining,
+        show: true,
+        balanceRecordedAt: receipt.balanceRecordedAt ?? null,
+        used: 0,
+        startedAt: null,
+        endedAt: null,
+      });
+      continue;
+    }
+
     if (receipt.unit === "PIECE" || receipt.unitsAdded <= 0) {
       if (receipt.unitsAdded > 0) {
         slots.push({
           id: receipt.id,
           name: receipt.name,
           pieces: receipt.unitsAdded,
-          show: false,
+          show: true,
+          balanceRecordedAt: null,
           used: 0,
           startedAt: null,
           endedAt: null,
@@ -472,6 +490,7 @@ export function buildCardBoxRows(
         name: boxCount === 1 ? receipt.name : `${receipt.name} · box ${index + 1}`,
         pieces,
         show: true,
+        balanceRecordedAt: null,
         used: 0,
         startedAt: null,
         endedAt: null,
@@ -483,22 +502,25 @@ export function buildCardBoxRows(
     .filter((use) => use.quantity > 0)
     .sort((a, b) => a.at.getTime() - b.at.getTime() || a.createdAt.getTime() - b.createdAt.getTime());
 
-  let slotIndex = 0;
+  const countsAgainst = (
+    slot: { balanceRecordedAt: Date | null },
+    use: CardUseSource
+  ) => !slot.balanceRecordedAt || use.createdAt.getTime() > slot.balanceRecordedAt.getTime();
+
   for (const use of orderedUses) {
     let left = use.quantity;
     if (use.boxId) {
       const target = slots.find((slot) => slot.id === use.boxId);
-      if (target) left -= takeFromSlot(target, left, use.at);
-    }
-    while (left > 0 && slotIndex < slots.length) {
-      const slot = slots[slotIndex];
-      const taken = takeFromSlot(slot, left, use.at);
-      if (taken <= 0) {
-        slotIndex += 1;
-        continue;
+      if (target && countsAgainst(target, use)) {
+        left -= takeFromSlot(target, left, use.at);
+      } else if (target && !target.startedAt) {
+        target.startedAt = use.at;
       }
-      left -= taken;
-      if (slot.used >= slot.pieces) slotIndex += 1;
+    }
+    for (const slot of slots) {
+      if (left <= 0) break;
+      if (!countsAgainst(slot, use) || slot.used >= slot.pieces) continue;
+      left -= takeFromSlot(slot, left, use.at);
     }
   }
 
