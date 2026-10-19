@@ -566,6 +566,10 @@ export const idReleaseEntrySchema = z.object({
   }
 });
 
+export const idReleaseReasonSchema = z.object({
+  reason: z.string().trim().min(1, "Reason is required").max(200),
+});
+
 export const idBadPrintSchema = z.object({
   personName: z.string().trim().min(1, "Name is required").max(200),
   course: z.string().trim().min(1, "Course is required").max(100),

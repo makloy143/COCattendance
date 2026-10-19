@@ -4,9 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   ID_BAD_PRINT_STATUSES,
   ID_BAD_PRINT_STATUS_LABELS,
+  ID_RELEASE_REASON_PRESETS,
   type IdBadPrintStatus,
 } from "@/lib/id-maintenance";
 
@@ -62,6 +64,99 @@ export function IdRemoveButton({
     >
       {loading ? "Removing..." : "Remove"}
     </Button>
+  );
+}
+
+export function IdReleaseReasonEditor({
+  id,
+  reason,
+}: {
+  id: string;
+  reason: string;
+}) {
+  const router = useRouter();
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(reason);
+  const [loading, setLoading] = useState(false);
+
+  async function handleSave() {
+    const next = value.trim();
+    if (!next) {
+      toast.error("Reason is required");
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/inventory/id/releases/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: next }),
+      });
+      if (!response.ok) {
+        toast.error(await readError(response, "Could not update the reason"));
+        return;
+      }
+      toast.success("Reason updated");
+      setEditing(false);
+      router.refresh();
+    } catch {
+      toast.error("Could not update the reason");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (!editing) {
+    return (
+      <div className="flex items-center gap-2">
+        <span>{reason}</span>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="cursor-pointer"
+          onClick={() => {
+            setValue(reason);
+            setEditing(true);
+          }}
+        >
+          Edit
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-w-56 items-center gap-2">
+      <Input
+        value={value}
+        list={`release-reason-${id}`}
+        onChange={(event) => setValue(event.target.value)}
+        aria-label="Reason"
+        required
+      />
+      <datalist id={`release-reason-${id}`}>
+        {ID_RELEASE_REASON_PRESETS.map((preset) => (
+          <option key={preset} value={preset} />
+        ))}
+      </datalist>
+      <Button type="button" size="sm" className="cursor-pointer" onClick={() => void handleSave()} disabled={loading}>
+        {loading ? "Saving..." : "Save"}
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="cursor-pointer"
+        onClick={() => {
+          setValue(reason);
+          setEditing(false);
+        }}
+        disabled={loading}
+      >
+        Cancel
+      </Button>
+    </div>
   );
 }
 

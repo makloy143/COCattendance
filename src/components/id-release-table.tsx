@@ -1,4 +1,4 @@
-import { IdRemoveButton } from "@/components/id-record-actions";
+import { IdReleaseReasonEditor, IdRemoveButton } from "@/components/id-record-actions";
 import { IdStatusBadge } from "@/components/id-status-badge";
 import {
   Table,
@@ -87,7 +87,13 @@ export function IdReleaseTable({
                 <TableCell>
                   <IdStatusBadge status={row.status} />
                 </TableCell>
-                <TableCell>{row.reason}</TableCell>
+                <TableCell>
+                  {showActions ? (
+                    <IdReleaseReasonEditor id={row.id} reason={row.reason} />
+                  ) : (
+                    row.reason
+                  )}
+                </TableCell>
                 <TableCell>{row.printedBy}</TableCell>
                 <TableCell>
                   {row.pvcCardName

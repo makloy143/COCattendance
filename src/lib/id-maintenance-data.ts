@@ -466,6 +466,17 @@ export async function createIdReleaseEntry(input: {
   });
 }
 
+export async function updateIdReleaseReason(id: string, reason: string) {
+  const entry = await prisma.idReleaseEntry.findUnique({ where: { id } });
+  if (!entry) {
+    throw new IdStockError("Release record was not found.");
+  }
+  return prisma.idReleaseEntry.update({
+    where: { id },
+    data: { reason: reason.trim() },
+  });
+}
+
 export async function deleteIdReleaseEntry(id: string) {
   const entry = await prisma.idReleaseEntry.findUnique({ where: { id } });
   if (!entry) {
