@@ -221,7 +221,11 @@ export default async function IdReportsPage({
                   <TableCell>{ID_RELEASE_STATUS_LABELS[release.status]}</TableCell>
                   <TableCell>{release.reason}</TableCell>
                   <TableCell>{release.printedBy}</TableCell>
-                  <TableCell>{release.pvcCardName ?? "—"}</TableCell>
+                  <TableCell>
+                    {release.pvcCardName
+                      ? `${release.pvcCardName}${release.pvcCardEnded ? " · ended" : ""}`
+                      : "—"}
+                  </TableCell>
                   <TableCell className="tabular-nums">{release.idCardsUsed}</TableCell>
                   <TableCell className="tabular-nums">
                     {release.slingsUsed}

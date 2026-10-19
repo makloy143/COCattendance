@@ -36,7 +36,7 @@ export default async function IdInventoryPage() {
         </p>
       </section>
 
-      <IdCardBoxTable boxes={stock.cardBoxes} />
+      <IdCardBoxTable boxes={stock.cardBoxes} currentBoxId={stock.currentCardBoxId} />
 
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
         <section className="overflow-hidden rounded-xl border bg-white shadow-sm">

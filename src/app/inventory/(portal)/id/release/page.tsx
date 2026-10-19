@@ -33,11 +33,15 @@ export default async function IdReleasePage({
     slingsUsed: record.slingsUsed,
     slingKind: record.slingKind,
     pvcCardName: record.pvcCardName,
+    pvcCardEnded: record.pvcCardEnded,
   }));
 
   return (
     <div className="space-y-4">
-      <IdReleaseForm boxes={stock.cardBoxes.filter((box) => box.remaining > 0)} />
+      <IdReleaseForm
+        boxes={stock.cardBoxes.filter((box) => box.remaining > 0)}
+        continueBoxId={stock.currentCardBoxId}
+      />
       <IdReleaseTable
         rows={rows}
         cardsUsed={activity.cardsReleased}

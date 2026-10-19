@@ -89,7 +89,11 @@ export function IdReleaseTable({
                 </TableCell>
                 <TableCell>{row.reason}</TableCell>
                 <TableCell>{row.printedBy}</TableCell>
-                <TableCell>{row.pvcCardName ?? "—"}</TableCell>
+                <TableCell>
+                  {row.pvcCardName
+                    ? `${row.pvcCardName}${row.pvcCardEnded ? " · ended" : ""}`
+                    : "—"}
+                </TableCell>
                 <TableCell className="tabular-nums">{row.idCardsUsed}</TableCell>
                 <TableCell className="tabular-nums">
                   {row.slingsUsed}

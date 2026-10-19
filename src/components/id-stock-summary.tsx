@@ -153,12 +153,17 @@ function EquationFigure({
 
 export function IdCardBoxTable({
   boxes,
+  currentBoxId = null,
   embedded = false,
 }: {
   boxes: IdCardBoxRow[];
+  currentBoxId?: string | null;
   embedded?: boolean;
 }) {
-  const openBox = boxes.find((box) => box.startedAt && !box.endedAt);
+  const openBox =
+    boxes.find((box) => box.id === currentBoxId && box.remaining > 0 && !box.endedAt) ??
+    [...boxes].reverse().find((box) => box.remaining > 0 && !box.endedAt) ??
+    null;
   const endedBox = [...boxes].reverse().find((box) => box.endedAt);
 
   const body = (
@@ -170,8 +175,11 @@ export function IdCardBoxTable({
         </p>
         {openBox ? (
           <p className="mt-2 text-sm text-slate-700">
-            {openBox.name} started {formatIdDate(openBox.startedAt ?? "")}.{" "}
-            {formatCount(openBox.used)} of {formatCount(openBox.pieces)} used.
+            Continuing {openBox.name}.{" "}
+            {openBox.startedAt
+              ? `Started ${formatIdDate(openBox.startedAt)}. `
+              : "Not started yet. "}
+            {formatCount(openBox.remaining)} left. The end date is recorded when the last of these cards is used.
           </p>
         ) : null}
         {endedBox?.endedAt ? (
@@ -254,7 +262,7 @@ export function IdInventoryOverview({ stock }: { stock: IdStockView }) {
             <span className="pb-4 text-xl text-slate-400">=</span>
             <EquationFigure value={stock.cardsRemaining} label="Remaining" tone="green" />
           </div>
-          <IdCardBoxTable boxes={stock.cardBoxes} embedded />
+          <IdCardBoxTable boxes={stock.cardBoxes} currentBoxId={stock.currentCardBoxId} embedded />
         </div>
 
         <div className="rounded-xl border bg-[#fbfefc] p-4">

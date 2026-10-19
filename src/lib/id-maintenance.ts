@@ -524,9 +524,18 @@ export function pvcCardOptionLabel(box: IdCardBoxRow) {
   return `${box.name} · ${box.pieces} pcs · ${status} · ${box.remaining} left`;
 }
 
+export function currentPvcBoxId(boxes: IdCardBoxRow[], latestUsedBoxId?: string | null) {
+  const open = boxes.filter((box) => box.remaining > 0 && !box.endedAt);
+  if (latestUsedBoxId && open.some((box) => box.id === latestUsedBoxId)) {
+    return latestUsedBoxId;
+  }
+  return [...open].reverse()[0]?.id ?? null;
+}
+
 export type IdStockView = {
   cardsPerBox: number;
   cardBoxes: IdCardBoxRow[];
+  currentCardBoxId: string | null;
   slingsPerBundle: number;
   lowIdCardThreshold: number;
   lowSlingThreshold: number;
@@ -585,6 +594,7 @@ export type IdReleaseRow = {
   slingsUsed: number;
   slingKind: IdSlingKind | null;
   pvcCardName: string | null;
+  pvcCardEnded: boolean;
 };
 
 export type IdSurrenderRow = {

@@ -27,7 +27,13 @@ import {
   type IdSlingKind,
 } from "@/lib/id-maintenance";
 
-export function IdReleaseForm({ boxes }: { boxes: IdCardBoxRow[] }) {
+export function IdReleaseForm({
+  boxes,
+  continueBoxId = null,
+}: {
+  boxes: IdCardBoxRow[];
+  continueBoxId?: string | null;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [personName, setPersonName] = useState("");
@@ -45,11 +51,13 @@ export function IdReleaseForm({ boxes }: { boxes: IdCardBoxRow[] }) {
   const [slingsUsed, setSlingsUsed] = useState("1");
   const [slingKind, setSlingKind] = useState<IdSlingKind>("STUDENT");
   const cardsUsed = Number(idCardsUsed) || 0;
-  const openBox = boxes.find((box) => box.startedAt && box.remaining > 0);
   const selectedBoxId =
     pvcCardId && boxes.some((box) => box.id === pvcCardId)
       ? pvcCardId
-      : openBox?.id ?? boxes[0]?.id ?? "";
+      : continueBoxId && boxes.some((box) => box.id === continueBoxId)
+        ? continueBoxId
+        : boxes[boxes.length - 1]?.id ?? "";
+  const selectedBox = boxes.find((box) => box.id === selectedBoxId) ?? null;
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -183,11 +191,16 @@ export function IdReleaseForm({ boxes }: { boxes: IdCardBoxRow[] }) {
             >
               {boxes.map((box) => (
                 <option key={box.id} value={box.id}>
-                  {pvcCardOptionLabel(box)}
+                  {box.id === continueBoxId ? `Continuing ${pvcCardOptionLabel(box)}` : pvcCardOptionLabel(box)}
                 </option>
               ))}
             </select>
           )}
+          {selectedBox ? (
+            <p className="text-xs text-slate-500">
+              Continuing {selectedBox.name}. {selectedBox.remaining.toLocaleString("en-US")} left. The end date is recorded when the last of these cards is used.
+            </p>
+          ) : null}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="slingsUsed">Slings used</Label>

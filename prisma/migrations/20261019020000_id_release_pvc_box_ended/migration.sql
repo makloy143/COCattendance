@@ -1,0 +1,1 @@
+ALTER TABLE "IdReleaseEntry" ADD COLUMN "pvcCardEnded" BOOLEAN NOT NULL DEFAULT false;

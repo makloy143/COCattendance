@@ -428,6 +428,7 @@ model IdReleaseEntry {
   printedBy       String
   pvcCardId       String?
   pvcCardName     String?
+  pvcCardEnded    Boolean         @default(false)
   idCardsUsed     Int             @default(0)
   slingsUsed      Int             @default(0)
   slingKind       IdSlingKind?

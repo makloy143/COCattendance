@@ -64,6 +64,7 @@ export default async function IdMaintenanceDashboardPage({
     slingsUsed: record.slingsUsed,
     slingKind: record.slingKind,
     pvcCardName: record.pvcCardName,
+    pvcCardEnded: record.pvcCardEnded,
   }));
 
   const surrenderRows: IdSurrenderRow[] = surrenders.map((record) => ({

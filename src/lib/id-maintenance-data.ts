@@ -6,6 +6,7 @@ import {
   buildCardPackNote,
   buildSlingPackNote,
   categoryForItemType,
+  currentPvcBoxId,
   formatDescriptionCode,
   formatIdDate,
   getIdPeriodRange,
@@ -144,6 +145,38 @@ export async function getIdStockView(): Promise<IdStockView> {
     (row) => row.boxes > 0 || itemOptions.some((option) => option.id === row.id && option.active)
   );
 
+  const cardBoxes = buildCardBoxRows(
+    cardReceipts.map((receipt) => ({
+      id: receipt.id,
+      name: receiptItemTitle(receipt),
+      unit: receipt.unit,
+      unitsPerPack: receipt.unitsPerPack,
+      unitsAdded: receipt.unitsAdded,
+      receivedAt: receipt.dateReceived,
+      createdAt: receipt.createdAt,
+    })),
+    [
+      ...cardReleases.map((release) => ({
+        at: release.transactionDate,
+        quantity: release.idCardsUsed,
+        createdAt: release.createdAt,
+        boxId: release.pvcCardId,
+      })),
+      ...cardWastes.map((waste) => ({
+        at: waste.datePrinted,
+        quantity: waste.quantity,
+        createdAt: waste.createdAt,
+      })),
+    ]
+  );
+  const latestUsedBox = [...cardReleases]
+    .filter((release) => release.pvcCardId)
+    .sort(
+      (a, b) =>
+        b.transactionDate.getTime() - a.transactionDate.getTime() ||
+        b.createdAt.getTime() - a.createdAt.getTime()
+    )[0];
+
   return {
     cardsPerBox: settings.cardsPerBox,
     slingsPerBundle: settings.slingsPerBundle,
@@ -167,30 +200,8 @@ export async function getIdStockView(): Promise<IdStockView> {
     employeeSlingsUsed,
     employeeSlingsRemaining,
     cardItemName,
-    cardBoxes: buildCardBoxRows(
-      cardReceipts.map((receipt) => ({
-        id: receipt.id,
-        name: receiptItemTitle(receipt),
-        unit: receipt.unit,
-        unitsPerPack: receipt.unitsPerPack,
-        unitsAdded: receipt.unitsAdded,
-        receivedAt: receipt.dateReceived,
-        createdAt: receipt.createdAt,
-      })),
-      [
-        ...cardReleases.map((release) => ({
-          at: release.transactionDate,
-          quantity: release.idCardsUsed,
-          createdAt: release.createdAt,
-          boxId: release.pvcCardId,
-        })),
-        ...cardWastes.map((waste) => ({
-          at: waste.datePrinted,
-          quantity: waste.quantity,
-          createdAt: waste.createdAt,
-        })),
-      ]
-    ),
+    cardBoxes,
+    currentCardBoxId: currentPvcBoxId(cardBoxes, latestUsedBox?.pvcCardId),
     supplyBoxes,
     lowCards: cardReceipts.length > 0 && cardsRemaining <= settings.lowIdCardThreshold,
     lowSlings:
@@ -441,6 +452,7 @@ export async function createIdReleaseEntry(input: {
       printedBy: input.printedBy.trim(),
       pvcCardId: pvcCard?.id ?? null,
       pvcCardName: pvcCard?.name ?? null,
+      pvcCardEnded: Boolean(pvcCard && input.idCardsUsed > 0 && input.idCardsUsed >= pvcCard.remaining),
       idCardsUsed: input.idCardsUsed,
       slingsUsed: input.slingsUsed,
       slingKind: input.slingsUsed > 0 ? slingKind : null,
@@ -731,7 +743,9 @@ export async function listIdHistory(period: IdPeriod): Promise<IdHistoryEvent[]>
       kind: "RELEASE" as const,
       title: release.personName,
       detail: `${release.course} · ${release.idNumber} · ${release.reason} · printed by ${release.printedBy}${
-        release.pvcCardName ? ` · PVC ${release.pvcCardName}` : ""
+        release.pvcCardName
+          ? ` · PVC ${release.pvcCardName}${release.pvcCardEnded ? " ended" : ""}`
+          : ""
       }${
         release.slingsUsed > 0
           ? ` · ${release.slingKind === "EMPLOYEE" ? "employee" : "student"} sling`
