@@ -1,0 +1,1 @@
+ALTER TYPE "IdReleaseStatus" ADD VALUE 'SLING';

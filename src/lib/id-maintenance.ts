@@ -142,12 +142,15 @@ export function receiptItemTitle(receipt: {
   );
 }
 
-export const ID_RELEASE_STATUSES = ["NEW_ID", "REPRINT"] as const;
+export const ID_RELEASE_STATUSES = ["NEW_ID", "REPRINT", "SLING"] as const;
 export type IdReleaseStatus = (typeof ID_RELEASE_STATUSES)[number];
+
+export const ID_CARD_RELEASE_STATUSES = ["NEW_ID", "REPRINT"] as const;
 
 export const ID_RELEASE_STATUS_LABELS: Record<IdReleaseStatus, string> = {
   NEW_ID: "NEW ID",
   REPRINT: "REPRINT",
+  SLING: "Sling",
 };
 
 export const ID_BAD_PRINT_STATUSES = ["REPRINT", "RESOLVED", "CANCELLED"] as const;

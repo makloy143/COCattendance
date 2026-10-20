@@ -17,7 +17,7 @@ import {
 import { formatManilaDateInput } from "@/lib/date-utils";
 import {
   ID_RELEASE_REASON_PRESETS,
-  ID_RELEASE_STATUSES,
+  ID_CARD_RELEASE_STATUSES,
   ID_RELEASE_STATUS_LABELS,
   ID_SLING_KIND_LABELS,
   ID_SLING_KINDS,
@@ -149,7 +149,7 @@ export function IdReleaseForm({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {ID_RELEASE_STATUSES.map((value) => (
+              {ID_CARD_RELEASE_STATUSES.map((value) => (
                 <SelectItem key={value} value={value}>
                   {ID_RELEASE_STATUS_LABELS[value]}
                 </SelectItem>

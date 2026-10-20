@@ -366,6 +366,7 @@ enum IdSlingKind {
 enum IdReleaseStatus {
   NEW_ID
   REPRINT
+  SLING
 }
 
 enum IdBadPrintStatus {

@@ -56,7 +56,7 @@ export function IdSlingReleaseForm({
           course,
           idNumber,
           transactionDate,
-          status: "NEW_ID",
+          status: "SLING",
           reason,
           printedBy: releasedBy,
           idCardsUsed: 0,
