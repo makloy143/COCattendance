@@ -240,10 +240,13 @@ export async function getIdPeriodActivity(period: IdPeriod): Promise<IdPeriodAct
   };
 }
 
-export async function listIdReleases(period: IdPeriod) {
+export async function listIdReleases(period: IdPeriod, filter?: { slingsOnly?: boolean }) {
   const range = periodFilter(period);
   return prisma.idReleaseEntry.findMany({
-    where: range ? { transactionDate: range } : undefined,
+    where: {
+      ...(range ? { transactionDate: range } : {}),
+      ...(filter?.slingsOnly ? { slingsUsed: { gt: 0 } } : {}),
+    },
     orderBy: [{ transactionDate: "desc" }, { createdAt: "desc" }],
     take: 300,
   });
