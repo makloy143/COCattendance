@@ -209,8 +209,17 @@ export function InkRecordTable({
       <Table>
         <TableHeader>
           <TableRow>
-            {columns.map((heading) => (
-              <TableHead key={heading || "actions"}>{heading}</TableHead>
+            {columns.map((heading, index) => (
+              <TableHead
+                key={heading || "actions"}
+                className={
+                  releaseRemovable && index === columns.length - 1
+                    ? "sticky right-0 z-10 bg-white"
+                    : undefined
+                }
+              >
+                {heading}
+              </TableHead>
             ))}
           </TableRow>
         </TableHeader>
@@ -241,7 +250,13 @@ export function InkRecordTable({
                   )}
                 </TableCell>
                 {removable || releaseRemovable ? (
-                  <TableCell>
+                  <TableCell
+                    className={
+                      releaseRemovable
+                        ? "sticky right-0 z-10 bg-white shadow-[-8px_0_8px_-8px_rgba(15,23,42,0.35)]"
+                        : undefined
+                    }
+                  >
                     {removable && (row.available ?? 0) > 0 ? (
                       <InkClearStockButton
                         endpoint={`/api/inventory/inks/stock/${row.id}`}
@@ -253,7 +268,8 @@ export function InkRecordTable({
                       <InkClearStockButton
                         endpoint={`/api/inventory/inks/releases/${row.id}`}
                         label="Remove"
-                        variant="ghost"
+                        variant="outline"
+                        className="cursor-pointer"
                         confirmMessage={`Remove this release of ${row.quantity} ${row.model}?`}
                       />
                     ) : (

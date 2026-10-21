@@ -12,12 +12,14 @@ export function InkClearStockButton({
   confirmMessage,
   endpoint,
   variant = "outline",
+  className,
 }: {
   modelName?: string;
   label: string;
   confirmMessage: string;
   endpoint?: string;
   variant?: "outline" | "ghost";
+  className?: string;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -55,7 +57,18 @@ export function InkClearStockButton({
   }
 
   return (
-    <Button type="button" variant={variant} size="sm" onClick={handleClick} disabled={loading}>
+    <Button
+      type="button"
+      variant={variant}
+      size="sm"
+      className={className}
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        void handleClick();
+      }}
+      disabled={loading}
+    >
       {loading ? "Clearing..." : label}
     </Button>
   );
