@@ -1,6 +1,6 @@
 import { AlertTriangle, CheckCircle2, Droplets, PackagePlus } from "lucide-react";
 import { InkReceiveForm } from "@/components/ink-receive-form";
-import { InkClearStockButton } from "@/components/ink-stock-actions";
+import { InkClearStockButton, InkReleaseDepartmentEditor } from "@/components/ink-stock-actions";
 import {
   Table,
   TableBody,
@@ -233,7 +233,13 @@ export function InkRecordTable({
                   <TableCell className="tabular-nums">{formatCount(row.available ?? 0)}</TableCell>
                 ) : null}
                 <TableCell>{row.person}</TableCell>
-                <TableCell>{row.department}</TableCell>
+                <TableCell>
+                  {releaseRemovable ? (
+                    <InkReleaseDepartmentEditor id={row.id} department={row.department} />
+                  ) : (
+                    row.department
+                  )}
+                </TableCell>
                 {removable || releaseRemovable ? (
                   <TableCell>
                     {removable && (row.available ?? 0) > 0 ? (

@@ -102,3 +102,25 @@ export async function removeInkRelease(id: string) {
 
   return { removed: true as const };
 }
+
+export async function updateInkReleaseDepartment(id: string, department: string) {
+  const borrow = await prisma.borrowRecord.findUnique({
+    where: { id },
+    include: { receivedItem: { select: { category: true } } },
+  });
+  if (!borrow || borrow.receivedItem.category !== "INK") {
+    throw new IdStockError("Ink release was not found.");
+  }
+  const next = department.trim();
+  const known = await prisma.inventoryDepartment.findMany({
+    where: { active: true },
+    select: { name: true },
+  });
+  if (known.length > 0 && !known.some((row) => row.name === next)) {
+    throw new IdStockError("Choose a department from Settings.");
+  }
+  return prisma.borrowRecord.update({
+    where: { id },
+    data: { department: next },
+  });
+}
