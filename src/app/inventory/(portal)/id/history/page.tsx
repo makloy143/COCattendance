@@ -22,6 +22,7 @@ const KIND_FILTERS: Array<{ id: "all" | IdHistoryKind; label: string }> = [
   { id: "all", label: "All" },
   { id: "RECEIPT", label: "Stock receipts" },
   { id: "RELEASE", label: "ID releases" },
+  { id: "SLING_RELEASE", label: "Sling releases" },
   { id: "BAD_PRINT", label: "Bad printing" },
   { id: "SURRENDER", label: "Withdrawals" },
 ];
@@ -29,6 +30,7 @@ const KIND_FILTERS: Array<{ id: "all" | IdHistoryKind; label: string }> = [
 const KIND_LABELS: Record<IdHistoryKind, string> = {
   RECEIPT: "Stock receipt",
   RELEASE: "ID release",
+  SLING_RELEASE: "Sling release",
   BAD_PRINT: "Bad printing",
   SURRENDER: "Withdrawal",
 };
@@ -50,6 +52,7 @@ export default async function IdHistoryPage({
   const kind =
     params.kind === "RECEIPT" ||
     params.kind === "RELEASE" ||
+    params.kind === "SLING_RELEASE" ||
     params.kind === "BAD_PRINT" ||
     params.kind === "SURRENDER"
       ? params.kind

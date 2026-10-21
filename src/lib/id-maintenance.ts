@@ -635,7 +635,7 @@ export type IdSurrenderRow = {
   receivedBy: string;
 };
 
-export type IdHistoryKind = "RECEIPT" | "RELEASE" | "BAD_PRINT" | "SURRENDER";
+export type IdHistoryKind = "RECEIPT" | "RELEASE" | "SLING_RELEASE" | "BAD_PRINT" | "SURRENDER";
 
 export type IdHistoryEvent = {
   id: string;

@@ -755,24 +755,29 @@ export async function listIdHistory(period: IdPeriod): Promise<IdHistoryEvent[]>
           : 0,
       sort: receipt.dateReceived.getTime(),
     })),
-    ...releases.map((release) => ({
-      id: `release-${release.id}`,
-      dateLabel: formatIdDate(release.transactionDate),
-      kind: "RELEASE" as const,
-      title: release.personName,
-      detail: `${release.course} · ${release.idNumber} · ${release.reason} · printed by ${release.printedBy}${
-        release.pvcCardName
-          ? ` · PVC ${release.pvcCardName}${release.pvcCardEnded ? " ended" : ""}`
-          : ""
-      }${
+    ...releases.map((release) => {
+      const slingRelease = release.status === "SLING";
+      const slingNote =
         release.slingsUsed > 0
           ? ` · ${release.slingKind === "EMPLOYEE" ? "employee" : "student"} sling`
-          : ""
-      }`,
-      cards: -release.idCardsUsed,
-      slings: -release.slingsUsed,
-      sort: release.transactionDate.getTime(),
-    })),
+          : "";
+      return {
+        id: `${slingRelease ? "sling-release" : "release"}-${release.id}`,
+        dateLabel: formatIdDate(release.transactionDate),
+        kind: slingRelease ? ("SLING_RELEASE" as const) : ("RELEASE" as const),
+        title: release.personName,
+        detail: slingRelease
+          ? `${release.course} · ${release.idNumber} · ${release.reason} · released by ${release.printedBy}${slingNote}`
+          : `${release.course} · ${release.idNumber} · ${release.reason} · printed by ${release.printedBy}${
+              release.pvcCardName
+                ? ` · PVC ${release.pvcCardName}${release.pvcCardEnded ? " ended" : ""}`
+                : ""
+            }${slingNote}`,
+        cards: -release.idCardsUsed,
+        slings: -release.slingsUsed,
+        sort: release.transactionDate.getTime(),
+      };
+    }),
     ...badPrints.map((record) => ({
       id: `bad-${record.id}`,
       dateLabel: formatIdDate(record.datePrinted),
