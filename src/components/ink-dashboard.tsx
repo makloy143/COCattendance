@@ -197,9 +197,13 @@ export function InkRecordTable({
   removable?: boolean;
   releaseRemovable?: boolean;
 }) {
-  const columns = removable || releaseRemovable
+  const pinActions = removable || releaseRemovable;
+  const columns = pinActions
     ? ["Date", "Ink model", "Qty", ...(removable ? ["Available"] : []), personHeading, "Department", ""]
     : ["Date", "Ink model", "Qty", personHeading, "Department"];
+  const actionCellClass = pinActions
+    ? "sticky right-0 z-10 bg-white shadow-[-8px_0_8px_-8px_rgba(15,23,42,0.35)]"
+    : undefined;
 
   return (
     <section className="overflow-hidden rounded-xl border bg-white shadow-sm">
@@ -212,11 +216,7 @@ export function InkRecordTable({
             {columns.map((heading, index) => (
               <TableHead
                 key={heading || "actions"}
-                className={
-                  releaseRemovable && index === columns.length - 1
-                    ? "sticky right-0 z-10 bg-white"
-                    : undefined
-                }
+                className={pinActions && index === columns.length - 1 ? "sticky right-0 z-10 bg-white" : undefined}
               >
                 {heading}
               </TableHead>
@@ -249,19 +249,14 @@ export function InkRecordTable({
                     row.department
                   )}
                 </TableCell>
-                {removable || releaseRemovable ? (
-                  <TableCell
-                    className={
-                      releaseRemovable
-                        ? "sticky right-0 z-10 bg-white shadow-[-8px_0_8px_-8px_rgba(15,23,42,0.35)]"
-                        : undefined
-                    }
-                  >
+                {pinActions ? (
+                  <TableCell className={actionCellClass}>
                     {removable && (row.available ?? 0) > 0 ? (
                       <InkClearStockButton
                         endpoint={`/api/inventory/inks/stock/${row.id}`}
                         label="Remove"
-                        variant="ghost"
+                        variant="outline"
+                        className="cursor-pointer"
                         confirmMessage={`Remove ${row.available} available bottle${row.available === 1 ? "" : "s"} of ${row.model}? This also removes its release quantity.`}
                       />
                     ) : releaseRemovable ? (
