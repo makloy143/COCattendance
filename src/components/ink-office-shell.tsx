@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Droplets, History, LayoutDashboard, LogOut, Menu, Printer, Settings, UserRound, X } from "lucide-react";
+import { BarChart3, Droplets, History, LayoutDashboard, LogOut, Menu, Printer, Settings, UserRound, X } from "lucide-react";
 import { IdPeriodSelect } from "@/components/id-period-select";
 import { InventoryDashboardSwitcher } from "@/components/inventory-dashboard-switcher";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ const navItems = [
   { href: "/inventory/inks/inventory", label: "Ink Inventory", icon: Droplets },
   { href: "/inventory/inks/release", label: "Ink Release", icon: Printer },
   { href: "/inventory/inks/history", label: "Stock & Usage History", icon: History },
+  { href: "/inventory/inks/reports", label: "Reports", icon: BarChart3 },
   { href: "/inventory/inks/settings", label: "Settings", icon: Settings },
 ];
 

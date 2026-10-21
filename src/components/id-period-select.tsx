@@ -16,6 +16,7 @@ const PERIOD_PATHS = new Set([
   "/inventory/id/history",
   "/inventory/id/reports",
   "/inventory/inks",
+  "/inventory/inks/reports",
 ]);
 
 function IdPeriodSelectControl() {

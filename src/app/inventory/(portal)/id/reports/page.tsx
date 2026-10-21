@@ -1,3 +1,4 @@
+import { ReportExcelButton } from "@/components/report-excel-button";
 import { IdInventoryOverview } from "@/components/id-stock-summary";
 import {
   Table,
@@ -72,6 +73,12 @@ export default async function IdReportsPage({
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-slate-600">
+          ID card and sling activity for {ID_PERIOD_LABELS[period]}. Remaining stock is the current balance.
+        </p>
+        <ReportExcelButton endpoint="/api/inventory/id/reports" period={period} />
+      </div>
       <IdInventoryOverview stock={stock} />
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
