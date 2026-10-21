@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PackagePlus } from "lucide-react";
 import { toast } from "sonner";
@@ -21,8 +21,26 @@ export function InkReceiveForm({
   const [quantity, setQuantity] = useState("");
   const [senderName, setSenderName] = useState("");
   const [department, setDepartment] = useState<string>(DEPARTMENTS[0]);
+  const [departments, setDepartments] = useState<string[]>([...DEPARTMENTS]);
   const [dateReceived, setDateReceived] = useState(() => formatManilaDateInput(new Date()));
   const selected = models.find((model) => model.name === itemName) ?? models[0];
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/inventory/departments")
+      .then(async (response) => {
+        if (!response.ok || cancelled) return;
+        const data = (await response.json()) as unknown;
+        if (!cancelled && Array.isArray(data) && data.every((item) => typeof item === "string") && data.length > 0) {
+          setDepartments(data);
+          setDepartment((current) => (data.includes(current) ? current : data[0]));
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -114,7 +132,7 @@ export function InkReceiveForm({
               onChange={(event) => setDepartment(event.target.value)}
               className="h-10 w-full rounded-md border bg-white px-3 text-sm"
             >
-              {DEPARTMENTS.map((name) => (
+              {departments.map((name) => (
                 <option key={name} value={name}>
                   {name}
                 </option>

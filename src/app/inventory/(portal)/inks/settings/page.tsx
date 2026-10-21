@@ -1,13 +1,19 @@
 import { InkModelSettings } from "@/components/ink-model-settings";
 import { InkSettingsForm } from "@/components/ink-settings-form";
+import { InventoryDepartmentSettings } from "@/components/inventory-department-settings";
 import { requireInventorySession } from "@/lib/inventory-auth";
+import { listInventoryDepartments } from "@/lib/inventory-departments";
 import { getInkOfficeSettings, listInkModels } from "@/lib/ink-settings";
 
 export const dynamic = "force-dynamic";
 
 export default async function InkSettingsPage() {
   await requireInventorySession();
-  const [settings, models] = await Promise.all([getInkOfficeSettings(), listInkModels()]);
+  const [settings, models, departments] = await Promise.all([
+    getInkOfficeSettings(),
+    listInkModels(),
+    listInventoryDepartments(),
+  ]);
 
   return (
     <div className="space-y-4">
@@ -18,6 +24,7 @@ export default async function InkSettingsPage() {
       </p>
       <InkSettingsForm lowStockAtMost={settings.lowStockAtMost} />
       <InkModelSettings options={models} />
+      <InventoryDepartmentSettings departments={departments} />
     </div>
   );
 }

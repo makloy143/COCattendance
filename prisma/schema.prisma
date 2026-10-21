@@ -279,6 +279,17 @@ model InkModelOption {
   @@index([active, sortOrder])
 }
 
+model InventoryDepartment {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, sortOrder])
+}
+
 model ReceivedItem {
   id                   String         @id @default(cuid())
   itemName             String

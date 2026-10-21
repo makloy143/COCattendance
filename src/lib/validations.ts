@@ -664,3 +664,17 @@ export const inkModelUpdateSchema = z.object({
   inkColor: z.enum(INK_COLORS).optional(),
   active: z.boolean().optional(),
 });
+
+export const inventoryDepartmentSchema = z.object({
+  name: z.string().trim().min(1, "Department name is required").max(80, "Department name is too long"),
+});
+
+export const inventoryDepartmentUpdateSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Department name is required")
+    .max(80, "Department name is too long")
+    .optional(),
+  active: z.boolean().optional(),
+});
