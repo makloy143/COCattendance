@@ -1,4 +1,10 @@
-import { APP_TIMEZONE, formatManilaDateInput, getManilaDayStart } from "@/lib/date-utils";
+import {
+  APP_TIMEZONE,
+  addManilaDays,
+  formatManilaDateInput,
+  getManilaDayStart,
+  getManilaWeekStart,
+} from "@/lib/date-utils";
 
 export const ID_STOCK_ITEM_TYPES = [
   "ID_CARD",
@@ -189,10 +195,11 @@ export const ID_BAD_PRINT_REASON_PRESETS = [
   "WRONG WEARING OF UNIFORM",
 ] as const;
 
-export const ID_PERIODS = ["month", "year", "all"] as const;
+export const ID_PERIODS = ["week", "month", "year", "all"] as const;
 export type IdPeriod = (typeof ID_PERIODS)[number];
 
 export const ID_PERIOD_LABELS: Record<IdPeriod, string> = {
+  week: "This Week",
   month: "This Month",
   year: "This Year",
   all: "All Time",
@@ -232,7 +239,7 @@ export class IdStockError extends Error {
 }
 
 export function parseIdPeriod(value: string | undefined | null): IdPeriod {
-  if (value === "year" || value === "all" || value === "month") return value;
+  if (value === "week" || value === "year" || value === "all" || value === "month") return value;
   return "month";
 }
 
@@ -259,6 +266,14 @@ export function getIdPeriodRange(
   now = new Date()
 ): { start: Date; end: Date } | null {
   if (period === "all") return null;
+
+  if (period === "week") {
+    const start = getManilaWeekStart(now);
+    return {
+      start,
+      end: new Date(addManilaDays(start, 7).getTime() - 1),
+    };
+  }
 
   const key = formatManilaDateInput(now);
   const year = Number(key.slice(0, 4));

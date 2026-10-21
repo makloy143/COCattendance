@@ -27,6 +27,9 @@ function IdPeriodSelectControl() {
   if (!PERIOD_PATHS.has(pathname)) return null;
 
   const period = parseIdPeriod(searchParams.get("period"));
+  const periods = pathname.endsWith("/reports")
+    ? ID_PERIODS
+    : ID_PERIODS.filter((value) => value !== "week" || period === "week");
 
   return (
     <label className="inline-flex items-center gap-2 rounded-lg border bg-white px-2.5 py-1.5 text-sm text-slate-700 shadow-sm">
@@ -41,7 +44,7 @@ function IdPeriodSelectControl() {
         }}
         className="bg-transparent pr-1 text-sm font-medium outline-none"
       >
-        {ID_PERIODS.map((value) => (
+        {periods.map((value) => (
           <option key={value} value={value}>
             {ID_PERIOD_LABELS[value]}
           </option>
