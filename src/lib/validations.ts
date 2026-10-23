@@ -2,7 +2,10 @@ import { z } from "zod";
 import { normalizeScheduleSlots } from "@/lib/schedule";
 import { ITEM_TYPES, ITEM_CATEGORIES, INK_COLORS, ID_ERROR_STATUSES, ASSET_STATUSES } from "@/lib/inventory";
 import {
+  ID_BAD_PRINT_REASON_PRESETS,
   ID_BAD_PRINT_STATUSES,
+  ID_PRINTERS,
+  ID_RELEASE_CATEGORIES,
   ID_RECEIPT_UNITS,
   ID_RELEASE_STATUSES,
   ID_SLING_KINDS,
@@ -533,8 +536,12 @@ export const idReleaseEntrySchema = z.object({
   idNumber: z.string().trim().min(1, "ID number is required").max(50),
   transactionDate: idDateSchema,
   status: z.enum(ID_RELEASE_STATUSES),
-  reason: z.string().trim().min(1, "Reason is required").max(200),
+  reason: z.string().trim().min(1, "Category is required").max(200),
   printedBy: z.string().trim().min(1, "Printed by is required").max(200),
+  releasedBy: z.string().trim().min(1, "Released by is required").max(200),
+  orNumber: z.string().trim().max(30, "OR number is too long").optional().or(z.literal("")),
+  amount: z.string().trim().max(12).optional().or(z.literal("")),
+  printerUsed: z.string().trim().max(40).optional().or(z.literal("")),
   idCardsUsed: z.coerce
     .number()
     .int()
@@ -564,6 +571,37 @@ export const idReleaseEntrySchema = z.object({
       path: ["slingKind"],
     });
   }
+  if (!(ID_RELEASE_CATEGORIES as readonly string[]).includes(data.reason)) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Choose a category",
+      path: ["reason"],
+    });
+  }
+  if (data.status === "REPRINT") {
+    if (!data.orNumber?.trim()) {
+      ctx.addIssue({
+        code: "custom",
+        message: "OR number is required for a reprint",
+        path: ["orNumber"],
+      });
+    }
+    const amount = Number(data.amount);
+    if (data.amount == null || data.amount === "" || !Number.isFinite(amount) || amount < 0) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Amount is required for a reprint",
+        path: ["amount"],
+      });
+    }
+  }
+  if (data.status !== "SLING" && !(ID_PRINTERS as readonly string[]).includes(data.printerUsed ?? "")) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Choose the printer used",
+      path: ["printerUsed"],
+    });
+  }
 });
 
 export const idReleaseReasonSchema = z.object({
@@ -576,7 +614,7 @@ export const idBadPrintSchema = z.object({
   idNumber: z.string().trim().min(1, "ID number is required").max(50),
   datePrinted: idDateSchema,
   status: z.enum(ID_BAD_PRINT_STATUSES).default("REPRINT"),
-  reason: z.string().trim().min(1, "Reason is required").max(200),
+  reason: z.enum(ID_BAD_PRINT_REASON_PRESETS, { message: "Choose a bad printing category" }),
   quantity: z.coerce
     .number()
     .int()

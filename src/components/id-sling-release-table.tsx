@@ -31,7 +31,7 @@ export function IdSlingReleaseTable({
       <Table>
         <TableHeader className="bg-[#f8efc3] [&_tr]:border-[#ead98a]">
           <TableRow className="hover:bg-transparent">
-            {["Name", "Course", "ID #", "Date", "Status", "Reason", "Released by", "Sling for", "Slings used", "Actions"].map(
+            {["Name", "Course", "ID #", "Date", "Status", "Category", "Released by", "Sling for", "Slings used", "Actions"].map(
               (heading) => (
                 <TableHead
                   key={heading}
@@ -63,7 +63,7 @@ export function IdSlingReleaseTable({
                 <TableCell>
                   <IdReleaseReasonEditor id={row.id} reason={row.reason} />
                 </TableCell>
-                <TableCell>{row.printedBy}</TableCell>
+                <TableCell>{row.releasedBy || row.printedBy}</TableCell>
                 <TableCell>
                   {row.slingKind ? ID_SLING_KIND_LABELS[row.slingKind] : "Student"}
                 </TableCell>

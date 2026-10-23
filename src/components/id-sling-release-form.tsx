@@ -16,13 +16,11 @@ import {
 } from "@/components/ui/select";
 import { formatManilaDateInput } from "@/lib/date-utils";
 import {
-  ID_RELEASE_REASON_PRESETS,
+  ID_RELEASE_CATEGORIES,
   ID_SLING_KIND_LABELS,
   ID_SLING_KINDS,
   type IdSlingKind,
 } from "@/lib/id-maintenance";
-
-const SLING_REASON_PRESETS = [...ID_RELEASE_REASON_PRESETS, "LOST SLING"] as const;
 
 export function IdSlingReleaseForm({
   studentRemaining,
@@ -38,7 +36,7 @@ export function IdSlingReleaseForm({
   const [idNumber, setIdNumber] = useState("");
   const [studentId, setStudentId] = useState("");
   const [transactionDate, setTransactionDate] = useState(() => formatManilaDateInput(new Date()));
-  const [reason, setReason] = useState("NEW ENROLLMENT");
+  const [reason, setReason] = useState<(typeof ID_RELEASE_CATEGORIES)[number]>("NEW");
   const [releasedBy, setReleasedBy] = useState("");
   const [slingsUsed, setSlingsUsed] = useState("1");
   const [slingKind, setSlingKind] = useState<IdSlingKind>("STUDENT");
@@ -59,6 +57,7 @@ export function IdSlingReleaseForm({
           status: "SLING",
           reason,
           printedBy: releasedBy,
+          releasedBy,
           idCardsUsed: 0,
           pvcCardId: "",
           slingsUsed,
@@ -120,13 +119,23 @@ export function IdSlingReleaseForm({
           <Input id="slingDate" type="date" value={transactionDate} onChange={(event) => setTransactionDate(event.target.value)} required />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="slingReason">Reason</Label>
-          <Input id="slingReason" list="sling-release-reasons" value={reason} onChange={(event) => setReason(event.target.value)} required />
-          <datalist id="sling-release-reasons">
-            {SLING_REASON_PRESETS.map((preset) => (
-              <option key={preset} value={preset} />
+          <Label htmlFor="slingReason">Category</Label>
+          <select
+            id="slingReason"
+            value={reason}
+            onChange={(event) => {
+              const next = ID_RELEASE_CATEGORIES.find((item) => item === event.target.value);
+              if (next) setReason(next);
+            }}
+            className="h-10 w-full rounded-md border bg-white px-3 text-sm"
+            required
+          >
+            {ID_RELEASE_CATEGORIES.map((preset) => (
+              <option key={preset} value={preset}>
+                {preset}
+              </option>
             ))}
-          </datalist>
+          </select>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="releasedBy">Released by</Label>

@@ -2,7 +2,7 @@ import { IdSlingReleaseForm } from "@/components/id-sling-release-form";
 import { IdSlingReleaseTable } from "@/components/id-sling-release-table";
 import { requireInventorySession } from "@/lib/inventory-auth";
 import { getIdPeriodActivity, getIdStockView, listIdReleases } from "@/lib/id-maintenance-data";
-import { formatIdDate, parseIdPeriod, type IdReleaseRow } from "@/lib/id-maintenance";
+import { parseIdPeriod, toIdReleaseRow } from "@/lib/id-maintenance";
 
 export const dynamic = "force-dynamic";
 
@@ -20,21 +20,7 @@ export default async function SlingReleasePage({
     getIdStockView(),
   ]);
 
-  const rows: IdReleaseRow[] = releases.map((record) => ({
-    id: record.id,
-    personName: record.personName,
-    course: record.course,
-    idNumber: record.idNumber,
-    dateLabel: formatIdDate(record.transactionDate),
-    status: record.status,
-    reason: record.reason,
-    printedBy: record.printedBy,
-    idCardsUsed: record.idCardsUsed,
-    slingsUsed: record.slingsUsed,
-    slingKind: record.slingKind,
-    pvcCardName: record.pvcCardName,
-    pvcCardEnded: record.pvcCardEnded,
-  }));
+  const rows = releases.map((record) => toIdReleaseRow(record));
 
   return (
     <div className="space-y-4">

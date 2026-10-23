@@ -406,6 +406,10 @@ export async function createIdReleaseEntry(input: {
   status: IdReleaseStatus;
   reason: string;
   printedBy: string;
+  releasedBy: string;
+  orNumber?: string | null;
+  amount?: string | null;
+  printerUsed?: string | null;
   idCardsUsed: number;
   slingsUsed: number;
   slingKind?: IdSlingKind | "" | null;
@@ -457,6 +461,13 @@ export async function createIdReleaseEntry(input: {
       status: input.status,
       reason: input.reason.trim(),
       printedBy: input.printedBy.trim(),
+      releasedBy: input.releasedBy.trim(),
+      orNumber: input.status === "REPRINT" ? input.orNumber?.trim() || null : null,
+      amount:
+        input.status === "REPRINT" && input.amount != null && input.amount !== ""
+          ? input.amount
+          : null,
+      printerUsed: input.status === "SLING" ? null : input.printerUsed?.trim() || null,
       pvcCardId: pvcCard?.id ?? null,
       pvcCardName: pvcCard?.name ?? null,
       pvcCardEnded: Boolean(pvcCard && input.idCardsUsed > 0 && input.idCardsUsed >= pvcCard.remaining),
@@ -767,8 +778,12 @@ export async function listIdHistory(period: IdPeriod): Promise<IdHistoryEvent[]>
         kind: slingRelease ? ("SLING_RELEASE" as const) : ("RELEASE" as const),
         title: release.personName,
         detail: slingRelease
-          ? `${release.course} · ${release.idNumber} · ${release.reason} · released by ${release.printedBy}${slingNote}`
-          : `${release.course} · ${release.idNumber} · ${release.reason} · printed by ${release.printedBy}${
+          ? `${release.course} · ${release.idNumber} · ${release.reason} · released by ${release.releasedBy || release.printedBy}${slingNote}`
+          : `${release.course} · ${release.idNumber} · ${release.reason} · printed by ${release.printedBy} · released by ${release.releasedBy || "—"}${
+              release.orNumber ? ` · OR ${release.orNumber}` : ""
+            }${release.amount != null ? ` · amount ${release.amount.toString()}` : ""}${
+              release.printerUsed ? ` · ${release.printerUsed}` : ""
+            }${
               release.pvcCardName
                 ? ` · PVC ${release.pvcCardName}${release.pvcCardEnded ? " ended" : ""}`
                 : ""

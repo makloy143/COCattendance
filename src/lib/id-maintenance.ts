@@ -177,22 +177,31 @@ export const ID_WITHDRAWAL_REASON_PRESETS = [
   "STOPPED SCHOOLING",
 ] as const;
 
-export const ID_RELEASE_REASON_PRESETS = [
-  "NEW ENROLLMENT",
-  "REPLACEMENT",
-  "BAD PRINTING",
-  "LOST ID",
+export const ID_RELEASE_CATEGORIES = [
+  "LOST ID CARD",
+  "LOST ID SLING",
+  "NEW",
+  "SHIFTEE",
+  "DETERIORATED ID",
+  "DETERIORATED ID SLING",
+  "DATA UPDATING",
+  "EXPIRED ID",
+  "WASTAGE",
 ] as const;
+export type IdReleaseCategory = (typeof ID_RELEASE_CATEGORIES)[number];
+
+export const ID_RELEASE_REASON_PRESETS = ID_RELEASE_CATEGORIES;
+
+export const ID_PRINTERS = ["PRINTER 1", "PRINTER 2"] as const;
+export type IdPrinter = (typeof ID_PRINTERS)[number];
 
 export const ID_BAD_PRINT_REASON_PRESETS = [
-  "INK NOT GOOD",
-  "BAD PRINTING INK",
-  "WRONG SPELLING",
-  "WRONG INFORMATION",
-  "INPUT WRONG COURSE",
-  "CHANGING COURSE",
-  "WRONG PRINT USER",
-  "WRONG WEARING OF UNIFORM",
+  "CARD JAM",
+  "DAMAGE PVC CARD",
+  "DOUBLE ENTRY",
+  "DISTORTED PRINTING OUTPUT",
+  "INCORRECT DATA",
+  "POOR COLOR QUALITY",
 ] as const;
 
 export const ID_PERIODS = ["week", "month", "year", "all"] as const;
@@ -630,12 +639,68 @@ export type IdReleaseRow = {
   status: IdReleaseStatus;
   reason: string;
   printedBy: string;
+  releasedBy: string;
+  orNumber: string;
+  amountLabel: string;
+  printerUsed: string;
   idCardsUsed: number;
   slingsUsed: number;
   slingKind: IdSlingKind | null;
   pvcCardName: string | null;
   pvcCardEnded: boolean;
 };
+
+export function formatReleaseAmount(
+  amount: { toString(): string } | number | string | null | undefined
+) {
+  if (amount == null || amount === "") return "";
+  const value = typeof amount === "number" ? amount : Number(amount.toString());
+  if (!Number.isFinite(value)) return "";
+  return new Intl.NumberFormat("en-PH", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+export function toIdReleaseRow(record: {
+  id: string;
+  personName: string;
+  course: string;
+  idNumber: string;
+  transactionDate: Date;
+  status: IdReleaseStatus;
+  reason: string;
+  printedBy: string;
+  releasedBy?: string | null;
+  orNumber?: string | null;
+  amount?: { toString(): string } | number | string | null;
+  printerUsed?: string | null;
+  idCardsUsed: number;
+  slingsUsed: number;
+  slingKind: IdSlingKind | null;
+  pvcCardName: string | null;
+  pvcCardEnded: boolean;
+}): IdReleaseRow {
+  return {
+    id: record.id,
+    personName: record.personName,
+    course: record.course,
+    idNumber: record.idNumber,
+    dateLabel: formatIdDate(record.transactionDate),
+    status: record.status,
+    reason: record.reason,
+    printedBy: record.printedBy,
+    releasedBy: record.releasedBy ?? "",
+    orNumber: record.orNumber ?? "",
+    amountLabel: formatReleaseAmount(record.amount),
+    printerUsed: record.printerUsed ?? "",
+    idCardsUsed: record.idCardsUsed,
+    slingsUsed: record.slingsUsed,
+    slingKind: record.slingKind,
+    pvcCardName: record.pvcCardName,
+    pvcCardEnded: record.pvcCardEnded,
+  };
+}
 
 export type IdSurrenderRow = {
   id: string;

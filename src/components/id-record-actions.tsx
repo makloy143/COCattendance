@@ -4,11 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   ID_BAD_PRINT_STATUSES,
   ID_BAD_PRINT_STATUS_LABELS,
-  ID_RELEASE_REASON_PRESETS,
+  ID_RELEASE_CATEGORIES,
   type IdBadPrintStatus,
 } from "@/lib/id-maintenance";
 
@@ -128,18 +127,21 @@ export function IdReleaseReasonEditor({
 
   return (
     <div className="flex min-w-56 items-center gap-2">
-      <Input
+      <select
         value={value}
-        list={`release-reason-${id}`}
         onChange={(event) => setValue(event.target.value)}
-        aria-label="Reason"
-        required
-      />
-      <datalist id={`release-reason-${id}`}>
-        {ID_RELEASE_REASON_PRESETS.map((preset) => (
-          <option key={preset} value={preset} />
+        aria-label="Category"
+        className="h-8 min-w-40 rounded-md border bg-white px-2 text-sm"
+      >
+        {(ID_RELEASE_CATEGORIES as readonly string[]).includes(value) ? null : (
+          <option value={value}>{value}</option>
+        )}
+        {ID_RELEASE_CATEGORIES.map((preset) => (
+          <option key={preset} value={preset}>
+            {preset}
+          </option>
         ))}
-      </datalist>
+      </select>
       <Button type="button" size="sm" className="cursor-pointer" onClick={() => void handleSave()} disabled={loading}>
         {loading ? "Saving..." : "Save"}
       </Button>

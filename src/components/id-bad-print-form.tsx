@@ -18,7 +18,7 @@ export function IdBadPrintForm() {
   const [idNumber, setIdNumber] = useState("");
   const [studentId, setStudentId] = useState("");
   const [datePrinted, setDatePrinted] = useState(() => formatManilaDateInput(new Date()));
-  const [reason, setReason] = useState("BAD PRINTING INK");
+  const [reason, setReason] = useState<(typeof ID_BAD_PRINT_REASON_PRESETS)[number]>("CARD JAM");
   const [quantity, setQuantity] = useState("1");
 
   async function handleSubmit(event: React.FormEvent) {
@@ -94,13 +94,23 @@ export function IdBadPrintForm() {
           <Input id="datePrinted" type="date" value={datePrinted} onChange={(event) => setDatePrinted(event.target.value)} required />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="badReason">Reason</Label>
-          <Input id="badReason" list="bad-print-reasons" value={reason} onChange={(event) => setReason(event.target.value)} required />
-          <datalist id="bad-print-reasons">
+          <Label htmlFor="badReason">Category</Label>
+          <select
+            id="badReason"
+            value={reason}
+            onChange={(event) => {
+              const next = ID_BAD_PRINT_REASON_PRESETS.find((item) => item === event.target.value);
+              if (next) setReason(next);
+            }}
+            className="h-10 w-full rounded-md border bg-white px-3 text-sm"
+            required
+          >
             {ID_BAD_PRINT_REASON_PRESETS.map((preset) => (
-              <option key={preset} value={preset} />
+              <option key={preset} value={preset}>
+                {preset}
+              </option>
             ))}
-          </datalist>
+          </select>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="quantity">Quantity wasted</Label>

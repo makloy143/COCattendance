@@ -16,7 +16,8 @@ import {
 } from "@/components/ui/select";
 import { formatManilaDateInput } from "@/lib/date-utils";
 import {
-  ID_RELEASE_REASON_PRESETS,
+  ID_PRINTERS,
+  ID_RELEASE_CATEGORIES,
   ID_CARD_RELEASE_STATUSES,
   ID_RELEASE_STATUS_LABELS,
   ID_SLING_KIND_LABELS,
@@ -44,8 +45,12 @@ export function IdReleaseForm({
     formatManilaDateInput(new Date())
   );
   const [status, setStatus] = useState<IdReleaseStatus>("NEW_ID");
-  const [reason, setReason] = useState("NEW ENROLLMENT");
+  const [reason, setReason] = useState<(typeof ID_RELEASE_CATEGORIES)[number]>("NEW");
   const [printedBy, setPrintedBy] = useState("");
+  const [releasedBy, setReleasedBy] = useState("");
+  const [orNumber, setOrNumber] = useState("");
+  const [amount, setAmount] = useState("");
+  const [printerUsed, setPrinterUsed] = useState<(typeof ID_PRINTERS)[number]>("PRINTER 1");
   const [idCardsUsed, setIdCardsUsed] = useState("1");
   const [pvcCardId, setPvcCardId] = useState("");
   const [slingsUsed, setSlingsUsed] = useState("1");
@@ -74,6 +79,10 @@ export function IdReleaseForm({
           status,
           reason,
           printedBy,
+          releasedBy,
+          orNumber: status === "REPRINT" ? orNumber : "",
+          amount: status === "REPRINT" ? amount : "",
+          printerUsed,
           idCardsUsed,
           pvcCardId: cardsUsed > 0 ? selectedBoxId : "",
           slingsUsed,
@@ -92,6 +101,9 @@ export function IdReleaseForm({
       setIdNumber("");
       setStudentId("");
       setPrintedBy("");
+      setReleasedBy("");
+      setOrNumber("");
+      setAmount("");
       router.refresh();
     } catch {
       toast.error("Failed to record release");
@@ -158,17 +170,76 @@ export function IdReleaseForm({
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="reason">Reason / transaction</Label>
-          <Input id="reason" list="release-reasons" value={reason} onChange={(event) => setReason(event.target.value)} required />
-          <datalist id="release-reasons">
-            {ID_RELEASE_REASON_PRESETS.map((preset) => (
-              <option key={preset} value={preset} />
+          <Label htmlFor="reason">Category</Label>
+          <select
+            id="reason"
+            value={reason}
+            onChange={(event) => {
+              const next = ID_RELEASE_CATEGORIES.find((item) => item === event.target.value);
+              if (next) setReason(next);
+            }}
+            className="h-10 w-full rounded-md border bg-white px-3 text-sm"
+            required
+          >
+            {ID_RELEASE_CATEGORIES.map((preset) => (
+              <option key={preset} value={preset}>
+                {preset}
+              </option>
             ))}
-          </datalist>
+          </select>
+        </div>
+        {status === "REPRINT" ? (
+          <>
+            <div className="space-y-1.5">
+              <Label htmlFor="orNumber">OR</Label>
+              <Input
+                id="orNumber"
+                inputMode="numeric"
+                placeholder="43186"
+                value={orNumber}
+                onChange={(event) => setOrNumber(event.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="amount">Amount</Label>
+              <Input
+                id="amount"
+                inputMode="decimal"
+                placeholder="0.00"
+                value={amount}
+                onChange={(event) => setAmount(event.target.value)}
+                required
+              />
+            </div>
+          </>
+        ) : null}
+        <div className="space-y-1.5">
+          <Label htmlFor="printerUsed">Printer used</Label>
+          <select
+            id="printerUsed"
+            value={printerUsed}
+            onChange={(event) => {
+              const next = ID_PRINTERS.find((item) => item === event.target.value);
+              if (next) setPrinterUsed(next);
+            }}
+            className="h-10 w-full rounded-md border bg-white px-3 text-sm"
+            required
+          >
+            {ID_PRINTERS.map((printer) => (
+              <option key={printer} value={printer}>
+                {printer}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="printedBy">Printed by</Label>
           <Input id="printedBy" value={printedBy} onChange={(event) => setPrintedBy(event.target.value)} required />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="releasedBy">Released by</Label>
+          <Input id="releasedBy" value={releasedBy} onChange={(event) => setReleasedBy(event.target.value)} required />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="idCardsUsed">ID cards used</Label>

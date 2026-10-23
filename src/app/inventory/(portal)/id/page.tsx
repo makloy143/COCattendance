@@ -16,8 +16,8 @@ import {
   ID_PERIOD_LABELS,
   formatIdDate,
   parseIdPeriod,
+  toIdReleaseRow,
   type IdBadPrintRow,
-  type IdReleaseRow,
   type IdSurrenderRow,
 } from "@/lib/id-maintenance";
 
@@ -51,21 +51,7 @@ export default async function IdMaintenanceDashboardPage({
     quantity: record.quantity,
   }));
 
-  const releaseRows: IdReleaseRow[] = releases.map((record) => ({
-    id: record.id,
-    personName: record.personName,
-    course: record.course,
-    idNumber: record.idNumber,
-    dateLabel: formatIdDate(record.transactionDate),
-    status: record.status,
-    reason: record.reason,
-    printedBy: record.printedBy,
-    idCardsUsed: record.idCardsUsed,
-    slingsUsed: record.slingsUsed,
-    slingKind: record.slingKind,
-    pvcCardName: record.pvcCardName,
-    pvcCardEnded: record.pvcCardEnded,
-  }));
+  const releaseRows = releases.map((record) => toIdReleaseRow(record));
 
   const surrenderRows: IdSurrenderRow[] = surrenders.map((record) => ({
     id: record.id,

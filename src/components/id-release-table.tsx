@@ -47,8 +47,12 @@ export function IdReleaseTable({
               "ID #",
               "Date",
               "Status",
-              "Reason / Transaction",
-              "Printed By",
+              "Category",
+              "OR",
+              "Amount",
+              "Printer",
+              "Printed by",
+              "Released by",
               "PVC card",
               "ID Card Used",
               "Sling Used",
@@ -71,7 +75,7 @@ export function IdReleaseTable({
           {rows.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={showActions ? 11 : 10}
+                colSpan={showActions ? 16 : 15}
                 className="py-8 text-center text-sm text-slate-500"
               >
                 No ID releases for this period.
@@ -94,7 +98,11 @@ export function IdReleaseTable({
                     row.reason
                   )}
                 </TableCell>
+                <TableCell className="tabular-nums">{row.orNumber || "—"}</TableCell>
+                <TableCell className="tabular-nums">{row.amountLabel || "—"}</TableCell>
+                <TableCell>{row.printerUsed || "—"}</TableCell>
                 <TableCell>{row.printedBy}</TableCell>
+                <TableCell>{row.releasedBy || "—"}</TableCell>
                 <TableCell>
                   {row.pvcCardName
                     ? `${row.pvcCardName}${row.pvcCardEnded ? " · ended" : ""}`

@@ -440,6 +440,10 @@ model IdReleaseEntry {
   status          IdReleaseStatus
   reason          String
   printedBy       String
+  releasedBy      String?
+  orNumber        String?
+  amount          Decimal?        @db.Decimal(10, 2)
+  printerUsed     String?
   pvcCardId       String?
   pvcCardName     String?
   pvcCardEnded    Boolean         @default(false)
