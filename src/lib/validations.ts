@@ -578,11 +578,11 @@ export const idReleaseEntrySchema = z.object({
       path: ["reason"],
     });
   }
-  if (data.status === "REPRINT") {
+  if (data.status === "REPRINT" || (data.status === "SLING" && data.reason !== "NEW")) {
     if (!data.orNumber?.trim()) {
       ctx.addIssue({
         code: "custom",
-        message: "OR number is required for a reprint",
+        message: "OR number is required",
         path: ["orNumber"],
       });
     }
@@ -590,7 +590,7 @@ export const idReleaseEntrySchema = z.object({
     if (data.amount == null || data.amount === "" || !Number.isFinite(amount) || amount < 0) {
       ctx.addIssue({
         code: "custom",
-        message: "Amount is required for a reprint",
+        message: "Amount is required",
         path: ["amount"],
       });
     }

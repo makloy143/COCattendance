@@ -165,12 +165,14 @@ export async function buildIdReportWorkbook(periodValue?: string | null) {
     },
     {
       heading: "ID sling releases",
-      headers: ["Date", "Name", "ID #", "Category", "Released by", "Sling for", "Slings"],
+      headers: ["Date", "Name", "ID #", "Category", "OR", "Amount", "Released by", "Sling for", "Slings"],
       rows: report.slingReleases.map((release) => [
         formatIdDate(release.transactionDate),
         release.personName,
         release.idNumber,
         release.reason,
+        release.orNumber ?? "",
+        formatReleaseAmount(release.amount),
         release.releasedBy || release.printedBy,
         release.slingKind === "EMPLOYEE" ? "Employee" : "Student",
         release.slingsUsed,

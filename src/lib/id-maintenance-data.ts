@@ -462,9 +462,14 @@ export async function createIdReleaseEntry(input: {
       reason: input.reason.trim(),
       printedBy: input.printedBy.trim(),
       releasedBy: input.releasedBy.trim(),
-      orNumber: input.status === "REPRINT" ? input.orNumber?.trim() || null : null,
+      orNumber:
+        input.status === "REPRINT" || (input.status === "SLING" && input.reason.trim() !== "NEW")
+          ? input.orNumber?.trim() || null
+          : null,
       amount:
-        input.status === "REPRINT" && input.amount != null && input.amount !== ""
+        (input.status === "REPRINT" || (input.status === "SLING" && input.reason.trim() !== "NEW")) &&
+        input.amount != null &&
+        input.amount !== ""
           ? input.amount
           : null,
       printerUsed: input.status === "SLING" ? null : input.printerUsed?.trim() || null,
@@ -803,7 +808,9 @@ export async function listIdHistory(period: IdPeriod): Promise<IdHistoryEvent[]>
           dateLabel: formatIdDate(release.transactionDate),
           kind: "SLING_RELEASE",
           title: release.personName,
-          detail: `${release.course} · ${release.idNumber} · ${release.reason} · released by ${releasedBy}${slingNote}`,
+          detail: `${release.course} · ${release.idNumber} · ${release.reason} · released by ${releasedBy}${
+            release.orNumber ? ` · OR ${release.orNumber}` : ""
+          }${release.amount != null ? ` · amount ${release.amount.toString()}` : ""}${slingNote}`,
           cards: 0,
           slings: -release.slingsUsed,
           sort: release.transactionDate.getTime(),

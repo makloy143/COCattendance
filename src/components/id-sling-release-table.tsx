@@ -28,10 +28,10 @@ export function IdSlingReleaseTable({
           <strong className="text-slate-900 tabular-nums">{formatCount(slingsUsed)}</strong>
         </p>
       </div>
-      <Table className="min-w-[48rem]">
+      <Table className="min-w-[56rem]">
         <TableHeader className="bg-[#f8efc3] [&_tr]:border-[#ead98a]">
           <TableRow className="hover:bg-transparent">
-            {["Name", "Course", "ID #", "Date", "Status", "Category", "Released by", "Sling for", "Slings used", "Actions"].map(
+            {["Name", "Course", "ID #", "Date", "Status", "Category", "OR", "Amount", "Released by", "Sling for", "Slings used", "Actions"].map(
               (heading) => (
                 <TableHead
                   key={heading}
@@ -46,7 +46,7 @@ export function IdSlingReleaseTable({
         <TableBody>
           {rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={10} className="py-8 text-center text-sm text-slate-500">
+              <TableCell colSpan={12} className="py-8 text-center text-sm text-slate-500">
                 No sling releases for this period.
               </TableCell>
             </TableRow>
@@ -63,6 +63,8 @@ export function IdSlingReleaseTable({
                 <TableCell>
                   <IdReleaseReasonEditor id={row.id} reason={row.reason} />
                 </TableCell>
+                <TableCell className="tabular-nums">{row.orNumber || "—"}</TableCell>
+                <TableCell className="tabular-nums">{row.amountLabel || "—"}</TableCell>
                 <TableCell>{row.releasedBy || row.printedBy}</TableCell>
                 <TableCell>
                   {row.slingKind ? ID_SLING_KIND_LABELS[row.slingKind] : "Student"}

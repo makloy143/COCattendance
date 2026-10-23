@@ -19,6 +19,7 @@ import {
   ID_RELEASE_CATEGORIES,
   ID_SLING_KIND_LABELS,
   ID_SLING_KINDS,
+  slingReleaseNeedsPayment,
   type IdSlingKind,
 } from "@/lib/id-maintenance";
 
@@ -37,9 +38,12 @@ export function IdSlingReleaseForm({
   const [studentId, setStudentId] = useState("");
   const [transactionDate, setTransactionDate] = useState(() => formatManilaDateInput(new Date()));
   const [reason, setReason] = useState<(typeof ID_RELEASE_CATEGORIES)[number]>("NEW");
+  const [orNumber, setOrNumber] = useState("");
+  const [amount, setAmount] = useState("");
   const [releasedBy, setReleasedBy] = useState("");
   const [slingsUsed, setSlingsUsed] = useState("1");
   const [slingKind, setSlingKind] = useState<IdSlingKind>("STUDENT");
+  const needsPayment = slingReleaseNeedsPayment(reason);
   const remaining = slingKind === "EMPLOYEE" ? employeeRemaining : studentRemaining;
 
   async function handleSubmit(event: React.FormEvent) {
@@ -58,6 +62,8 @@ export function IdSlingReleaseForm({
           reason,
           printedBy: releasedBy,
           releasedBy,
+          orNumber: needsPayment ? orNumber : "",
+          amount: needsPayment ? amount : "",
           idCardsUsed: 0,
           pvcCardId: "",
           slingsUsed,
@@ -76,6 +82,8 @@ export function IdSlingReleaseForm({
       setIdNumber("");
       setStudentId("");
       setReleasedBy("");
+      setOrNumber("");
+      setAmount("");
       setSlingsUsed("1");
       router.refresh();
     } catch {
@@ -137,6 +145,32 @@ export function IdSlingReleaseForm({
             ))}
           </select>
         </div>
+        {needsPayment ? (
+          <>
+            <div className="space-y-1.5">
+              <Label htmlFor="slingOrNumber">OR</Label>
+              <Input
+                id="slingOrNumber"
+                inputMode="numeric"
+                placeholder="43186"
+                value={orNumber}
+                onChange={(event) => setOrNumber(event.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="slingAmount">Amount</Label>
+              <Input
+                id="slingAmount"
+                inputMode="decimal"
+                placeholder="0.00"
+                value={amount}
+                onChange={(event) => setAmount(event.target.value)}
+                required
+              />
+            </div>
+          </>
+        ) : null}
         <div className="space-y-1.5">
           <Label htmlFor="releasedBy">Released by</Label>
           <Input id="releasedBy" value={releasedBy} onChange={(event) => setReleasedBy(event.target.value)} required />

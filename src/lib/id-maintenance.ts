@@ -193,6 +193,10 @@ export type IdReleaseCategory = (typeof ID_RELEASE_CATEGORIES)[number];
 
 export const ID_RELEASE_REASON_PRESETS = ID_RELEASE_CATEGORIES;
 
+export function slingReleaseNeedsPayment(reason: string) {
+  return reason !== "NEW";
+}
+
 export const ID_PRINTERS = ["PRINTER 1", "PRINTER 2"] as const;
 export type IdPrinter = (typeof ID_PRINTERS)[number];
 
