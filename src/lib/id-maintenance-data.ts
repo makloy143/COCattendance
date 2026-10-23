@@ -766,32 +766,51 @@ export async function listIdHistory(period: IdPeriod): Promise<IdHistoryEvent[]>
           : 0,
       sort: receipt.dateReceived.getTime(),
     })),
-    ...releases.map((release) => {
-      const slingRelease = release.status === "SLING";
+    ...releases.flatMap((release) => {
       const slingNote =
         release.slingsUsed > 0
           ? ` · ${release.slingKind === "EMPLOYEE" ? "employee" : "student"} sling`
           : "";
-      return {
-        id: `${slingRelease ? "sling-release" : "release"}-${release.id}`,
-        dateLabel: formatIdDate(release.transactionDate),
-        kind: slingRelease ? ("SLING_RELEASE" as const) : ("RELEASE" as const),
-        title: release.personName,
-        detail: slingRelease
-          ? `${release.course} · ${release.idNumber} · ${release.reason} · released by ${release.releasedBy || release.printedBy}${slingNote}`
-          : `${release.course} · ${release.idNumber} · ${release.reason} · printed by ${release.printedBy} · released by ${release.releasedBy || "—"}${
-              release.orNumber ? ` · OR ${release.orNumber}` : ""
-            }${release.amount != null ? ` · amount ${release.amount.toString()}` : ""}${
-              release.printerUsed ? ` · ${release.printerUsed}` : ""
-            }${
-              release.pvcCardName
-                ? ` · PVC ${release.pvcCardName}${release.pvcCardEnded ? " ended" : ""}`
-                : ""
-            }${slingNote}`,
-        cards: -release.idCardsUsed,
-        slings: -release.slingsUsed,
-        sort: release.transactionDate.getTime(),
-      };
+      const releasedBy = release.releasedBy || release.printedBy;
+      const events: Array<IdHistoryEvent & { sort: number }> = [];
+      const usedCards = release.status !== "SLING";
+      const usedSlings = release.slingsUsed > 0 || release.status === "SLING";
+
+      if (usedCards) {
+        events.push({
+          id: `release-${release.id}`,
+          dateLabel: formatIdDate(release.transactionDate),
+          kind: "RELEASE",
+          title: release.personName,
+          detail: `${release.course} · ${release.idNumber} · ${release.reason} · printed by ${release.printedBy} · released by ${release.releasedBy || "—"}${
+            release.orNumber ? ` · OR ${release.orNumber}` : ""
+          }${release.amount != null ? ` · amount ${release.amount.toString()}` : ""}${
+            release.printerUsed ? ` · ${release.printerUsed}` : ""
+          }${
+            release.pvcCardName
+              ? ` · PVC ${release.pvcCardName}${release.pvcCardEnded ? " ended" : ""}`
+              : ""
+          }`,
+          cards: -release.idCardsUsed,
+          slings: 0,
+          sort: release.transactionDate.getTime(),
+        });
+      }
+
+      if (usedSlings) {
+        events.push({
+          id: `sling-release-${release.id}`,
+          dateLabel: formatIdDate(release.transactionDate),
+          kind: "SLING_RELEASE",
+          title: release.personName,
+          detail: `${release.course} · ${release.idNumber} · ${release.reason} · released by ${releasedBy}${slingNote}`,
+          cards: 0,
+          slings: -release.slingsUsed,
+          sort: release.transactionDate.getTime(),
+        });
+      }
+
+      return events;
     }),
     ...badPrints.map((record) => ({
       id: `bad-${record.id}`,
