@@ -6,6 +6,7 @@ import {
   ID_BAD_PRINT_STATUSES,
   ID_PRINTERS,
   ID_RELEASE_CATEGORIES,
+  ID_SLING_RELEASE_CATEGORIES,
   ID_RECEIPT_UNITS,
   ID_RELEASE_STATUSES,
   ID_SLING_KINDS,
@@ -571,7 +572,9 @@ export const idReleaseEntrySchema = z.object({
       path: ["slingKind"],
     });
   }
-  if (!(ID_RELEASE_CATEGORIES as readonly string[]).includes(data.reason)) {
+  const allowedCategories =
+    data.status === "SLING" ? ID_SLING_RELEASE_CATEGORIES : ID_RELEASE_CATEGORIES;
+  if (!(allowedCategories as readonly string[]).includes(data.reason)) {
     ctx.addIssue({
       code: "custom",
       message: "Choose a category",

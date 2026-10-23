@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatCount, ID_SLING_KIND_LABELS, type IdReleaseRow } from "@/lib/id-maintenance";
+import { formatCount, ID_SLING_KIND_LABELS, ID_SLING_RELEASE_CATEGORIES, type IdReleaseRow } from "@/lib/id-maintenance";
 
 export function IdSlingReleaseTable({
   rows,
@@ -61,7 +61,7 @@ export function IdSlingReleaseTable({
                   <IdStatusBadge status={row.status} />
                 </TableCell>
                 <TableCell>
-                  <IdReleaseReasonEditor id={row.id} reason={row.reason} />
+                  <IdReleaseReasonEditor id={row.id} reason={row.reason} options={ID_SLING_RELEASE_CATEGORIES} />
                 </TableCell>
                 <TableCell className="tabular-nums">{row.orNumber || "—"}</TableCell>
                 <TableCell className="tabular-nums">{row.amountLabel || "—"}</TableCell>

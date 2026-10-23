@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { formatManilaDateInput } from "@/lib/date-utils";
 import {
-  ID_RELEASE_CATEGORIES,
+  ID_SLING_RELEASE_CATEGORIES,
   ID_SLING_KIND_LABELS,
   ID_SLING_KINDS,
   slingReleaseNeedsPayment,
@@ -37,7 +37,7 @@ export function IdSlingReleaseForm({
   const [idNumber, setIdNumber] = useState("");
   const [studentId, setStudentId] = useState("");
   const [transactionDate, setTransactionDate] = useState(() => formatManilaDateInput(new Date()));
-  const [reason, setReason] = useState<(typeof ID_RELEASE_CATEGORIES)[number]>("NEW");
+  const [reason, setReason] = useState<(typeof ID_SLING_RELEASE_CATEGORIES)[number]>("NEW");
   const [orNumber, setOrNumber] = useState("");
   const [amount, setAmount] = useState("");
   const [releasedBy, setReleasedBy] = useState("");
@@ -132,13 +132,13 @@ export function IdSlingReleaseForm({
             id="slingReason"
             value={reason}
             onChange={(event) => {
-              const next = ID_RELEASE_CATEGORIES.find((item) => item === event.target.value);
+              const next = ID_SLING_RELEASE_CATEGORIES.find((item) => item === event.target.value);
               if (next) setReason(next);
             }}
             className="h-10 w-full rounded-md border bg-white px-3 text-sm"
             required
           >
-            {ID_RELEASE_CATEGORIES.map((preset) => (
+            {ID_SLING_RELEASE_CATEGORIES.map((preset) => (
               <option key={preset} value={preset}>
                 {preset}
               </option>

@@ -191,6 +191,9 @@ export const ID_RELEASE_CATEGORIES = [
 ] as const;
 export type IdReleaseCategory = (typeof ID_RELEASE_CATEGORIES)[number];
 
+export const ID_SLING_RELEASE_CATEGORIES = ["NEW", "LOST ID SLING", "DAMAGE SLING"] as const;
+export type IdSlingReleaseCategory = (typeof ID_SLING_RELEASE_CATEGORIES)[number];
+
 export const ID_RELEASE_REASON_PRESETS = ID_RELEASE_CATEGORIES;
 
 export function slingReleaseNeedsPayment(reason: string) {

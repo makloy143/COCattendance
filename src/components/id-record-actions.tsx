@@ -69,9 +69,11 @@ export function IdRemoveButton({
 export function IdReleaseReasonEditor({
   id,
   reason,
+  options = ID_RELEASE_CATEGORIES,
 }: {
   id: string;
   reason: string;
+  options?: readonly string[];
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -133,10 +135,10 @@ export function IdReleaseReasonEditor({
         aria-label="Category"
         className="h-8 min-w-40 rounded-md border bg-white px-2 text-sm"
       >
-        {(ID_RELEASE_CATEGORIES as readonly string[]).includes(value) ? null : (
+        {(options as readonly string[]).includes(value) ? null : (
           <option value={value}>{value}</option>
         )}
-        {ID_RELEASE_CATEGORIES.map((preset) => (
+        {options.map((preset) => (
           <option key={preset} value={preset}>
             {preset}
           </option>
