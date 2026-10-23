@@ -32,7 +32,7 @@ function IdPeriodSelectControl() {
     : ID_PERIODS.filter((value) => value !== "week" || period === "week");
 
   return (
-    <label className="inline-flex items-center gap-2 rounded-lg border bg-white px-2.5 py-1.5 text-sm text-slate-700 shadow-sm">
+    <label className="inline-flex w-full items-center gap-2 rounded-lg border bg-white px-3 py-2 text-sm text-slate-700 shadow-sm sm:w-auto">
       <CalendarDays className="size-4 text-[#0e6b43]" />
       <span className="sr-only">Activity period</span>
       <select

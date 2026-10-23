@@ -21,14 +21,14 @@ export function IdSlingReleaseTable({
 }) {
   return (
     <section className="overflow-hidden rounded-xl border bg-white shadow-sm">
-      <div className="flex flex-col gap-2 border-b px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <h2 className="text-base font-semibold">Sling release log</h2>
         <p className="text-sm text-slate-600">
           Slings used:{" "}
           <strong className="text-slate-900 tabular-nums">{formatCount(slingsUsed)}</strong>
         </p>
       </div>
-      <Table>
+      <Table className="min-w-[48rem]">
         <TableHeader className="bg-[#f8efc3] [&_tr]:border-[#ead98a]">
           <TableRow className="hover:bg-transparent">
             {["Name", "Course", "ID #", "Date", "Status", "Category", "Released by", "Sling for", "Slings used", "Actions"].map(

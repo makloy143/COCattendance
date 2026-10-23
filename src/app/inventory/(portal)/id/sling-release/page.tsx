@@ -23,7 +23,7 @@ export default async function SlingReleasePage({
   const rows = releases.map((record) => toIdReleaseRow(record));
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5 sm:space-y-6">
       <IdSlingReleaseForm
         studentRemaining={stock.studentSlingsRemaining}
         employeeRemaining={stock.employeeSlingsRemaining}

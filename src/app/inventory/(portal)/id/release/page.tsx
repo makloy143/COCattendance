@@ -23,7 +23,7 @@ export default async function IdReleasePage({
   const rows = releases.map((record) => toIdReleaseRow(record));
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5 sm:space-y-6">
       <IdReleaseForm
         boxes={stock.cardBoxes.filter((box) => box.remaining > 0)}
         continueBoxId={stock.currentCardBoxId}

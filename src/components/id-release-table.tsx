@@ -25,7 +25,7 @@ export function IdReleaseTable({
 }) {
   return (
     <section className="overflow-hidden rounded-xl border bg-white shadow-sm">
-      <div className="flex flex-col gap-2 border-b px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <h2 className="text-base font-semibold">ID Release & Sling Usage Log</h2>
         <div className="flex flex-wrap gap-4 text-sm text-slate-600">
           <span>
@@ -38,7 +38,7 @@ export function IdReleaseTable({
           </span>
         </div>
       </div>
-      <Table>
+      <Table className="min-w-[56rem]">
         <TableHeader className="bg-[#f8efc3] [&_tr]:border-[#ead98a]">
           <TableRow className="hover:bg-transparent">
             {[

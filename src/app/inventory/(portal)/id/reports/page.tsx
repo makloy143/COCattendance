@@ -31,7 +31,7 @@ export default async function IdReportsPage({
   const report = await loadIdReport(params.period);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6 sm:space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-slate-600">
           ID cards and ID slings are reported separately for {report.periodLabel}. Remaining stock is the current balance.
@@ -40,15 +40,15 @@ export default async function IdReportsPage({
       </div>
       <IdInventoryOverview stock={report.stock} />
 
-      <section className="space-y-3">
+      <section className="space-y-4 sm:space-y-5">
         <h2 className="text-base font-semibold">ID cards</h2>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[
             ["Cards released", report.activity.cardsReleased],
             ["Cards wasted", report.activity.cardsWasted],
             ["Card release records", report.cardReleases.length],
           ].map(([label, value]) => (
-            <article key={String(label)} className="rounded-xl border bg-white p-4 shadow-sm">
+            <article key={String(label)} className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
               <p className="text-sm text-slate-500">
                 {label} · {report.periodLabel}
               </p>
@@ -102,15 +102,15 @@ export default async function IdReportsPage({
         />
       </section>
 
-      <section className="space-y-3">
+      <section className="space-y-4 sm:space-y-5">
         <h2 className="text-base font-semibold">ID slings</h2>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[
             ["Student slings used", report.studentSlingsUsed],
             ["Employee slings used", report.employeeSlingsUsed],
             ["Sling release records", report.slingReleases.length],
           ].map(([label, value]) => (
-            <article key={String(label)} className="rounded-xl border bg-white p-4 shadow-sm">
+            <article key={String(label)} className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
               <p className="text-sm text-slate-500">
                 {label} · {report.periodLabel}
               </p>
@@ -168,10 +168,10 @@ function SimpleTable({
 }) {
   return (
     <section className="overflow-hidden rounded-xl border bg-white shadow-sm">
-      <div className="border-b px-4 py-3">
+      <div className="border-b px-4 py-4 sm:px-5">
         <h3 className="text-base font-semibold">{title}</h3>
       </div>
-      <Table>
+      <Table className={headers.length > 6 ? "min-w-[56rem]" : "min-w-[36rem]"}>
         <TableHeader>
           <TableRow>
             {headers.map((heading) => (

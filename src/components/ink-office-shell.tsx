@@ -119,7 +119,7 @@ export function InkOfficeShell({
       ) : null}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b bg-white/95 px-3 backdrop-blur sm:px-5">
+        <header className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b bg-white/95 px-4 py-3 backdrop-blur sm:px-6 md:px-8">
           <button
             type="button"
             className="inline-flex size-9 items-center justify-center rounded-lg border md:hidden"
@@ -142,7 +142,7 @@ export function InkOfficeShell({
             <span className="max-w-32 truncate font-medium">{username || "Ink Office"}</span>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-[1440px] flex-1 p-3 sm:p-5 md:p-6">{children}</main>
+        <main className="mx-auto w-full max-w-[1440px] flex-1 px-4 py-5 sm:px-6 sm:py-6 md:px-8 md:py-8">{children}</main>
       </div>
     </div>
   );

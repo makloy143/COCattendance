@@ -59,7 +59,7 @@ export function IdBadPrintForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border bg-white p-4 shadow-sm sm:p-5">
+    <form onSubmit={handleSubmit} className="space-y-5 rounded-xl border bg-white p-4 shadow-sm sm:p-6 lg:p-8">
       <div>
         <h2 className="text-base font-semibold">Record bad printing</h2>
         <p className="mt-1 text-sm text-slate-600">
@@ -76,7 +76,7 @@ export function IdBadPrintForm() {
           setStudentId(student.id);
         }}
       />
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <div className="space-y-1.5">
           <Label htmlFor="badName">Name</Label>
           <Input id="badName" value={personName} onChange={(event) => setPersonName(event.target.value)} required />

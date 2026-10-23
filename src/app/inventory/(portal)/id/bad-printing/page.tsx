@@ -27,7 +27,7 @@ export default async function BadPrintingPage({
   }));
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5 sm:space-y-6">
       <IdBadPrintForm />
       <IdBadPrintTable rows={rows} showActions />
     </div>
