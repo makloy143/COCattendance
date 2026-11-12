@@ -22,26 +22,28 @@ export async function deleteInkReceiptsByName(name: string) {
   return ids.length;
 }
 
-export async function deleteInactiveInkReceipts() {
+// Receipts of a deactivated ink model are hidden from views, never deleted:
+// loading a page must not change stock data.
+export async function withoutInactiveInkModels<T extends { itemName: string }>(
+  items: T[]
+): Promise<T[]> {
   const inactive = await prisma.inkModelOption.findMany({
     where: { active: false },
     select: { name: true },
   });
+  if (inactive.length === 0) return items;
   const keys = new Set(inactive.map((model) => modelKey(model.name)));
-  if (keys.size === 0) return 0;
-  const items = await prisma.receivedItem.findMany({
-    where: { category: "INK" },
-    select: { id: true, itemName: true },
-  });
-  const ids = items.filter((item) => keys.has(modelKey(item.itemName))).map((item) => item.id);
-  await deleteInkItems(ids);
-  return ids.length;
+  return items.filter((item) => !keys.has(modelKey(item.itemName)));
 }
 
 export async function clearAvailableInkStock(input: {
   receiptId?: string;
   modelName?: string;
+  all?: boolean;
 }) {
+  if (!input.receiptId && !input.modelName && input.all !== true) {
+    throw new IdStockError("Choose which ink stock to clear.");
+  }
   const items = await prisma.receivedItem.findMany({
     where: {
       category: "INK",
@@ -74,31 +76,15 @@ export async function clearAvailableInkStock(input: {
 export async function removeInkRelease(id: string) {
   const borrow = await prisma.borrowRecord.findUnique({
     where: { id },
-    include: {
-      receivedItem: {
-        include: { borrows: { select: { id: true, quantityBorrowed: true, status: true } } },
-      },
-    },
+    include: { receivedItem: { select: { category: true } } },
   });
   if (!borrow || borrow.receivedItem.category !== "INK") {
     throw new IdStockError("Ink release was not found.");
   }
 
-  const item = borrow.receivedItem;
-  const nextQuantity = Math.max(0, item.quantity - borrow.quantityBorrowed);
-  const remainingBorrows = item.borrows.filter((row) => row.id !== borrow.id);
-
-  await prisma.$transaction(async (tx) => {
-    await tx.borrowRecord.delete({ where: { id: borrow.id } });
-    if (nextQuantity <= 0 && remainingBorrows.length === 0) {
-      await tx.receivedItem.delete({ where: { id: item.id } });
-      return;
-    }
-    await tx.receivedItem.update({
-      where: { id: item.id },
-      data: { quantity: nextQuantity },
-    });
-  });
+  // Removing a release undoes it: the receipt keeps its received quantity, so
+  // the bottles go back into available stock.
+  await prisma.borrowRecord.delete({ where: { id: borrow.id } });
 
   return { removed: true as const };
 }

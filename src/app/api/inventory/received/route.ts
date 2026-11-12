@@ -87,12 +87,11 @@ export async function GET(request: NextRequest) {
       | ItemType
       | undefined;
 
-    if (category === "INK") {
-      const { deleteInactiveInkReceipts } = await import("@/lib/ink-stock");
-      await deleteInactiveInkReceipts();
-    }
-
-    const items = await fetchReceivedItems({ search, category, itemType });
+    const fetched = await fetchReceivedItems({ search, category, itemType });
+    const items =
+      category === "INK"
+        ? await (await import("@/lib/ink-stock")).withoutInactiveInkModels(fetched)
+        : fetched;
     const serialized = items.map(serializeReceivedItem);
     const body = availableOnly
       ? serialized.filter((item) => item.availableQuantity > 0)

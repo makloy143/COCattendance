@@ -572,6 +572,22 @@ export const idReleaseEntrySchema = z.object({
       path: ["slingKind"],
     });
   }
+  if (data.status === "SLING") {
+    if (data.idCardsUsed !== 0) {
+      ctx.addIssue({
+        code: "custom",
+        message: "A sling release cannot use ID cards",
+        path: ["idCardsUsed"],
+      });
+    }
+    if (data.slingsUsed < 1) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Enter at least 1 sling",
+        path: ["slingsUsed"],
+      });
+    }
+  }
   const allowedCategories =
     data.status === "SLING" ? ID_SLING_RELEASE_CATEGORIES : ID_RELEASE_CATEGORIES;
   if (!(allowedCategories as readonly string[]).includes(data.reason)) {

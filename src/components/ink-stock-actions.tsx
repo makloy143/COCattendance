@@ -31,7 +31,7 @@ export function InkClearStockButton({
       const response = await fetch(endpoint ?? "/api/inventory/inks/stock", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: endpoint ? undefined : JSON.stringify(modelName ? { modelName } : {}),
+        body: endpoint ? undefined : JSON.stringify(modelName ? { modelName } : { all: true }),
       });
       const data = (await response.json().catch(() => ({}))) as {
         cleared?: number;

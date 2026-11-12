@@ -156,7 +156,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const borrow = await prisma.borrowRecord.create({
+    // Re-check availability and create under a per-item lock, so two
+    // simultaneous requests cannot both take the last unit.
+    const borrow = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${data.receivedItemId})::bigint)`;
+      const fresh = await tx.receivedItem.findUnique({
+        where: { id: data.receivedItemId },
+        include: { borrows: { select: { quantityBorrowed: true, status: true } } },
+      });
+      if (!fresh || data.quantityBorrowed > getAvailableQuantity(fresh)) {
+        throw new Error("BorrowUnavailable");
+      }
+      return tx.borrowRecord.create({
       data: {
         receivedItemId: data.receivedItemId,
         borrowerName: data.borrowerName.trim(),
@@ -184,9 +195,16 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+    });
 
     return NextResponse.json(borrow, { status: 201 });
   } catch (error) {
+    if (error instanceof Error && error.message === "BorrowUnavailable") {
+      return NextResponse.json(
+        { error: "This item was just released to someone else. Refresh and try again." },
+        { status: 409 }
+      );
+    }
     if (error instanceof Error && error.message === "Unauthorized") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

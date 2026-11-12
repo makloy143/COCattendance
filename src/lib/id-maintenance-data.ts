@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/db";
+import type { Prisma } from "@/generated/prisma/client";
 import { getManilaDayStart } from "@/lib/date-utils";
 import {
+  ID_RELEASE_CATEGORIES,
+  ID_SLING_RELEASE_CATEGORIES,
   IdStockError,
   buildCardBoxRows,
   buildCardPackNote,
@@ -290,6 +293,23 @@ async function resolveStudentId(studentId?: string | null) {
   return student?.id ?? null;
 }
 
+// Every write that checks ID stock first takes this lock, so two requests
+// cannot both pass the check against the same remaining stock. The lock is
+// released when the transaction commits or rolls back.
+const ID_STOCK_LOCK_KEY = 727001;
+
+async function withIdStockLock<T>(
+  work: (tx: Prisma.TransactionClient) => Promise<T>
+): Promise<T> {
+  return prisma.$transaction(
+    async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(${ID_STOCK_LOCK_KEY}::bigint)`;
+      return work(tx);
+    },
+    { maxWait: 10000, timeout: 20000 }
+  );
+}
+
 function assertCardsAvailable(remaining: number, requested: number) {
   if (requested > remaining) {
     throw new IdStockError(
@@ -375,9 +395,23 @@ export async function deleteIdStockReceipt(id: string) {
     throw new IdStockError("Stock receipt was not found.");
   }
 
+  await withIdStockLock(async (tx) => {
   const stock = await getIdStockView();
   const category = receipt.itemOption?.category ?? categoryForItemType(receipt.itemType);
   if (category === "ID_CARD") {
+    // Releases are recorded against a specific box of this receipt. Removing
+    // the receipt would silently move those cards onto another box.
+    const usedFromThisReceipt = await tx.idReleaseEntry.count({
+      where: {
+        idCardsUsed: { gt: 0 },
+        OR: [{ pvcCardId: receipt.id }, { pvcCardId: { startsWith: `${receipt.id}:` } }],
+      },
+    });
+    if (usedFromThisReceipt > 0) {
+      throw new IdStockError(
+        "Cards from this box have already been released, so this receipt cannot be removed."
+      );
+    }
     if (stock.cardsRemaining - receipt.unitsAdded < 0) {
       throw new IdStockError(
         "These cards have already been released or wasted, so this receipt cannot be removed."
@@ -395,7 +429,8 @@ export async function deleteIdStockReceipt(id: string) {
     }
   }
 
-  await prisma.idStockReceipt.delete({ where: { id } });
+  await tx.idStockReceipt.delete({ where: { id } });
+  });
 }
 
 export async function createIdReleaseEntry(input: {
@@ -417,6 +452,8 @@ export async function createIdReleaseEntry(input: {
   notes?: string | null;
   studentId?: string | null;
 }) {
+  const studentId = await resolveStudentId(input.studentId);
+  return withIdStockLock(async (tx) => {
   const stock = await getIdStockView();
   assertCardsAvailable(stock.cardsRemaining, input.idCardsUsed);
   const pvcCard =
@@ -452,7 +489,7 @@ export async function createIdReleaseEntry(input: {
     );
   }
 
-  return prisma.idReleaseEntry.create({
+  return tx.idReleaseEntry.create({
     data: {
       personName: input.personName.trim(),
       course: input.course.trim(),
@@ -480,8 +517,9 @@ export async function createIdReleaseEntry(input: {
       slingsUsed: input.slingsUsed,
       slingKind: input.slingsUsed > 0 ? slingKind : null,
       notes: input.notes?.trim() || null,
-      studentId: await resolveStudentId(input.studentId),
+      studentId,
     },
+  });
   });
 }
 
@@ -489,6 +527,22 @@ export async function updateIdReleaseReason(id: string, reason: string) {
   const entry = await prisma.idReleaseEntry.findUnique({ where: { id } });
   if (!entry) {
     throw new IdStockError("Release record was not found.");
+  }
+  const next = reason.trim();
+  // The same category rules as creating a release.
+  const allowed: readonly string[] =
+    entry.status === "SLING" ? ID_SLING_RELEASE_CATEGORIES : ID_RELEASE_CATEGORIES;
+  if (!allowed.includes(next)) {
+    throw new IdStockError(
+      entry.status === "SLING"
+        ? "Choose a sling release category."
+        : "Choose an ID release category."
+    );
+  }
+  if (entry.status === "SLING" && next !== "NEW" && (!entry.orNumber || entry.amount == null)) {
+    throw new IdStockError(
+      "This category needs an OR number and amount. Remove this record and enter it again with them."
+    );
   }
   return prisma.idReleaseEntry.update({
     where: { id },
@@ -515,12 +569,14 @@ export async function createIdBadPrint(input: {
   notes?: string | null;
   studentId?: string | null;
 }) {
+  const studentId = await resolveStudentId(input.studentId);
+  return withIdStockLock(async (tx) => {
   if (wastesCardStock(input.status)) {
     const stock = await getIdStockView();
     assertCardsAvailable(stock.cardsRemaining, input.quantity);
   }
 
-  return prisma.idBadPrintEntry.create({
+  return tx.idBadPrintEntry.create({
     data: {
       personName: input.personName.trim(),
       course: input.course.trim(),
@@ -530,8 +586,9 @@ export async function createIdBadPrint(input: {
       reason: input.reason.trim(),
       quantity: input.quantity,
       notes: input.notes?.trim() || null,
-      studentId: await resolveStudentId(input.studentId),
+      studentId,
     },
+  });
   });
 }
 
@@ -543,14 +600,16 @@ export async function updateIdBadPrintStatus(id: string, status: IdBadPrintStatu
 
   const wasWasting = wastesCardStock(record.status);
   const willWaste = wastesCardStock(status);
-  if (!wasWasting && willWaste) {
-    const stock = await getIdStockView();
-    assertCardsAvailable(stock.cardsRemaining, record.quantity);
-  }
+  return withIdStockLock(async (tx) => {
+    if (!wasWasting && willWaste) {
+      const stock = await getIdStockView();
+      assertCardsAvailable(stock.cardsRemaining, record.quantity);
+    }
 
-  return prisma.idBadPrintEntry.update({
-    where: { id },
-    data: { status },
+    return tx.idBadPrintEntry.update({
+      where: { id },
+      data: { status },
+    });
   });
 }
 

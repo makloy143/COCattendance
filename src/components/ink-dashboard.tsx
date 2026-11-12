@@ -265,7 +265,7 @@ export function InkRecordTable({
                         label="Remove"
                         variant="outline"
                         className="cursor-pointer"
-                        confirmMessage={`Remove this release of ${row.quantity} ${row.model}?`}
+                        confirmMessage={`Remove this release of ${row.quantity} ${row.model}? The bottles go back to available stock.`}
                       />
                     ) : (
                       <span className="text-xs text-slate-400">None left</span>

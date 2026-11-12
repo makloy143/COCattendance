@@ -3,13 +3,12 @@ import { getIdPeriodRange, parseIdPeriod, type IdPeriod } from "@/lib/id-mainten
 import { getAvailableQuantity, getReleasedQuantity, type InkColor } from "@/lib/inventory";
 import { buildInkDashboard } from "@/lib/ink-dashboard";
 import { getInkOfficeSettings, listActiveInkModels } from "@/lib/ink-settings";
-import { deleteInactiveInkReceipts } from "@/lib/ink-stock";
+import { withoutInactiveInkModels } from "@/lib/ink-stock";
 
 export async function getInkDashboard(periodValue?: string | null, recordLimit = 8) {
   const period: IdPeriod = parseIdPeriod(periodValue);
   const range = getIdPeriodRange(period);
-  await deleteInactiveInkReceipts();
-  const [settings, catalog, items] = await Promise.all([
+  const [settings, catalog, allItems] = await Promise.all([
     getInkOfficeSettings(),
     listActiveInkModels(),
     prisma.receivedItem.findMany({
@@ -29,6 +28,7 @@ export async function getInkDashboard(periodValue?: string | null, recordLimit =
     orderBy: [{ dateReceived: "desc" }, { createdAt: "desc" }],
   }),
   ]);
+  const items = await withoutInactiveInkModels(allItems);
 
   return buildInkDashboard({
     range,

@@ -155,6 +155,25 @@ export async function syncItemAssetStatus(
       ? restoreStatus
       : "AVAILABLE";
 
+  if (nextStatus === "AVAILABLE") {
+    // Only release an item that maintenance itself was holding. An item that
+    // is retired or lost, or damaged because a remaining record found it
+    // unrepairable, stays out of circulation when some other record is
+    // edited or deleted.
+    const item = await tx.receivedItem.findUnique({
+      where: { id: itemId },
+      select: { assetStatus: true },
+    });
+    const current = item?.assetStatus ?? null;
+    if (current === "RETIRED" || current === "LOST") return;
+    if (current === "DAMAGED") {
+      const unrepairable = await tx.maintenanceRecord.count({
+        where: { receivedItemId: itemId, status: "UNREPAIRABLE" },
+      });
+      if (unrepairable > 0) return;
+    }
+  }
+
   await tx.receivedItem.update({
     where: { id: itemId },
     data: { assetStatus: nextStatus },
