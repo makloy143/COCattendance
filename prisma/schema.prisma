@@ -462,6 +462,8 @@ model IdReleaseEntry {
 
 model IdSurrenderEntry {
   id              String    @id @default(cuid())
+  /// "STUDENT" or "FACULTY". For faculty, `course` holds the department or office.
+  personType      String    @default("STUDENT")
   personName      String
   course          String
   yearLevel       String?

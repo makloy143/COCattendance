@@ -24,6 +24,7 @@ import {
   type IdReceiptUnit,
   type IdReleaseStatus,
   type IdSlingKind,
+  type IdSurrenderPersonType,
   type IdStockCategory,
   type IdStockItemType,
   type IdStockView,
@@ -627,6 +628,7 @@ export async function deleteIdBadPrint(id: string) {
 }
 
 export async function createIdSurrender(input: {
+  personType?: IdSurrenderPersonType;
   personName: string;
   course: string;
   yearLevel?: string | null;
@@ -643,11 +645,13 @@ export async function createIdSurrender(input: {
     throw new IdStockError("Record the ID card, the sling, or both.");
   }
 
+  const isFaculty = input.personType === "FACULTY";
   return prisma.idSurrenderEntry.create({
     data: {
+      personType: isFaculty ? "FACULTY" : "STUDENT",
       personName: input.personName.trim(),
       course: input.course.trim(),
-      yearLevel: input.yearLevel?.trim() || null,
+      yearLevel: isFaculty ? null : input.yearLevel?.trim() || null,
       idNumber: input.idNumber.trim(),
       surrenderDate: getManilaDayStart(input.surrenderDate),
       reason: input.reason.trim(),
@@ -655,7 +659,7 @@ export async function createIdSurrender(input: {
       slingsReturned: input.slingsReturned,
       receivedBy: input.receivedBy.trim(),
       notes: input.notes?.trim() || null,
-      studentId: await resolveStudentId(input.studentId),
+      studentId: isFaculty ? null : await resolveStudentId(input.studentId),
     },
   });
 }
@@ -899,7 +903,8 @@ export async function listIdHistory(period: IdPeriod): Promise<IdHistoryEvent[]>
       id: `surrender-${record.id}`,
       dateLabel: formatIdDate(record.surrenderDate),
       kind: "SURRENDER" as const,
-      title: record.personName,
+      title:
+        record.personType === "FACULTY" ? `${record.personName} (Faculty)` : record.personName,
       detail: `${record.course}${record.yearLevel ? ` · ${record.yearLevel}` : ""} · ${record.idNumber} · ${record.reason} · received by ${record.receivedBy}`,
       cards: 0,
       slings: 0,

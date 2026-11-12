@@ -7,6 +7,7 @@ import {
   ID_PRINTERS,
   ID_RELEASE_CATEGORIES,
   ID_SLING_RELEASE_CATEGORIES,
+  ID_SURRENDER_PERSON_TYPES,
   ID_RECEIPT_UNITS,
   ID_RELEASE_STATUSES,
   ID_SLING_KINDS,
@@ -645,6 +646,7 @@ export const idBadPrintSchema = z.object({
 
 export const idSurrenderSchema = z
   .object({
+    personType: z.enum(ID_SURRENDER_PERSON_TYPES).default("STUDENT"),
     personName: z.string().trim().min(1, "Name is required").max(200),
     course: z.string().trim().min(1, "Course is required").max(100),
     yearLevel: z.string().trim().max(50).optional().or(z.literal("")),

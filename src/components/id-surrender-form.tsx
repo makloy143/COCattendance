@@ -8,11 +8,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatManilaDateInput } from "@/lib/date-utils";
-import { ID_WITHDRAWAL_REASON_PRESETS } from "@/lib/id-maintenance";
+import {
+  ID_SURRENDER_PERSON_TYPES,
+  ID_SURRENDER_PERSON_TYPE_LABELS,
+  ID_WITHDRAWAL_REASON_PRESETS,
+  type IdSurrenderPersonType,
+} from "@/lib/id-maintenance";
 
 export function IdSurrenderForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [personType, setPersonType] = useState<IdSurrenderPersonType>("STUDENT");
+  const isFaculty = personType === "FACULTY";
   const [personName, setPersonName] = useState("");
   const [course, setCourse] = useState("");
   const [yearLevel, setYearLevel] = useState("");
@@ -32,16 +39,17 @@ export function IdSurrenderForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          personType,
           personName,
           course,
-          yearLevel,
+          yearLevel: isFaculty ? "" : yearLevel,
           idNumber,
           surrenderDate,
           reason,
           idCardsReturned,
           slingsReturned,
           receivedBy,
-          studentId,
+          studentId: isFaculty ? "" : studentId,
         }),
       });
       const data = await response.json();
@@ -68,36 +76,69 @@ export function IdSurrenderForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border bg-white p-4 shadow-sm sm:p-5">
       <div>
-        <h2 className="text-base font-semibold">Student withdrawal</h2>
+        <h2 className="text-base font-semibold">
+          {isFaculty ? "Faculty withdrawal" : "Student withdrawal"}
+        </h2>
         <p className="mt-1 text-sm text-slate-600">
-          Record the student who withdrew and turned in an ID card and sling.
-          This saves the student information only and does not change stock.
+          {isFaculty
+            ? "Record the faculty member who left and turned in an ID card and sling."
+            : "Record the student who withdrew and turned in an ID card and sling."}{" "}
+          This saves the information only and does not change stock.
         </p>
       </div>
-      <IdStudentLookup
-        onSelect={(student) => {
-          setPersonName(`${student.firstName} ${student.lastName}`.trim());
-          setCourse(student.course ?? "");
-          setYearLevel(student.yearLevel ?? "");
-          setIdNumber(student.studentId);
-          setStudentId(student.id);
-        }}
-      />
+      <div role="group" aria-label="Who is withdrawing" className="inline-flex rounded-lg border bg-slate-50 p-1">
+        {ID_SURRENDER_PERSON_TYPES.map((type) => (
+          <button
+            key={type}
+            type="button"
+            aria-pressed={personType === type}
+            onClick={() => {
+              if (type === personType) return;
+              setPersonType(type);
+              setPersonName("");
+              setCourse("");
+              setYearLevel("");
+              setIdNumber("");
+              setStudentId("");
+            }}
+            className={`min-h-9 rounded-md px-4 text-sm font-medium transition-colors ${
+              personType === type
+                ? "bg-[#0e6b43] text-white shadow-sm"
+                : "text-slate-700 hover:bg-white"
+            }`}
+          >
+            {ID_SURRENDER_PERSON_TYPE_LABELS[type]}
+          </button>
+        ))}
+      </div>
+      {isFaculty ? null : (
+        <IdStudentLookup
+          onSelect={(student) => {
+            setPersonName(`${student.firstName} ${student.lastName}`.trim());
+            setCourse(student.course ?? "");
+            setYearLevel(student.yearLevel ?? "");
+            setIdNumber(student.studentId);
+            setStudentId(student.id);
+          }}
+        />
+      )}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <div className="space-y-1.5 sm:col-span-2 lg:col-span-1">
           <Label htmlFor="surrenderName">Name</Label>
           <Input id="surrenderName" value={personName} onChange={(event) => setPersonName(event.target.value)} required />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="surrenderCourse">Course</Label>
+          <Label htmlFor="surrenderCourse">{isFaculty ? "Department / Office" : "Course"}</Label>
           <Input id="surrenderCourse" value={course} onChange={(event) => setCourse(event.target.value)} required />
         </div>
+        {isFaculty ? null : (
+          <div className="space-y-1.5">
+            <Label htmlFor="surrenderYear">Year level</Label>
+            <Input id="surrenderYear" value={yearLevel} onChange={(event) => setYearLevel(event.target.value)} placeholder="1st Year" />
+          </div>
+        )}
         <div className="space-y-1.5">
-          <Label htmlFor="surrenderYear">Year level</Label>
-          <Input id="surrenderYear" value={yearLevel} onChange={(event) => setYearLevel(event.target.value)} placeholder="1st Year" />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="surrenderIdNumber">ID #</Label>
+          <Label htmlFor="surrenderIdNumber">{isFaculty ? "Employee ID #" : "ID #"}</Label>
           <Input id="surrenderIdNumber" value={idNumber} onChange={(event) => setIdNumber(event.target.value)} required />
         </div>
         <div className="space-y-1.5">
@@ -111,7 +152,7 @@ export function IdSurrenderForm() {
             list="withdrawal-reasons"
             value={reason}
             onChange={(event) => setReason(event.target.value)}
-            placeholder="TRANSFERRED"
+            placeholder={isFaculty ? "RESIGNED" : "TRANSFERRED"}
             required
           />
           <datalist id="withdrawal-reasons">
@@ -129,7 +170,7 @@ export function IdSurrenderForm() {
           <Input id="idCardsReturned" inputMode="numeric" value={idCardsReturned} onChange={(event) => setIdCardsReturned(event.target.value)} required />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="slingsReturned">Student slings returned</Label>
+          <Label htmlFor="slingsReturned">{isFaculty ? "Employee slings returned" : "Student slings returned"}</Label>
           <Input id="slingsReturned" inputMode="numeric" value={slingsReturned} onChange={(event) => setSlingsReturned(event.target.value)} required />
         </div>
       </div>

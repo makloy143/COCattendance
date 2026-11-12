@@ -18,6 +18,7 @@ import {
   parseIdPeriod,
   toIdReleaseRow,
   type IdBadPrintRow,
+  parseIdSurrenderPersonType,
   type IdSurrenderRow,
 } from "@/lib/id-maintenance";
 
@@ -55,6 +56,7 @@ export default async function IdMaintenanceDashboardPage({
 
   const surrenderRows: IdSurrenderRow[] = surrenders.map((record) => ({
     id: record.id,
+    personType: parseIdSurrenderPersonType(record.personType),
     personName: record.personName,
     course: record.course,
     yearLevel: record.yearLevel,

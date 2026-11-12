@@ -7,7 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { type IdSurrenderRow } from "@/lib/id-maintenance";
+import { ID_SURRENDER_PERSON_TYPE_LABELS, type IdSurrenderRow } from "@/lib/id-maintenance";
 
 export function IdSurrenderTable({
   rows,
@@ -19,15 +19,15 @@ export function IdSurrenderTable({
   return (
     <section className="overflow-hidden rounded-xl border bg-white shadow-sm">
       <div className="border-b px-4 py-3">
-        <h2 className="text-base font-semibold">Withdrawn students</h2>
+        <h2 className="text-base font-semibold">Withdrawn students and faculty</h2>
         <p className="text-xs text-slate-500">
-          Students who withdrew and surrendered an ID card and sling.
+          Students and faculty who withdrew and surrendered an ID card and sling.
         </p>
       </div>
       <Table>
         <TableHeader className="bg-[#e7f5ee]">
           <TableRow className="hover:bg-transparent">
-            {["Name", "Course", "Year", "ID #", "Date", "Reason", "ID returned", "Sling returned", "Received by"].map(
+            {["Type", "Name", "Course / Department", "Year", "ID #", "Date", "Reason", "ID returned", "Sling returned", "Received by"].map(
               (heading) => (
                 <TableHead key={heading} className="text-xs font-semibold tracking-wide text-slate-800 uppercase">
                   {heading}
@@ -44,13 +44,14 @@ export function IdSurrenderTable({
         <TableBody>
           {rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={showActions ? 10 : 9} className="py-8 text-center text-sm text-slate-500">
+              <TableCell colSpan={showActions ? 11 : 10} className="py-8 text-center text-sm text-slate-500">
                 No withdrawals for this period.
               </TableCell>
             </TableRow>
           ) : (
             rows.map((row) => (
               <TableRow key={row.id}>
+                <TableCell>{ID_SURRENDER_PERSON_TYPE_LABELS[row.personType]}</TableCell>
                 <TableCell className="font-medium">{row.personName}</TableCell>
                 <TableCell>{row.course}</TableCell>
                 <TableCell>{row.yearLevel || "—"}</TableCell>

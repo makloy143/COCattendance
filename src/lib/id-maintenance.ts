@@ -710,8 +710,20 @@ export function toIdReleaseRow(record: {
   };
 }
 
+export const ID_SURRENDER_PERSON_TYPES = ["STUDENT", "FACULTY"] as const;
+export type IdSurrenderPersonType = (typeof ID_SURRENDER_PERSON_TYPES)[number];
+export const ID_SURRENDER_PERSON_TYPE_LABELS: Record<IdSurrenderPersonType, string> = {
+  STUDENT: "Student",
+  FACULTY: "Faculty",
+};
+
+export function parseIdSurrenderPersonType(value: unknown): IdSurrenderPersonType {
+  return value === "FACULTY" ? "FACULTY" : "STUDENT";
+}
+
 export type IdSurrenderRow = {
   id: string;
+  personType: IdSurrenderPersonType;
   personName: string;
   course: string;
   yearLevel: string | null;

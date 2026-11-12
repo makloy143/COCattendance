@@ -2,7 +2,12 @@ import { IdSurrenderForm } from "@/components/id-surrender-form";
 import { IdSurrenderTable } from "@/components/id-surrender-table";
 import { requireInventorySession } from "@/lib/inventory-auth";
 import { listIdSurrenders } from "@/lib/id-maintenance-data";
-import { formatIdDate, parseIdPeriod, type IdSurrenderRow } from "@/lib/id-maintenance";
+import {
+  formatIdDate,
+  parseIdPeriod,
+  parseIdSurrenderPersonType,
+  type IdSurrenderRow,
+} from "@/lib/id-maintenance";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +22,7 @@ export default async function IdWithdrawalPage({
   const records = await listIdSurrenders(period);
   const rows: IdSurrenderRow[] = records.map((record) => ({
     id: record.id,
+    personType: parseIdSurrenderPersonType(record.personType),
     personName: record.personName,
     course: record.course,
     yearLevel: record.yearLevel,
