@@ -69,7 +69,7 @@ function verticalCategoryCell(label: string, bg: string, rowSpan: number) {
 
 function fieldCell(value: string, bg: string) {
   const content = value.trim() ? escapeHtml(value) : "&nbsp;";
-  return `<td style="background:${bg};border:1px solid rgba(0,0,0,0.2);padding:4px;vertical-align:middle;">
+  return `<td style="background:${bg};border:1px solid rgba(0,0,0,0.2);padding:4px;vertical-align:middle;mso-number-format:'\\@';">
     <div style="background:rgba(255,255,255,0.85);border:1px solid rgba(0,0,0,0.12);border-radius:6px;padding:6px 8px;min-height:18px;font-size:12px;line-height:1.2;">${content}</div>
   </td>`;
 }
@@ -81,7 +81,7 @@ function statusCell(status: string, bg: string) {
 }
 
 function textCell(value: string, bg: string, bold = false) {
-  return `<td style="background:${bg};border:1px solid rgba(0,0,0,0.2);padding:8px;font-size:12px;vertical-align:middle;${bold ? "font-weight:600;" : ""}">${escapeHtml(value)}</td>`;
+  return `<td style="background:${bg};border:1px solid rgba(0,0,0,0.2);padding:8px;font-size:12px;vertical-align:middle;mso-number-format:'\\@';${bold ? "font-weight:600;" : ""}">${escapeHtml(value)}</td>`;
 }
 
 export function buildMonitoringReportTableHtml(

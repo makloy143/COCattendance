@@ -25,11 +25,21 @@ export function StudentQrCard({
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
+    const escapeHtml = (value: string) =>
+      value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    const safeName = escapeHtml(`${firstName} ${lastName}`);
+    const safeStudentId = escapeHtml(studentId);
+
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
         <head>
-          <title>QR - ${firstName} ${lastName}</title>
+          <title>QR - ${safeName}</title>
           <style>
             body { font-family: Arial, sans-serif; text-align: center; padding: 40px; }
             img { width: 240px; height: 240px; }
@@ -39,8 +49,8 @@ export function StudentQrCard({
         </head>
         <body>
           <img src="${qrUrl}" alt="Student QR code" />
-          <h2>${firstName} ${lastName}</h2>
-          <p>${studentId}</p>
+          <h2>${safeName}</h2>
+          <p>${safeStudentId}</p>
           <script>window.onload = () => { window.print(); };</script>
         </body>
       </html>

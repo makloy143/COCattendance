@@ -88,8 +88,13 @@ export async function GET(request: NextRequest) {
           { createdAt: student.createdAt }
         );
 
-        const { attendance: _attendance, scheduleSlots: _slots, ...rest } =
-          student;
+        const {
+          attendance: _attendance,
+          scheduleSlots: _slots,
+          qrToken: _qrToken,
+          faceDescriptor: _faceDescriptor,
+          ...rest
+        } = student;
 
         return {
           ...rest,

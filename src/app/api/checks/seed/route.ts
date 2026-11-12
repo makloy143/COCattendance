@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { requireSuperAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { DEFAULT_CHECK_TEMPLATES } from "@/lib/checks-shared";
 
 export async function POST() {
   try {
+    await requireSuperAdmin();
+
     const existingAdmins = await prisma.departmentCheckAdmin.count();
     if (existingAdmins > 0) {
       return NextResponse.json(
@@ -56,6 +59,12 @@ export async function POST() {
       templatesCreated,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (error instanceof Error && error.message === "Forbidden") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
     console.error("Checks seed error:", error);
     return NextResponse.json(
       { error: "Failed to seed checks portal" },

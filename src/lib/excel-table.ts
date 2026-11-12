@@ -29,7 +29,9 @@ export function buildExcelDocument(title: string, sections: ExcelSection[]) {
                 const cells = row
                   .map(
                     (cell) =>
-                      `<td style="padding:6px;border:1px solid #ccc;">${escapeHtml(String(cell))}</td>`
+                      // Text cells are forced to Excel's text format so a value
+                      // starting with = + - @ is never evaluated as a formula.
+                      `<td style="padding:6px;border:1px solid #ccc;${typeof cell === "string" ? "mso-number-format:'\\@';" : ""}">${escapeHtml(String(cell))}</td>`
                   )
                   .join("");
                 return `<tr>${cells}</tr>`;

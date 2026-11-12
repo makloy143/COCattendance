@@ -5,6 +5,8 @@ import { prisma } from "@/lib/db";
 
 const SESSION_COOKIE = "cociligan_todo_session";
 const SESSION_DURATION = 60 * 60 * 24 * 7;
+// Binds the token to this portal; all portals share AUTH_SECRET.
+const SESSION_AUDIENCE = "cociligan:todo";
 
 function getSecretKey() {
   const secret = process.env.AUTH_SECRET;
@@ -39,6 +41,7 @@ export async function createTodoSession(
   const token = await new SignJWT({ todoAdminId, username })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
+    .setAudience(SESSION_AUDIENCE)
     .setExpirationTime(`${SESSION_DURATION}s`)
     .sign(getSecretKey());
 
@@ -58,9 +61,12 @@ export async function getTodoSession(): Promise<TodoSessionPayload | null> {
   if (!token) return null;
 
   try {
-    const { payload } = await jwtVerify(token, getSecretKey());
+    const { payload } = await jwtVerify(token, getSecretKey(), {
+      audience: SESSION_AUDIENCE,
+    });
+    if (typeof payload.todoAdminId !== "string" || !payload.todoAdminId) return null;
     return {
-      todoAdminId: payload.todoAdminId as string,
+      todoAdminId: payload.todoAdminId,
       username: payload.username as string,
     };
   } catch {

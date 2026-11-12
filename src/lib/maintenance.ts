@@ -487,8 +487,12 @@ export async function getMaintenanceStats(
 }
 
 function csvEscape(value: string | number | null | undefined): string {
-  const text = value === null || value === undefined ? "" : String(value);
-  if (/[",\n]/.test(text)) {
+  let text = value === null || value === undefined ? "" : String(value);
+  // Stop spreadsheet apps from evaluating user text as a formula.
+  if (typeof value === "string" && /^[=+\-@\t\r]/.test(text)) {
+    text = `'${text}`;
+  }
+  if (/[",\n\r]/.test(text)) {
     return `"${text.replace(/"/g, '""')}"`;
   }
   return text;

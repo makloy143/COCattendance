@@ -14,7 +14,11 @@ function getSecretKey() {
   return new TextEncoder().encode(secret);
 }
 
-async function hasValidSession(request: NextRequest, cookieName: string) {
+async function hasValidSession(
+  request: NextRequest,
+  cookieName: string,
+  audience: string
+) {
   const token = request.cookies.get(cookieName)?.value;
   if (!token) return false;
 
@@ -22,7 +26,7 @@ async function hasValidSession(request: NextRequest, cookieName: string) {
   if (!secret) return false;
 
   try {
-    await jwtVerify(token, secret);
+    await jwtVerify(token, secret, { audience });
     return true;
   } catch {
     return false;
@@ -33,23 +37,28 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const adminAuthenticated = await hasValidSession(
     request,
-    ADMIN_SESSION_COOKIE
+    ADMIN_SESSION_COOKIE,
+    "cociligan:attendance"
   );
   const inventoryAuthenticated = await hasValidSession(
     request,
-    INVENTORY_SESSION_COOKIE
+    INVENTORY_SESSION_COOKIE,
+    "cociligan:inventory"
   );
   const monitoringAuthenticated = await hasValidSession(
     request,
-    MONITORING_SESSION_COOKIE
+    MONITORING_SESSION_COOKIE,
+    "cociligan:monitoring"
   );
   const todoAuthenticated = await hasValidSession(
     request,
-    TODO_SESSION_COOKIE
+    TODO_SESSION_COOKIE,
+    "cociligan:todo"
   );
   const checksAuthenticated = await hasValidSession(
     request,
-    CHECKS_SESSION_COOKIE
+    CHECKS_SESSION_COOKIE,
+    "cociligan:checks"
   );
 
   const isMonitoringLogin = pathname === "/monitoring/login";
@@ -169,6 +178,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // The seed route is not public: its handler requires an attendance super admin.
   if (pathname.startsWith("/api/checks/auth") || pathname.startsWith("/api/checks/seed")) {
     return NextResponse.next();
   }

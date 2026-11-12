@@ -5,6 +5,8 @@ import { prisma } from "@/lib/db";
 
 const SESSION_COOKIE = "cociligan_monitoring_session";
 const SESSION_DURATION = 60 * 60 * 24 * 7;
+// Binds the token to this portal; all portals share AUTH_SECRET.
+const SESSION_AUDIENCE = "cociligan:monitoring";
 
 function getSecretKey() {
   const secret = process.env.AUTH_SECRET;
@@ -39,6 +41,7 @@ export async function createMonitoringSession(
   const token = await new SignJWT({ monitoringAdminId, username })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
+    .setAudience(SESSION_AUDIENCE)
     .setExpirationTime(`${SESSION_DURATION}s`)
     .sign(getSecretKey());
 
@@ -58,9 +61,12 @@ export async function getMonitoringSession(): Promise<MonitoringSessionPayload |
   if (!token) return null;
 
   try {
-    const { payload } = await jwtVerify(token, getSecretKey());
+    const { payload } = await jwtVerify(token, getSecretKey(), {
+      audience: SESSION_AUDIENCE,
+    });
+    if (typeof payload.monitoringAdminId !== "string" || !payload.monitoringAdminId) return null;
     return {
-      monitoringAdminId: payload.monitoringAdminId as string,
+      monitoringAdminId: payload.monitoringAdminId,
       username: payload.username as string,
     };
   } catch {

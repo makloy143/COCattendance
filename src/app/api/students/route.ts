@@ -89,8 +89,13 @@ export async function GET(request: NextRequest) {
           student.attendance,
           { createdAt: student.createdAt }
         );
-        const { attendance: _attendance, scheduleSlots: _slots, ...rest } =
-          student;
+        const {
+          attendance: _attendance,
+          scheduleSlots: _slots,
+          qrToken: _qrToken,
+          faceDescriptor: _faceDescriptor,
+          ...rest
+        } = student;
 
         return {
           ...rest,
@@ -236,7 +241,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(updated, { status: 201 });
     }
 
-    return NextResponse.json(student, { status: 201 });
+    const { qrToken: _qrToken, faceDescriptor: _faceDescriptor, ...created } =
+      student;
+    return NextResponse.json(created, { status: 201 });
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

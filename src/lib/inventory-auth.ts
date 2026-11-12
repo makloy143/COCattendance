@@ -5,6 +5,8 @@ import { prisma } from "@/lib/db";
 
 const SESSION_COOKIE = "cociligan_inventory_session";
 const SESSION_DURATION = 60 * 60 * 24 * 7;
+// Binds the token to this portal; all portals share AUTH_SECRET.
+const SESSION_AUDIENCE = "cociligan:inventory";
 
 function getSecretKey() {
   const secret = process.env.AUTH_SECRET;
@@ -39,6 +41,7 @@ export async function createInventorySession(
   const token = await new SignJWT({ inventoryAdminId, username })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
+    .setAudience(SESSION_AUDIENCE)
     .setExpirationTime(`${SESSION_DURATION}s`)
     .sign(getSecretKey());
 
@@ -58,9 +61,12 @@ export async function getInventorySession(): Promise<InventorySessionPayload | n
   if (!token) return null;
 
   try {
-    const { payload } = await jwtVerify(token, getSecretKey());
+    const { payload } = await jwtVerify(token, getSecretKey(), {
+      audience: SESSION_AUDIENCE,
+    });
+    if (typeof payload.inventoryAdminId !== "string" || !payload.inventoryAdminId) return null;
     return {
-      inventoryAdminId: payload.inventoryAdminId as string,
+      inventoryAdminId: payload.inventoryAdminId,
       username: payload.username as string,
     };
   } catch {

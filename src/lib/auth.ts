@@ -7,6 +7,9 @@ import type { Department } from "@/lib/departments";
 
 const SESSION_COOKIE = "cociligan_session";
 const SESSION_DURATION = 60 * 60 * 24 * 7;
+// Every portal signs with the same AUTH_SECRET, so each token is bound to its
+// portal through the audience claim and rejected everywhere else.
+const SESSION_AUDIENCE = "cociligan:attendance";
 
 function getSecretKey() {
   const secret = process.env.AUTH_SECRET;
@@ -42,6 +45,7 @@ export async function createSession(
   const token = await new SignJWT({ adminId, username, role, department })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
+    .setAudience(SESSION_AUDIENCE)
     .setExpirationTime(`${SESSION_DURATION}s`)
     .sign(getSecretKey());
 
@@ -68,27 +72,24 @@ export async function getSession(): Promise<SessionPayload | null> {
   if (!token) return null;
 
   try {
-    const { payload } = await jwtVerify(token, getSecretKey());
-    const role =
-      payload.role === "SUPER_ADMIN" || payload.role === "ADMIN"
-        ? payload.role
-        : "ADMIN";
+    const { payload } = await jwtVerify(token, getSecretKey(), {
+      audience: SESSION_AUDIENCE,
+    });
+    if (typeof payload.adminId !== "string" || !payload.adminId) return null;
 
-    let department = parseDepartment(payload.department);
-
-    if (role !== "SUPER_ADMIN" && !department) {
-      const admin = await prisma.admin.findUnique({
-        where: { id: payload.adminId as string },
-        select: { department: true },
-      });
-      department = admin?.department ?? null;
-    }
+    // Role and department come from the database, not the token, so a deleted
+    // or demoted admin loses access immediately instead of when the token expires.
+    const admin = await prisma.admin.findUnique({
+      where: { id: payload.adminId },
+      select: { username: true, role: true, department: true },
+    });
+    if (!admin) return null;
 
     return {
-      adminId: payload.adminId as string,
-      username: payload.username as string,
-      role,
-      department,
+      adminId: payload.adminId,
+      username: admin.username,
+      role: admin.role,
+      department: parseDepartment(admin.department),
     };
   } catch {
     return null;

@@ -155,7 +155,7 @@ export function buildExcelBuffer(rows: ReportRow[], filters: ReportFilters): Buf
       ]
         .map(
           (cell) =>
-            `<td style="padding:6px;border:1px solid #ccc;">${escapeHtml(cell)}</td>`
+            `<td style="padding:6px;border:1px solid #ccc;mso-number-format:'\\@';">${escapeHtml(cell)}</td>`
         )
         .join("");
       return `<tr>${cells}</tr>`;

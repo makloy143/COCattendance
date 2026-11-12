@@ -30,6 +30,14 @@ function scheduleCreateInput(
   }));
 }
 
+// The QR secret and face template never leave the server in student responses.
+function withoutSecrets<
+  T extends { qrToken?: unknown; faceDescriptor?: unknown },
+>(student: T) {
+  const { qrToken: _qrToken, faceDescriptor: _faceDescriptor, ...rest } = student;
+  return rest;
+}
+
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
@@ -82,7 +90,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     );
 
     return NextResponse.json({
-      ...student,
+      ...withoutSecrets(student),
       todayRecord,
       totalMinutes: stats.totalMinutes,
       stats,
@@ -236,7 +244,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       },
     });
 
-    return NextResponse.json(student);
+    return NextResponse.json(withoutSecrets(student));
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -269,7 +277,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       data: { isActive: Boolean(body.isActive) },
     });
 
-    return NextResponse.json(student);
+    return NextResponse.json(withoutSecrets(student));
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
