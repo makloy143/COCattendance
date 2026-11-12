@@ -1,4 +1,4 @@
-import { addMonths, subDays } from "date-fns";
+import { subDays } from "date-fns";
 import type {
   CheckCadence,
   CheckCategory,
@@ -14,6 +14,7 @@ import {
 import { prisma } from "@/lib/db";
 import {
   APP_TIMEZONE,
+  addManilaDays,
   formatManilaDateInput,
   getManilaDayStart,
   getTodayStart,
@@ -125,29 +126,64 @@ async function getLatestLogForPeriod(
   });
 }
 
-function getLookbackDates(cadence: CheckCadence, today: Date): Date[] {
-  const dates: Date[] = [];
-  const todayKey = formatManilaDateInput(today);
+type CheckOccurrence = {
+  /** The Manila day the check was scheduled for. */
+  dueDate: Date;
+  /** The key its log is stored under: the day, the week's Monday, or the 1st. */
+  periodStart: Date;
+};
 
-  if (cadence === "DAILY") {
-    for (let i = 1; i <= 7; i++) {
-      dates.push(getManilaDayStart(subDays(getManilaDayStart(todayKey), i)));
+const pad2 = (value: number) => String(value).padStart(2, "0");
+
+/**
+ * The scheduled dates of a template on or before `today`, newest first:
+ * the last 8 days for daily checks, 5 weeks for weekly, 4 months for monthly.
+ */
+function getRecentOccurrences(
+  template: Pick<CheckTemplate, "cadence" | "dayOfWeek" | "dayOfMonth">,
+  today: Date
+): CheckOccurrence[] {
+  const todayStart = getManilaDayStart(today);
+  const occurrences: CheckOccurrence[] = [];
+
+  if (template.cadence === "DAILY") {
+    for (let i = 0; i <= 7; i++) {
+      const day = addManilaDays(todayStart, -i);
+      occurrences.push({ dueDate: day, periodStart: day });
     }
-    return dates;
+    return occurrences;
   }
 
-  if (cadence === "WEEKLY") {
-    for (let i = 1; i <= 4; i++) {
-      dates.push(getManilaDayStart(subDays(getManilaDayStart(todayKey), i * 7)));
+  if (template.cadence === "WEEKLY") {
+    if (!template.dayOfWeek) return occurrences;
+    const thisWeek = getPeriodStart("WEEKLY", todayStart);
+    for (let i = 0; i <= 4; i++) {
+      const weekStart = addManilaDays(thisWeek, -7 * i);
+      const dueDate = addManilaDays(weekStart, template.dayOfWeek - 1);
+      if (dueDate.getTime() <= todayStart.getTime()) {
+        occurrences.push({ dueDate, periodStart: weekStart });
+      }
     }
-    return dates;
+    return occurrences;
   }
 
-  for (let i = 1; i <= 3; i++) {
-    const monthDate = addMonths(getManilaDayStart(todayKey), -i);
-    dates.push(getPeriodStart("MONTHLY", monthDate));
+  if (!template.dayOfMonth) return occurrences;
+  const parts = getManilaParts(todayStart);
+  for (let i = 0; i <= 3; i++) {
+    const monthIndex = parts.year * 12 + (parts.month - 1) - i;
+    const year = Math.floor(monthIndex / 12);
+    const month = (monthIndex % 12) + 1;
+    const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    const day = Math.min(template.dayOfMonth, lastDay);
+    const dueDate = getManilaDayStart(`${year}-${pad2(month)}-${pad2(day)}`);
+    if (dueDate.getTime() <= todayStart.getTime()) {
+      occurrences.push({
+        dueDate,
+        periodStart: getManilaDayStart(`${year}-${pad2(month)}-01`),
+      });
+    }
   }
-  return dates;
+  return occurrences;
 }
 
 export async function getCheckItemsForDate(
@@ -158,64 +194,43 @@ export async function getCheckItemsForDate(
     orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
   });
 
+  const todayStart = getManilaDayStart(date);
   const items: CheckItemDto[] = [];
 
   for (const template of templates) {
-    const periodStart = getPeriodStart(template.cadence, date);
-    const periodKey = formatManilaDateInput(periodStart);
-    const currentLog = await getLatestLogForPeriod(template.id, periodStart);
+    // A check cannot be overdue for a date before it existed.
+    const createdDay = getManilaDayStart(template.createdAt);
+    const occurrences = getRecentOccurrences(template, date).filter(
+      (occurrence) => occurrence.dueDate.getTime() >= createdDay.getTime()
+    );
 
-    if (isTemplateDueOnDate(template, date)) {
-      if (!isResolvedStatus(currentLog?.status)) {
-        items.push({
-          templateId: template.id,
-          department: template.department,
-          title: template.title,
-          description: template.description,
-          category: template.category,
-          cadence: template.cadence,
-          cadenceLabel: formatCadenceSchedule(template),
-          periodStart: periodKey,
-          urgency: "due_today",
-          overdueSince: null,
-          logId: currentLog?.id ?? null,
-          logStatus: currentLog?.status ?? null,
-          logNotes: currentLog?.notes ?? null,
-          checkedBy: currentLog?.checkedBy ?? null,
-        });
-      }
-      continue;
-    }
+    let pastChecked = false;
+    for (const occurrence of occurrences) {
+      const dueToday = occurrence.dueDate.getTime() === todayStart.getTime();
+      // Only the most recent past occurrence can be overdue; older misses
+      // are not dug up once that one is dealt with.
+      if (!dueToday && pastChecked) break;
+      if (!dueToday) pastChecked = true;
 
-    const lookbackDates = getLookbackDates(template.cadence, date);
-    for (const lookbackDate of lookbackDates) {
-      if (!isTemplateDueOnDate(template, lookbackDate)) continue;
+      const log = await getLatestLogForPeriod(template.id, occurrence.periodStart);
+      if (isResolvedStatus(log?.status)) continue;
 
-      const missedPeriodStart = getPeriodStart(template.cadence, lookbackDate);
-      const missedLog = await getLatestLogForPeriod(
-        template.id,
-        missedPeriodStart
-      );
-
-      if (!isResolvedStatus(missedLog?.status)) {
-        items.push({
-          templateId: template.id,
-          department: template.department,
-          title: template.title,
-          description: template.description,
-          category: template.category,
-          cadence: template.cadence,
-          cadenceLabel: formatCadenceSchedule(template),
-          periodStart: formatManilaDateInput(missedPeriodStart),
-          urgency: "overdue",
-          overdueSince: formatManilaDateInput(missedPeriodStart),
-          logId: missedLog?.id ?? null,
-          logStatus: missedLog?.status ?? null,
-          logNotes: missedLog?.notes ?? null,
-          checkedBy: missedLog?.checkedBy ?? null,
-        });
-        break;
-      }
+      items.push({
+        templateId: template.id,
+        department: template.department,
+        title: template.title,
+        description: template.description,
+        category: template.category,
+        cadence: template.cadence,
+        cadenceLabel: formatCadenceSchedule(template),
+        periodStart: formatManilaDateInput(occurrence.periodStart),
+        urgency: dueToday ? "due_today" : "overdue",
+        overdueSince: dueToday ? null : formatManilaDateInput(occurrence.dueDate),
+        logId: log?.id ?? null,
+        logStatus: log?.status ?? null,
+        logNotes: log?.notes ?? null,
+        checkedBy: log?.checkedBy ?? null,
+      });
     }
   }
 
@@ -259,8 +274,10 @@ export async function getChecksDashboardData(): Promise<ChecksDashboardData> {
       include: { template: true },
     }),
     prisma.departmentCheckLog.findMany({
+      // Counted by when the check was logged: weekly and monthly logs are
+      // stored under the week's Monday or the 1st, not under today.
       where: {
-        checkDate: today,
+        updatedAt: { gte: today },
         status: { in: ["COMPLETED", "ISSUE_FOUND", "SKIPPED"] },
       },
     }),

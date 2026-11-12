@@ -25,12 +25,21 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       );
     }
 
-    const filename = record.attachmentName ?? "attachment";
+    // Header values must be Latin-1 and the name must not break the quoting,
+    // so send an ASCII fallback plus the real name in RFC 5987 form.
+    const filename = record.attachmentName?.trim() || "attachment";
+    const asciiName =
+      filename.replace(/[^\x20-\x7E]/g, "_").replace(/["\\]/g, "_") || "attachment";
+    const encodedName = encodeURIComponent(filename).replace(
+      /['()*]/g,
+      (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`
+    );
 
     return new NextResponse(new Uint8Array(record.attachmentData), {
       headers: {
         "Content-Type": record.attachmentMimeType,
-        "Content-Disposition": `inline; filename="${filename}"`,
+        "Content-Disposition": `inline; filename="${asciiName}"; filename*=UTF-8''${encodedName}`,
+        "X-Content-Type-Options": "nosniff",
         "Cache-Control": "private, max-age=3600",
       },
     });

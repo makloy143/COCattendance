@@ -39,8 +39,8 @@ export async function loadIdReport(periodValue?: string | null) {
     getIdStockView(),
     getIdPeriodActivity(period),
     listIdReceipts(),
-    listIdReleases(period),
-    listIdBadPrints(period),
+    listIdReleases(period, { all: true }),
+    listIdBadPrints(period, { all: true }),
   ]);
 
   const periodReceipts = receipts.filter((receipt) => {

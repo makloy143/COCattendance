@@ -1,3 +1,4 @@
+import { formatManilaDateInput } from "@/lib/date-utils";
 import { format, parseISO, startOfDay } from "date-fns";
 import { prisma } from "@/lib/db";
 import { buildMonitoringReportTableHtml } from "@/lib/monitoring-report-html";
@@ -295,7 +296,9 @@ export type MonitoringDashboardData = {
 };
 
 export async function getMonitoringDashboardData(): Promise<MonitoringDashboardData> {
-  const today = startOfDay(new Date());
+  // "Today" is the Manila calendar day, not the server's, so the dashboard
+  // matches the report page before 8 AM Philippine time on a UTC server.
+  const today = parseMonitoringDate(formatManilaDateInput(new Date()), new Date());
   const report = await getOrCreateDailyReport(today);
 
   const systemsUp = report.entries.filter((e) => e.status === "Up").length;

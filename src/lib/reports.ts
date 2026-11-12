@@ -167,66 +167,99 @@ export function buildExcelBuffer(rows: ReportRow[], filters: ReportFilters): Buf
   return Buffer.from(html, "utf-8");
 }
 
-export function buildPdfBuffer(rows: ReportRow[], filters: ReportFilters): Buffer {
-  const lines = [
-    "COCiligan Attendance Report",
-    `Period: ${formatDate(filters.from)} - ${formatDate(filters.to)}`,
-    `Total records: ${rows.length}`,
-    "",
-    "ID           Name         Date         In           Out          Status",
-    "-".repeat(80),
-  ];
+const PDF_ROWS_PER_PAGE = 44;
 
-  for (const row of rows) {
-    lines.push(
-      [
-        row.studentId.slice(0, 12).padEnd(13),
-        `${row.firstName} ${row.lastName}`.slice(0, 12).padEnd(13),
-        row.date.padEnd(13),
-        row.timeIn.padEnd(13),
-        row.timeOut.padEnd(13),
-        row.status.slice(0, 12),
-      ].join("")
-    );
+export function buildPdfBuffer(rows: ReportRow[], filters: ReportFilters): Buffer {
+  const pageCount = Math.max(1, Math.ceil(rows.length / PDF_ROWS_PER_PAGE));
+  const pages: string[][] = [];
+
+  for (let page = 0; page < pageCount; page += 1) {
+    const lines = [
+      "COCiligan Attendance Report",
+      `Period: ${formatDate(filters.from)} - ${formatDate(filters.to)}`,
+      `Total records: ${rows.length}     Page ${page + 1} of ${pageCount}`,
+      "",
+      "ID".padEnd(13) + "Name".padEnd(23) + "Date".padEnd(14) + "In".padEnd(10) + "Out".padEnd(10) + "Status",
+      "-".repeat(82),
+    ];
+
+    const pageRows = rows.slice(page * PDF_ROWS_PER_PAGE, (page + 1) * PDF_ROWS_PER_PAGE);
+    for (const row of pageRows) {
+      lines.push(
+        [
+          row.studentId.slice(0, 12).padEnd(13),
+          `${row.firstName} ${row.lastName}`.slice(0, 22).padEnd(23),
+          row.date.slice(0, 13).padEnd(14),
+          row.timeIn.slice(0, 9).padEnd(10),
+          row.timeOut.slice(0, 9).padEnd(10),
+          row.status.slice(0, 12),
+        ].join("")
+      );
+    }
+
+    if (rows.length === 0) lines.push("No attendance records for the selected filters.");
+    pages.push(lines);
   }
 
-  if (rows.length === 0) lines.push("No attendance records for the selected filters.");
-
-  return buildSimplePdf(lines);
+  return buildSimplePdf(pages);
 }
 
-function buildSimplePdf(textLines: string[]): Buffer {
-  let y = 780;
-  const contentLines = textLines.map((line) => {
-    const cmd = `BT /F1 10 Tf 50 ${y} Td (${escapePdfText(line)}) Tj ET`;
-    y -= 14;
-    return cmd;
-  });
+// The built-in PDF fonts only cover single-byte WinAnsi text, so anything
+// outside Latin-1 is replaced rather than written as garbled UTF-8 bytes.
+function toPdfText(value: string): string {
+  const latin = value
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[–—]/g, "-")
+    .replace(/…/g, "...")
+    .replace(/[^\x20-\x7E\xA0-\xFF]/g, "?");
+  return escapePdfText(latin);
+}
 
-  const stream = contentLines.join("\n");
-  const streamLength = Buffer.byteLength(stream, "utf-8");
-  const objects = [
+function buildSimplePdf(pages: string[][]): Buffer {
+  const FONT_OBJECT = 3;
+  const pageObjectNumber = (index: number) => 4 + index * 2;
+
+  const objects: string[] = [
     "1 0 obj<< /Type /Catalog /Pages 2 0 R >>endobj",
-    "2 0 obj<< /Type /Pages /Kids [3 0 R] /Count 1 >>endobj",
-    "3 0 obj<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>endobj",
-    `4 0 obj<< /Length ${streamLength} >>stream\n${stream}\nendstream endobj`,
-    "5 0 obj<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>endobj",
+    `2 0 obj<< /Type /Pages /Kids [${pages
+      .map((_, index) => `${pageObjectNumber(index)} 0 R`)
+      .join(" ")}] /Count ${pages.length} >>endobj`,
+    // Courier keeps the padded columns aligned.
+    `${FONT_OBJECT} 0 obj<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>endobj`,
   ];
 
+  pages.forEach((lines, index) => {
+    let y = 760;
+    const stream = lines
+      .map((line) => {
+        const cmd = `BT /F1 9 Tf 50 ${y} Td (${toPdfText(line)}) Tj ET`;
+        y -= 14;
+        return cmd;
+      })
+      .join("\n");
+    const pageNumber = pageObjectNumber(index);
+    objects.push(
+      `${pageNumber} 0 obj<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents ${pageNumber + 1} 0 R /Resources << /Font << /F1 ${FONT_OBJECT} 0 R >> >> >>endobj`,
+      `${pageNumber + 1} 0 obj<< /Length ${Buffer.byteLength(stream, "latin1")} >>stream\n${stream}\nendstream endobj`
+    );
+  });
+
+  // Every character is single-byte here, so string length equals byte offset.
   let pdf = "%PDF-1.4\n";
   const offsets: number[] = [0];
   for (const obj of objects) {
-    offsets.push(Buffer.byteLength(pdf, "utf-8"));
+    offsets.push(pdf.length);
     pdf += `${obj}\n`;
   }
 
-  const xrefOffset = Buffer.byteLength(pdf, "utf-8");
+  const xrefOffset = pdf.length;
   pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
   for (let i = 1; i <= objects.length; i++) {
     pdf += `${offsets[i].toString().padStart(10, "0")} 00000 n \n`;
   }
   pdf += `trailer<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
-  return Buffer.from(pdf, "utf-8");
+  return Buffer.from(pdf, "latin1");
 }
 
 export function buildReportFilename(filters: ReportFilters, extension: "xls" | "pdf") {

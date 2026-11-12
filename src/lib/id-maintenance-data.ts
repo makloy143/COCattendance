@@ -243,7 +243,12 @@ export async function getIdPeriodActivity(period: IdPeriod): Promise<IdPeriodAct
   };
 }
 
-export async function listIdReleases(period: IdPeriod, filter?: { slingsOnly?: boolean }) {
+// Screens show the newest 300 rows. Reports pass `all` so their breakdowns
+// cover the same records as their totals.
+export async function listIdReleases(
+  period: IdPeriod,
+  filter?: { slingsOnly?: boolean; all?: boolean }
+) {
   const range = periodFilter(period);
   return prisma.idReleaseEntry.findMany({
     where: {
@@ -251,16 +256,16 @@ export async function listIdReleases(period: IdPeriod, filter?: { slingsOnly?: b
       ...(filter?.slingsOnly ? { slingsUsed: { gt: 0 } } : {}),
     },
     orderBy: [{ transactionDate: "desc" }, { createdAt: "desc" }],
-    take: 300,
+    ...(filter?.all ? {} : { take: 300 }),
   });
 }
 
-export async function listIdBadPrints(period: IdPeriod) {
+export async function listIdBadPrints(period: IdPeriod, filter?: { all?: boolean }) {
   const range = periodFilter(period);
   return prisma.idBadPrintEntry.findMany({
     where: range ? { datePrinted: range } : undefined,
     orderBy: [{ datePrinted: "desc" }, { createdAt: "desc" }],
-    take: 300,
+    ...(filter?.all ? {} : { take: 300 }),
   });
 }
 
