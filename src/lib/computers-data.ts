@@ -1,4 +1,5 @@
 import type { z } from "zod";
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import { IdStockError } from "@/lib/id-maintenance";
 import { formatManilaDateInput, getManilaDayStart } from "@/lib/date-utils";
@@ -337,6 +338,57 @@ export async function openComputerTicket(
     }
   }
   throw new IdStockError("Couldn't open a ticket. Try again.");
+}
+
+// Called when a maintenance ticket changes status. A closed ticket updates the
+// computer it was opened for: completed means working again, unrepairable
+// means defective. A cancelled ticket leaves the computer as it is.
+export async function syncComputerWithTicket(
+  tx: Prisma.TransactionClient,
+  ticket: {
+    id: string;
+    maintenanceNumber: string;
+    assetNumber: string;
+    previousStatus: string;
+    nextStatus: string;
+  },
+  actor?: string
+) {
+  if (ticket.previousStatus === ticket.nextStatus) return;
+  const nextComputerStatus =
+    ticket.nextStatus === "COMPLETED" ? "WORKING" : ticket.nextStatus === "UNREPAIRABLE" ? "DEFECTIVE" : null;
+  if (!nextComputerStatus) return;
+
+  const computer = await tx.computer.findUnique({ where: { assetTag: ticket.assetNumber } });
+  if (!computer || computer.status === "RETIRED" || computer.status === nextComputerStatus) return;
+
+  const otherOpen = await tx.maintenanceRecord.count({
+    where: {
+      assetNumber: ticket.assetNumber,
+      id: { not: ticket.id },
+      status: { in: ACTIVE_MAINTENANCE_STATUSES },
+    },
+  });
+  if (otherOpen > 0) return;
+
+  const from = COMPUTER_STATUS_LABELS[parseComputerStatus(computer.status)];
+  const to = COMPUTER_STATUS_LABELS[nextComputerStatus];
+  await tx.computer.update({
+    where: { id: computer.id },
+    data: {
+      status: nextComputerStatus,
+      issue: nextComputerStatus === "WORKING" ? null : computer.issue,
+      history: {
+        create: {
+          action: "TICKET",
+          detail: `Maintenance ticket ${ticket.maintenanceNumber} ${
+            ticket.nextStatus === "COMPLETED" ? "completed" : "closed as unrepairable"
+          }. Status changed from ${from} to ${to}.`,
+          actor: actor ?? null,
+        },
+      },
+    },
+  });
 }
 
 export async function deleteComputer(id: string) {

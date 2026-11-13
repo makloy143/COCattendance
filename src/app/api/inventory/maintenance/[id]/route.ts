@@ -15,6 +15,7 @@ import {
   serializeMaintenance,
   syncItemAssetStatus,
 } from "@/lib/maintenance";
+import { syncComputerWithTicket } from "@/lib/computers-data";
 import type { MaintenanceStatusValue } from "@/lib/maintenance-shared";
 import type { AssetStatus } from "@/lib/inventory";
 
@@ -256,6 +257,17 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         await syncItemAssetStatus(tx, previousItemId, "AVAILABLE");
       }
       await syncItemAssetStatus(tx, nextItemId, restoreStatus);
+      await syncComputerWithTicket(
+        tx,
+        {
+          id: record.id,
+          maintenanceNumber: record.maintenanceNumber,
+          assetNumber: record.assetNumber,
+          previousStatus: existing.status,
+          nextStatus: record.status,
+        },
+        session.username
+      );
 
       return tx.maintenanceRecord.findUniqueOrThrow({
         where: { id: record.id },
@@ -353,6 +365,17 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       });
 
       await syncItemAssetStatus(tx, existing.receivedItemId, restoreStatus);
+      await syncComputerWithTicket(
+        tx,
+        {
+          id: record.id,
+          maintenanceNumber: record.maintenanceNumber,
+          assetNumber: record.assetNumber,
+          previousStatus: existing.status,
+          nextStatus: record.status,
+        },
+        session.username
+      );
 
       return tx.maintenanceRecord.findUniqueOrThrow({
         where: { id: record.id },
