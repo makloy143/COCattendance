@@ -10,6 +10,7 @@ const ACTION_LABELS: Record<string, string> = {
   STATUS: "Status",
   ASSIGNED: "Assigned",
   EDITED: "Edited",
+  TICKET: "Ticket",
 };
 
 export default async function ComputerHistoryPage() {

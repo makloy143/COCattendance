@@ -15,6 +15,14 @@ import {
   type ComputerStatus,
   type ComputerStatusCounts,
 } from "@/lib/computers";
+import {
+  ACTIVE_MAINTENANCE_STATUSES,
+  buildCreateEvents,
+  generateMaintenanceNumber,
+  isUniqueConstraintError,
+  type MaintenancePriorityValue,
+} from "@/lib/maintenance";
+import type { ComputerTicket } from "@/lib/computers";
 import type { computerSchema } from "@/lib/validations";
 
 type ComputerInput = z.infer<typeof computerSchema>;
@@ -37,7 +45,7 @@ function findComputers(where: object = {}) {
   });
 }
 
-function toRow(record: ComputerRecord): ComputerRow {
+function toRow(record: ComputerRecord, ticket: ComputerTicket | null = null): ComputerRow {
   return {
     id: record.id,
     assetTag: record.assetTag,
@@ -60,11 +68,31 @@ function toRow(record: ComputerRecord): ComputerRow {
     warrantyEnd: record.warrantyEnd ? formatManilaDateInput(record.warrantyEnd) : "",
     notes: record.notes ?? "",
     updatedAt: record.updatedAt.toISOString(),
+    ticket,
   };
 }
 
+// Tickets carry the computer's asset tag as their asset number; that is the
+// link between the two modules.
+async function activeTickets(assetTags: string[]) {
+  if (assetTags.length === 0) return new Map<string, ComputerTicket>();
+  const records = await prisma.maintenanceRecord.findMany({
+    where: { assetNumber: { in: assetTags }, status: { in: ACTIVE_MAINTENANCE_STATUSES } },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, maintenanceNumber: true, status: true, assetNumber: true },
+  });
+  return new Map(
+    records.map((record) => [
+      record.assetNumber,
+      { id: record.id, number: record.maintenanceNumber, status: record.status },
+    ])
+  );
+}
+
 export async function listComputers(): Promise<ComputerRow[]> {
-  return (await findComputers()).map(toRow);
+  const records = await findComputers();
+  const tickets = await activeTickets(records.map((record) => record.assetTag));
+  return records.map((record) => toRow(record, tickets.get(record.assetTag) ?? null));
 }
 
 export async function listComputerLocations(): Promise<ComputerLocationRow[]> {
@@ -235,11 +263,80 @@ export async function updateComputer(id: string, input: ComputerInput, actor?: s
       },
       include: { location: true },
     });
-    return toRow(updated);
+    const tickets = await activeTickets([updated.assetTag]);
+    return toRow(updated, tickets.get(updated.assetTag) ?? null);
   } catch (error) {
     if (isUniqueViolation(error)) throw new IdStockError("That asset tag is already used.");
     throw error;
   }
+}
+
+export async function openComputerTicket(
+  id: string,
+  input: { problem: string; priority: MaintenancePriorityValue },
+  actor: string
+) {
+  const computer = await prisma.computer.findUnique({ where: { id }, include: { location: true } });
+  if (!computer) throw new IdStockError("Computer was not found.");
+  if (computer.status === "RETIRED") {
+    throw new IdStockError("A retired computer can't be sent to maintenance.");
+  }
+  const existing = (await activeTickets([computer.assetTag])).get(computer.assetTag);
+  if (existing) {
+    throw new IdStockError(`This computer already has an open ticket, ${existing.number}.`);
+  }
+
+  const problem = input.problem.trim();
+  const nextStatus = computer.status === "DEFECTIVE" ? "DEFECTIVE" : "UNDER_REPAIR";
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      return await prisma.$transaction(async (tx) => {
+        const maintenanceNumber = await generateMaintenanceNumber(tx);
+        const record = await tx.maintenanceRecord.create({
+          data: {
+            maintenanceNumber,
+            itemName: [computer.brand, computer.model].filter(Boolean).join(" ") || "Computer",
+            equipmentType: "Desktop Computer",
+            assetNumber: computer.assetTag,
+            serialNumber: computer.serialNumber,
+            problem,
+            dateReported: getManilaDayStart(),
+            reportedBy: actor,
+            location: [computerLocationLabel(computer.location), computer.seatLabel].filter(Boolean).join(", "),
+            priority: input.priority,
+            status: "OPEN",
+          },
+        });
+        await tx.maintenanceEvent.createMany({
+          data: buildCreateEvents({ status: "OPEN", createdBy: actor }).map((event) => ({
+            maintenanceId: record.id,
+            eventType: event.eventType,
+            message: event.message,
+            createdBy: event.createdBy ?? null,
+          })),
+        });
+        await tx.computer.update({
+          where: { id },
+          data: {
+            status: nextStatus,
+            issue: problem.slice(0, 300),
+            history: {
+              create: {
+                action: "TICKET",
+                detail: `Maintenance ticket ${maintenanceNumber} opened: ${problem}`,
+                actor,
+              },
+            },
+          },
+        });
+        return { id: record.id, number: maintenanceNumber, status: "OPEN" };
+      });
+    } catch (error) {
+      if (isUniqueConstraintError(error) && attempt < 4) continue;
+      throw error;
+    }
+  }
+  throw new IdStockError("Couldn't open a ticket. Try again.");
 }
 
 export async function deleteComputer(id: string) {

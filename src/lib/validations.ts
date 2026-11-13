@@ -769,6 +769,11 @@ export const computerSchema = z.object({
   notes: computerText(1000),
 });
 
+export const computerTicketSchema = z.object({
+  problem: z.string().trim().min(1, "Describe the problem").max(500, "Keep the problem under 500 characters"),
+  priority: z.enum(MAINTENANCE_PRIORITIES).default("MEDIUM"),
+});
+
 export const computerLocationSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(80, "Name is too long"),
   group: z.enum(COMPUTER_GROUPS),

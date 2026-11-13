@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Download, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Download, Pencil, Plus, Search, Trash2, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { ComputerStatusBadge } from "@/components/computer-status-badge";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,14 @@ import {
 } from "@/lib/computers";
 import { cn } from "@/lib/utils";
 
-type FormState = Omit<ComputerRow, "id" | "locationName" | "group" | "updatedAt">;
+type FormState = Omit<ComputerRow, "id" | "locationName" | "group" | "updatedAt" | "ticket">;
+
+const PRIORITIES = [
+  { value: "LOW", label: "Low" },
+  { value: "MEDIUM", label: "Medium" },
+  { value: "HIGH", label: "High" },
+  { value: "CRITICAL", label: "Critical" },
+] as const;
 
 const SELECT_CLASS = "h-9 w-full rounded-md border bg-white px-2 text-sm";
 const PAGE_SIZE = 50;
@@ -112,6 +120,9 @@ export function ComputerList({
     blankForm(locations.find((location) => location.active)?.id ?? "")
   );
   const [saving, setSaving] = useState(false);
+  const [ticketFor, setTicketFor] = useState<ComputerRow | null>(null);
+  const [problem, setProblem] = useState("");
+  const [priority, setPriority] = useState<string>("MEDIUM");
 
   const activeLocations = useMemo(() => locations.filter((location) => location.active), [locations]);
   const filterLocations = group ? locations.filter((location) => location.group === group) : locations;
@@ -140,8 +151,8 @@ export function ComputerList({
   }
 
   function openEdit(row: ComputerRow) {
-    const { id: _id, locationName: _name, group: _group, updatedAt: _updated, ...rest } = row;
-    void _id; void _name; void _group; void _updated;
+    const { id: _id, locationName: _name, group: _group, updatedAt: _updated, ticket: _ticket, ...rest } = row;
+    void _id; void _name; void _group; void _updated; void _ticket;
     setEditing(row);
     setForm(rest);
     setDialogOpen(true);
@@ -173,6 +184,37 @@ export function ComputerList({
       router.refresh();
     } catch {
       toast.error("Couldn't save the computer. Try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function openTicket(row: ComputerRow) {
+    setTicketFor(row);
+    setProblem(row.issue);
+    setPriority("MEDIUM");
+  }
+
+  async function submitTicket(event: React.FormEvent) {
+    event.preventDefault();
+    if (!ticketFor) return;
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/inventory/computers/${ticketFor.id}/ticket`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ problem, priority }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        toast.error(data.error ?? "Couldn't open the ticket. Try again.");
+        return;
+      }
+      toast.success(`Ticket ${data.number} opened`);
+      setTicketFor(null);
+      router.refresh();
+    } catch {
+      toast.error("Couldn't open the ticket. Try again.");
     } finally {
       setSaving(false);
     }
@@ -348,9 +390,30 @@ export function ComputerList({
                     <td className="px-4 py-2.5">
                       <ComputerStatusBadge status={row.status} />
                       {row.issue ? <p className="mt-1 max-w-48 truncate text-xs text-slate-500">{row.issue}</p> : null}
+                      {row.ticket ? (
+                        <Link
+                          href={`/maintenance/${row.ticket.id}`}
+                          className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-[#2f6fed] hover:underline"
+                        >
+                          <Wrench className="size-3" />
+                          {row.ticket.number}
+                        </Link>
+                      ) : null}
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="flex justify-end gap-1">
+                        {!row.ticket && row.status !== "RETIRED" ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`Open maintenance ticket for ${row.assetTag}`}
+                            title="Open maintenance ticket"
+                            onClick={() => openTicket(row)}
+                          >
+                            <Wrench className="size-4" />
+                          </Button>
+                        ) : null}
                         <Button
                           type="button"
                           variant="ghost"
@@ -513,6 +576,53 @@ export function ComputerList({
               </Button>
               <Button type="submit" disabled={saving} className="bg-[#16324f] text-white hover:bg-[#1d4168]">
                 {saving ? "Saving…" : editing ? "Save changes" : "Add computer"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={ticketFor !== null} onOpenChange={(open) => (open ? null : setTicketFor(null))}>
+        <DialogContent className="sm:max-w-md">
+          <form onSubmit={submitTicket} className="space-y-4">
+            <DialogHeader>
+              <DialogTitle>Open maintenance ticket</DialogTitle>
+              <DialogDescription>
+                {ticketFor?.assetTag} goes to the Maintenance portal as a new ticket
+                {ticketFor?.status === "WORKING" ? " and is marked Under repair." : "."}
+              </DialogDescription>
+            </DialogHeader>
+            <Field id="ticketProblem" label="Problem">
+              <Textarea
+                id="ticketProblem"
+                value={problem}
+                onChange={(event) => setProblem(event.target.value)}
+                placeholder="No display after power on"
+                rows={3}
+                maxLength={500}
+                required
+              />
+            </Field>
+            <Field id="ticketPriority" label="Priority">
+              <select
+                id="ticketPriority"
+                value={priority}
+                onChange={(event) => setPriority(event.target.value)}
+                className={SELECT_CLASS}
+              >
+                {PRIORITIES.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setTicketFor(null)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={saving} className="bg-[#16324f] text-white hover:bg-[#1d4168]">
+                {saving ? "Opening…" : "Open ticket"}
               </Button>
             </DialogFooter>
           </form>

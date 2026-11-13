@@ -215,7 +215,19 @@ export function ComputerDashboard({ data }: { data: ComputerDashboardData }) {
                       {row.issue ? ` · ${row.issue}` : ""}
                     </p>
                   </div>
-                  <ComputerStatusBadge status={row.status} />
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <ComputerStatusBadge status={row.status} />
+                    {row.ticket ? (
+                      <Link
+                        href={`/maintenance/${row.ticket.id}`}
+                        className="text-xs font-medium text-[#2f6fed] hover:underline"
+                      >
+                        {row.ticket.number}
+                      </Link>
+                    ) : (
+                      <span className="text-xs text-slate-400">No ticket</span>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>

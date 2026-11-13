@@ -53,6 +53,8 @@ export type ComputerLocationRow = {
   computerCount: number;
 };
 
+export type ComputerTicket = { id: string; number: string; status: string };
+
 export type ComputerRow = {
   id: string;
   assetTag: string;
@@ -75,6 +77,8 @@ export type ComputerRow = {
   warrantyEnd: string;
   notes: string;
   updatedAt: string;
+  // The open maintenance ticket for this computer, matched by asset tag.
+  ticket: ComputerTicket | null;
 };
 
 export type ComputerStatusCounts = Record<ComputerStatus, number> & { total: number };
