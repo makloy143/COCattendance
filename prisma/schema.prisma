@@ -617,3 +617,58 @@ model DepartmentCheckLog {
 
   @@unique([templateId, checkDate])
 }
+
+model ComputerLocation {
+  id        String     @id @default(cuid())
+  name      String
+  group     String     @default("DEPARTMENT")
+  sortOrder Int        @default(0)
+  active    Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  computers Computer[]
+
+  @@unique([group, name])
+  @@index([group, active, sortOrder])
+}
+
+model Computer {
+  id              String            @id @default(cuid())
+  assetTag        String            @unique
+  locationId      String
+  location        ComputerLocation  @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  seatLabel       String?
+  assignedTo      String?
+  brand           String?
+  model           String?
+  serialNumber    String?
+  processor       String?
+  ram             String?
+  storage         String?
+  operatingSystem String?
+  monitor         String?
+  status          String            @default("WORKING")
+  issue           String?
+  dateAcquired    DateTime?
+  warrantyEnd     DateTime?
+  notes           String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  history         ComputerHistory[]
+
+  @@index([locationId])
+  @@index([status])
+}
+
+model ComputerHistory {
+  id         String   @id @default(cuid())
+  computerId String
+  computer   Computer @relation(fields: [computerId], references: [id], onDelete: Cascade)
+  action     String
+  detail     String
+  actor      String?
+  createdAt  DateTime @default(now())
+
+  @@index([computerId, createdAt])
+  @@index([createdAt])
+}

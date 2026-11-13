@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { normalizeScheduleSlots } from "@/lib/schedule";
+import { COMPUTER_GROUPS, COMPUTER_STATUSES } from "@/lib/computers";
 import { ITEM_TYPES, ITEM_CATEGORIES, INK_COLORS, ID_ERROR_STATUSES, ASSET_STATUSES } from "@/lib/inventory";
 import {
   ID_BAD_PRINT_REASON_PRESETS,
@@ -735,5 +736,45 @@ export const inventoryDepartmentUpdateSchema = z.object({
     .min(1, "Department name is required")
     .max(80, "Department name is too long")
     .optional(),
+  active: z.boolean().optional(),
+});
+
+const computerText = (max: number) => z.string().trim().max(max, "That value is too long").optional().default("");
+const computerDate = z
+  .string()
+  .trim()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Enter a valid date")
+  .refine((value) => !Number.isNaN(new Date(`${value}T00:00:00Z`).getTime()), "Enter a valid date")
+  .or(z.literal(""))
+  .optional()
+  .default("");
+
+export const computerSchema = z.object({
+  assetTag: z.string().trim().min(1, "Asset tag is required").max(60, "Asset tag is too long"),
+  locationId: z.string().trim().min(1, "Choose a location"),
+  seatLabel: computerText(80),
+  assignedTo: computerText(120),
+  brand: computerText(80),
+  model: computerText(120),
+  serialNumber: computerText(120),
+  processor: computerText(120),
+  ram: computerText(60),
+  storage: computerText(80),
+  operatingSystem: computerText(80),
+  monitor: computerText(120),
+  status: z.enum(COMPUTER_STATUSES).default("WORKING"),
+  issue: computerText(300),
+  dateAcquired: computerDate,
+  warrantyEnd: computerDate,
+  notes: computerText(1000),
+});
+
+export const computerLocationSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(80, "Name is too long"),
+  group: z.enum(COMPUTER_GROUPS),
+});
+
+export const computerLocationUpdateSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(80, "Name is too long").optional(),
   active: z.boolean().optional(),
 });

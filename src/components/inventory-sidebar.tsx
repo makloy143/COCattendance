@@ -5,6 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { InventoryDashboardSwitcher } from "@/components/inventory-dashboard-switcher";
 import { IdMaintenanceShell } from "@/components/id-maintenance-shell";
 import { InkOfficeShell } from "@/components/ink-office-shell";
+import { ComputerShell } from "@/components/computer-shell";
+import { isComputerPath } from "@/lib/computers";
 import { isIdMaintenancePath, isInkMaintenancePath } from "@/lib/id-maintenance";
 import {
   ArrowLeftToLine,
@@ -176,6 +178,9 @@ export function InventoryShell({
   }
   if (isInkMaintenancePath(pathname)) {
     return <InkOfficeShell username={username}>{children}</InkOfficeShell>;
+  }
+  if (isComputerPath(pathname)) {
+    return <ComputerShell username={username}>{children}</ComputerShell>;
   }
 
   return (

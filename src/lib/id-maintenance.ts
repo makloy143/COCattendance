@@ -244,6 +244,13 @@ export const INVENTORY_DASHBOARDS = [
     available: true,
     description: "Ink bottles received, released, and remaining by model",
   },
+  {
+    id: "computers",
+    label: "Computers",
+    href: "/inventory/computers",
+    available: true,
+    description: "COMLAB, Library, and department computers",
+  },
 ] as const;
 
 export type InventoryDashboardId = (typeof INVENTORY_DASHBOARDS)[number]["id"];
@@ -266,6 +273,9 @@ export function inventoryDashboardIdFromPath(pathname: string): InventoryDashboa
   }
   if (pathname === "/inventory/inks" || pathname.startsWith("/inventory/inks/")) {
     return "ink";
+  }
+  if (pathname === "/inventory/computers" || pathname.startsWith("/inventory/computers/")) {
+    return "computers";
   }
   return "general";
 }
